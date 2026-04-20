@@ -1,88 +1,61 @@
-Launch Editor: https://editor.genesisframeworks.com/
+Genesis Image Converter
+=======================
 
-Image to SVG Converter - 3D Print Ready
-A Chrome extension that converts images to SVG files optimized for 3D printing and Tinkercad import.
-🚀 Features
+Browser-based tool that converts images (PNG/JPG) and HTML snippets into multi-color SVG layers and 3D-printable models, optimized for Bambu Lab / Bambu Studio workflows.
 
-3D Print Optimized: Smart presets for clean, printable SVG generation
-Tinkercad Ready: Auto-optimized exports that import perfectly into Tinkercad
-Multi-Color Support: Export individual layers for multi-color 3D printing
-Beginner Friendly: Quick start guide and smart defaults
-Expert Controls: Advanced options for power users
-Real-time Preview: See results instantly with quality feedback
+Launch: https://editor.genesisframeworks.com/
 
-📐 Perfect For
+## Tabs
 
-Converting logos (Batman, Superman, etc.) for 3D printing
-Multi-color FDM print preparation
-Tinkercad project integration
-Clean SVG generation from raster images
+The app is a static multi-tab site. The main shell is `converter.html` (loaded via `index.html`); each tab is an HTML partial in `modules/tabs/html/` driven by a controller in `modules/tabs/`:
 
-🛠️ Installation
+- **Logo** — HTML or PNG input → color-layered SVG → Three.js 3D preview → OBJ / 3MF / STL export. Backing-plate and per-layer thickness controls for multi-filament AMS printing.
+- **SVG** — Image tracing via ImageTracer.js with presets for 3D-print, sharp detail, silhouette, multi-color.
+- **Raster** — Raster-level color quantization utilities.
+- **Bulk** — Batch conversion across multiple inputs.
 
-Download all extension files to a folder
-Open Chrome and navigate to chrome://extensions/
-Enable "Developer mode" (top right toggle)
-Click "Load unpacked" and select your extension folder
-The extension is now installed and ready to use!
+## 3D export formats
 
-🎯 Usage
-Quick Start
+- **3MF** — Bambu Studio native; embeds per-layer colors via `<m:basematerials>`.
+- **OBJ + MTL** — General-purpose 3D model with materials.
+- **STL** — Per-layer binary STL files for manual filament assignment. Named `{image}_{thickness}mm_L{n}_{hex}.stl`.
 
-Right-click any image on the web
-Select "Convert image to SVG for 3D printing..."
-The converter opens with optimal 3D Print settings
-Click "Generate 3D-Ready Preview"
-Download "Tinkercad Optimized" for best results
+The Logo tab can optionally open the exported 3MF directly in Bambu Studio (macOS/Windows) via a protocol handler bridge (`modules/bambu-bridge.js`).
 
-For Multi-Color 3D Printing
+## Running locally
 
-Follow quick start steps above
-Adjust "Color Layers" slider (2-4 recommended)
-Use "Download All Layers" for separate color files
-Print each layer in different colored filament
+Static site — serve any way you like:
 
-Advanced Usage
+```bash
+npx http-server . -p 8080
+# or
+python -m http.server 8080
+```
 
-Select "Advanced Custom" preset for full control
-Adjust curve precision, shape size, and smoothing
-Use quality indicators to optimize for your needs
+Tests use Playwright:
 
-🎨 Presets Explained
+```bash
+npm install
+npx playwright test
+```
 
-📐 3D Print (Tinkercad Ready): Optimized for clean extrusion and Tinkercad import
-🌊 Smooth Curves: Artistic, flowing shapes with soft edges
-⚡ Sharp Details: Preserves crisp edges and fine details
-🎭 High Contrast Silhouette: Bold, two-tone silhouettes
-🎨 Multi-Color Detailed: Preserves complex color schemes
-🎯 Simple Colors: Reduces to 4 clean colors
+## Presets (SVG tab)
 
-📊 Quality Guide
-The extension provides real-time quality feedback:
+- 3D Print (Tinkercad Ready) — clean extrusion, minimal paths
+- Smooth Curves — flowing, soft edges
+- Sharp Details — preserves crisp edges
+- High Contrast Silhouette — bold two-tone
+- Multi-Color Detailed / Simple Colors — color-layer preservation
 
-🏆 Excellent (< 50 paths): Perfect for 3D printing, fast Tinkercad loading
-👍 Good (50-150 paths): Works well, minor complexity
-⚠️ Complex (150+ paths): Consider increasing simplification
+## Tips
 
-🔧 Tips for Best Results
+- Use simple, high-contrast inputs for the cleanest prints.
+- Limit colors to 2-4 for practical multi-filament printing.
+- Backing plate (Logo tab) gives letters/graphics a solid foundation to sit on.
 
-Use simple, high-contrast images (logos work best)
-Increase simplification level for cleaner 3D prints
-Remove backgrounds for floating logos
-Limit colors to 2-4 for practical multi-color printing
-Test in Tinkercad before printing large objects
+## Technical
 
-📁 File Outputs
-
-Tinkercad Optimized: Single file, perfect for Tinkercad import
-Individual Layers: Separate SVG for each color layer
-Silhouette: Single-color outline version
-Complete SVG: All layers in one file
-
-🏗️ Technical Details
-Built with:
-
-ImageTracer.js v1.2.6 for raster-to-vector conversion
-Custom 3D printing optimizations
-Smart path simplification algorithms
-Advanced color merging and cleanup
+- `imagetracer_v1.2.6.js` — raster-to-vector tracing
+- Three.js — 3D preview and geometry (`modules/preview3d.js`)
+- `modules/export3d.js` — OBJ / 3MF / STL generation (including in-browser ZIP for 3MF)
+- `modules/layer-layout.js` — per-layer Z stacking, base/backing layer handling
