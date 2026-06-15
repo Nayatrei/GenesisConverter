@@ -2,6 +2,7 @@ import { createBulkTabController } from './modules/tabs/bulk-tab.js';
 import { createRasterTabController } from './modules/tabs/raster-tab.js';
 import { createSvgTabController } from './modules/tabs/svg-tab.js';
 import { createLogoTabController } from './modules/tabs/logo-tab.js?v=18';
+import { createPdfTabController } from './modules/tabs/pdf-tab.js';
 import {
     getDataUrlSize,
     getImageFormat,
@@ -13,7 +14,7 @@ import { createElements } from './modules/app-elements.js?v=5';
 import { createState } from './modules/app-state.js';
 
 async function loadTabPartials() {
-    const tabs = ['svg', 'logo', 'raster', 'bulk'];
+    const tabs = ['svg', 'logo', 'raster', 'bulk', 'pdf'];
     await Promise.all(tabs.map(async (name) => {
         const res = await fetch(`modules/tabs/html/tab-${name}.html?v=20260324j`);
         const html = await res.text();
@@ -192,7 +193,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             elements.outputSection.style.display = 'flex';
         }
 
-        const hideOriginal = isSvgLike || state.activeTab === 'raster';
+        const hideOriginal = isSvgLike || state.activeTab === 'raster' || state.activeTab === 'pdf';
         setOriginalPanelMode(state.activeTab === 'bulk' ? 'bulk' : hideOriginal ? 'svg' : 'single');
     }
 
@@ -200,8 +201,12 @@ document.addEventListener('DOMContentLoaded', async () => {
         const isBulk = state.activeTab === 'bulk';
         const isLogo = state.activeTab === 'logo';
         const isSvg = state.activeTab === 'svg';
+        const isPdf = state.activeTab === 'pdf';
         const usesConversionSidebar = isSvg || isLogo;
 
+        if (elements.sidebarImportSection) {
+            elements.sidebarImportSection.classList.toggle('hidden', isPdf);
+        }
         if (elements.importPanelTitle) {
             elements.importPanelTitle.textContent = isBulk ? '1. Load Folder' : '1. Load Image';
         }
@@ -242,7 +247,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             elements.sidebar.logoResetBtn.classList.remove('hidden');
             elements.sidebar.logoResetBtn.style.display = isLogo && state.logo.isDirty ? 'inline' : 'none';
         }
-        if (elements.resolutionNotice && isBulk) {
+        if (elements.resolutionNotice && (isBulk || isPdf)) {
             elements.resolutionNotice.classList.add('hidden');
         }
         if (elements.importBtn) {
@@ -359,6 +364,13 @@ document.addEventListener('DOMContentLoaded', async () => {
         onRasterExportStateChanged: rasterTab.updateExportScaleDisplay
     });
 
+    const pdfTab = createPdfTabController({
+        state,
+        elements,
+        showLoader,
+        downloadBlob
+    });
+
     function switchExportTab(target) {
         state.activeTab = target;
 
@@ -377,7 +389,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
 
         const isSvgLike = target === 'svg' || target === 'logo';
-        const hideOriginalPanel = isSvgLike || target === 'raster';
+        const hideOriginalPanel = isSvgLike || target === 'raster' || target === 'pdf';
         setOriginalPanelMode(target === 'bulk' ? 'bulk' : hideOriginalPanel ? 'svg' : 'single');
         syncImportPanel();
         syncWorkspaceView();
@@ -390,6 +402,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             logoTab.onTabActivated();
         } else if (target === 'raster' && hasSingleImageLoaded()) {
             rasterTab.onTabActivated();
+        } else if (target === 'pdf') {
+            pdfTab.onTabActivated();
         } else {
             bulkTab.onTabActivated();
         }
@@ -595,10 +609,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         bulkTab.bindEvents();
         svgTab.bindEvents();
         logoTab.bindEvents();
+        pdfTab.bindEvents();
 
         // Detect default tab from the HTML filename so svg.html, logo.html, etc. open the right tab
         const _tabFromPath = (function() {
-            const validTabs = ['svg', 'logo', 'raster', 'bulk'];
+            const validTabs = ['svg', 'logo', 'raster', 'bulk', 'pdf'];
             const pageName = window.location.pathname.split('/').pop().replace('.html', '').toLowerCase();
             return validTabs.includes(pageName) ? pageName : 'svg';
         })();

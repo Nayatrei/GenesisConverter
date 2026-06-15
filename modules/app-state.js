@@ -105,6 +105,14 @@ export function createState() {
             }
         },
 
+        // ── PDF tab state ──────────────────────────────────────────────────────
+        pdf: {
+            files: [],
+            outputName: 'merged.pdf',
+            isMerging: false,
+            lastMergedPageCount: 0
+        },
+
         // ── 3D preview state (SVG tab) ─────────────────────────────────────────
         objPreview: obj3dPreview(),
 

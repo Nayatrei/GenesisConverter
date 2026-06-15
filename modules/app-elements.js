@@ -118,6 +118,23 @@ export function createElements() {
         sizeEstJpg: document.getElementById('size-est-jpg'),
         sizeEstTga: document.getElementById('size-est-tga'),
 
+        // PDF tab
+        pdf: {
+            addBtn: document.getElementById('pdf-add-btn'),
+            fileInput: document.getElementById('pdf-file-input'),
+            dropzone: document.getElementById('pdf-dropzone'),
+            status: document.getElementById('pdf-status'),
+            fileCount: document.getElementById('pdf-file-count'),
+            pageCount: document.getElementById('pdf-page-count'),
+            errorCount: document.getElementById('pdf-error-count'),
+            emptyState: document.getElementById('pdf-empty-state'),
+            fileList: document.getElementById('pdf-file-list'),
+            outputName: document.getElementById('pdf-output-name'),
+            footerStatus: document.getElementById('pdf-footer-status'),
+            mergeBtn: document.getElementById('pdf-merge-btn'),
+            mergeFooter: document.getElementById('pdf-merge-footer')
+        },
+
         // SVG tab
         svg: {
             sidebar: {
@@ -294,6 +311,7 @@ export function createElements() {
         exportPanels: document.querySelectorAll('.export-panel'),
         svgExportFooter: document.getElementById('svg-export-footer'),
         rasterDownloadFooter: document.getElementById('download-footer'),
-        bulkDownloadFooter: document.getElementById('bulk-download-footer')
+        bulkDownloadFooter: document.getElementById('bulk-download-footer'),
+        pdfMergeFooter: document.getElementById('pdf-merge-footer')
     };
 }
