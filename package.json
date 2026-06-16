@@ -9,6 +9,7 @@
     "@playwright/test": "^1.54.0"
   },
   "dependencies": {
-    "pdf-lib": "^1.17.1"
+    "pdf-lib": "^1.17.1",
+    "pdfjs-dist": "^4.7.76"
   }
 }

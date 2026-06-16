@@ -5,6 +5,13 @@ import {
 } from './pdf-utils.js';
 
 let pdfLibPromise = null;
+let pdfJsPromise = null;
+
+// How many page thumbnails to rasterize per file. Pages beyond this stay
+// controllable via the range box; rendering hundreds of pages would be slow.
+const MAX_THUMBS = 60;
+// Render width (px) of each thumbnail before it's stored as a data URL.
+const THUMB_WIDTH = 104;
 
 async function getPDFDocument() {
     if (!pdfLibPromise) {
@@ -12,6 +19,17 @@ async function getPDFDocument() {
             .then((module) => module.PDFDocument);
     }
     return pdfLibPromise;
+}
+
+async function getPdfJs() {
+    if (!pdfJsPromise) {
+        pdfJsPromise = import('../../vendor/pdfjs/pdf.min.mjs').then((pdfjs) => {
+            pdfjs.GlobalWorkerOptions.workerSrc =
+                new URL('../../vendor/pdfjs/pdf.worker.min.mjs', import.meta.url).href;
+            return pdfjs;
+        });
+    }
+    return pdfJsPromise;
 }
 
 export function createPdfTabController({
@@ -97,10 +115,11 @@ export function createPdfTabController({
         renderPreview();
     }
 
-    // Column 2 mirror of the queue: shows each source file in merge order with
-    // the pages it contributes. Built from the same state.pdf.files the sidebar
-    // queue uses — no extra source of truth. DOM-built (no innerHTML) because
-    // file names are user-controlled.
+    // Column 2: each source file in merge order as a grid of clickable page
+    // thumbnails. Built from the same state.pdf.files the sidebar queue uses —
+    // no extra source of truth. DOM-built (no innerHTML) because file names are
+    // user-controlled. Thumbnails come from item.thumbs (rendered by pdf.js);
+    // until they arrive, cells show a numbered loading placeholder.
     function renderPreview() {
         const list = elements.pdf.previewList;
         if (!list) return;
@@ -143,33 +162,167 @@ export function createPdfTabController({
                 ? 'Reading…'
                 : item.error
                     ? item.error
-                    : `${item.selectedIndices.length} of ${item.pageCount} page${item.pageCount === 1 ? '' : 's'}`;
+                    : `${item.selectedIndices.length} of ${item.pageCount} page${item.pageCount === 1 ? '' : 's'} selected`;
             info.appendChild(metaEl);
 
             top.appendChild(info);
             card.appendChild(top);
 
-            if (isReady && item.selectedIndices.length) {
-                const pages = document.createElement('div');
-                pages.className = 'pdf-preview-pages';
-                const MAX_CHIPS = 30;
-                item.selectedIndices.slice(0, MAX_CHIPS).forEach((pageIndex) => {
-                    const chip = document.createElement('span');
-                    chip.className = 'pdf-preview-page';
-                    chip.textContent = String(pageIndex + 1);
-                    pages.appendChild(chip);
-                });
-                if (item.selectedIndices.length > MAX_CHIPS) {
-                    const more = document.createElement('span');
-                    more.className = 'pdf-preview-more';
-                    more.textContent = `+${item.selectedIndices.length - MAX_CHIPS}`;
-                    pages.appendChild(more);
-                }
-                card.appendChild(pages);
+            if (isReady && item.pageCount > 0) {
+                card.appendChild(buildThumbGrid(item));
             }
 
             list.appendChild(card);
         });
+    }
+
+    function buildThumbGrid(item) {
+        const selected = new Set(item.selectedIndices);
+        const thumbCount = Math.min(item.pageCount, MAX_THUMBS);
+
+        const grid = document.createElement('div');
+        grid.className = 'pdf-thumb-grid';
+
+        for (let pageIndex = 0; pageIndex < thumbCount; pageIndex += 1) {
+            const cell = document.createElement('button');
+            cell.type = 'button';
+            cell.className = 'pdf-thumb';
+            cell.dataset.id = item.id;
+            cell.dataset.page = String(pageIndex);
+            const included = selected.has(pageIndex);
+            cell.classList.toggle('is-included', included);
+            cell.setAttribute('aria-pressed', String(included));
+            cell.setAttribute('aria-label', `Page ${pageIndex + 1}${included ? ' (included)' : ''}`);
+
+            const frame = document.createElement('span');
+            frame.className = 'pdf-thumb-frame';
+            const dataUrl = item.thumbs && item.thumbs[pageIndex];
+            if (dataUrl) {
+                const img = document.createElement('img');
+                img.className = 'pdf-thumb-img';
+                img.alt = '';
+                img.loading = 'lazy';
+                img.src = dataUrl;
+                frame.appendChild(img);
+            } else {
+                frame.classList.add('is-loading');
+            }
+            cell.appendChild(frame);
+
+            const num = document.createElement('span');
+            num.className = 'pdf-thumb-num';
+            num.textContent = String(pageIndex + 1);
+            cell.appendChild(num);
+
+            const check = document.createElement('span');
+            check.className = 'pdf-thumb-check';
+            check.setAttribute('aria-hidden', 'true');
+            check.textContent = '✓';
+            cell.appendChild(check);
+
+            grid.appendChild(cell);
+        }
+
+        if (item.pageCount > MAX_THUMBS) {
+            const more = document.createElement('div');
+            more.className = 'pdf-thumb-overflow';
+            more.textContent = `+${item.pageCount - MAX_THUMBS} more pages — use the range box to include them.`;
+            grid.appendChild(more);
+        }
+
+        return grid;
+    }
+
+    // Rasterize each page to a small data URL via pdf.js, caching on item.thumbs.
+    // Non-blocking: pages are patched into existing cells as they finish so the
+    // merge stays usable while previews stream in.
+    async function renderThumbnails(item) {
+        if (item.thumbStatus === 'rendering' || item.thumbStatus === 'done') return;
+        item.thumbStatus = 'rendering';
+
+        let doc = null;
+        try {
+            const pdfjs = await getPdfJs();
+            doc = await pdfjs.getDocument({
+                data: item.bytes.slice(),
+                isEvalSupported: false,
+                disableAutoFetch: true,
+                disableStream: true
+            }).promise;
+
+            const count = Math.min(doc.numPages, MAX_THUMBS);
+            if (!Array.isArray(item.thumbs)) {
+                item.thumbs = new Array(item.pageCount).fill(null);
+            }
+
+            for (let pageNumber = 1; pageNumber <= count; pageNumber += 1) {
+                if (!state.pdf.files.includes(item)) break; // file was removed
+
+                const page = await doc.getPage(pageNumber);
+                const base = page.getViewport({ scale: 1 });
+                const scale = THUMB_WIDTH / base.width;
+                const viewport = page.getViewport({ scale });
+                const canvas = document.createElement('canvas');
+                canvas.width = Math.max(1, Math.ceil(viewport.width));
+                canvas.height = Math.max(1, Math.ceil(viewport.height));
+                const ctx = canvas.getContext('2d');
+                await page.render({ canvasContext: ctx, viewport }).promise;
+                item.thumbs[pageNumber - 1] = canvas.toDataURL('image/png');
+                page.cleanup();
+                patchThumbCell(item, pageNumber - 1);
+            }
+
+            item.thumbStatus = 'done';
+        } catch (error) {
+            console.error('PDF thumbnail render error:', error);
+            item.thumbStatus = 'error';
+        } finally {
+            if (doc) {
+                try { await doc.destroy(); } catch { /* ignore */ }
+            }
+        }
+    }
+
+    // Swap a finished thumbnail into its existing cell without rebuilding the grid.
+    function patchThumbCell(item, pageIndex) {
+        const dataUrl = item.thumbs && item.thumbs[pageIndex];
+        if (!dataUrl) return;
+        const cell = elements.pdf.previewList?.querySelector(
+            `.pdf-thumb[data-id="${item.id}"][data-page="${pageIndex}"]`
+        );
+        const frame = cell?.querySelector('.pdf-thumb-frame');
+        if (!frame || frame.querySelector('img')) return;
+        frame.classList.remove('is-loading');
+        const img = document.createElement('img');
+        img.className = 'pdf-thumb-img';
+        img.alt = '';
+        img.src = dataUrl;
+        frame.appendChild(img);
+    }
+
+    // Click a thumbnail -> toggle that page in/out, then re-derive the range text
+    // so the sidebar range box stays the single canonical expression of selection.
+    function togglePageSelection(item, pageIndex) {
+        if (item.status !== 'ready') return;
+        const selected = new Set(item.selectedIndices);
+        if (selected.has(pageIndex)) {
+            selected.delete(pageIndex);
+        } else {
+            selected.add(pageIndex);
+        }
+        item.selectedIndices = [...selected].sort((a, b) => a - b);
+        item.rangeText = indicesToRangeText(item.selectedIndices, item.pageCount);
+        item.error = '';
+
+        const row = elements.pdf.fileList?.querySelector(`.pdf-file-row[data-id="${item.id}"]`);
+        if (row) {
+            const input = row.querySelector('.pdf-range-input');
+            if (input) input.value = item.rangeText;
+            updateRowRangeState(row, item);
+        } else {
+            renderSummary();
+            renderPreview();
+        }
     }
 
     function createFileRow(item, index) {
@@ -265,7 +418,9 @@ export function createPdfTabController({
                 rangeText: 'all',
                 selectedIndices: [],
                 status: 'loading',
-                error: ''
+                error: '',
+                thumbs: null,
+                thumbStatus: 'idle'
             };
             state.pdf.files.push(item);
             return item;
@@ -289,6 +444,8 @@ export function createPdfTabController({
             item.status = 'ready';
             item.error = '';
             updateItemRange(item);
+            // Fire-and-forget: stream page thumbnails in without blocking merge.
+            renderThumbnails(item);
         } catch (error) {
             console.error('PDF read error:', error);
             item.bytes = null;
@@ -428,6 +585,15 @@ export function createPdfTabController({
             renderFileList();
         });
 
+        elements.pdf.previewList?.addEventListener('click', (event) => {
+            const cell = event.target.closest('.pdf-thumb');
+            if (!cell) return;
+            const item = state.pdf.files.find((candidate) => candidate.id === cell.dataset.id);
+            const pageIndex = Number.parseInt(cell.dataset.page, 10);
+            if (!item || Number.isNaN(pageIndex)) return;
+            togglePageSelection(item, pageIndex);
+        });
+
         elements.pdf.outputName?.addEventListener('input', () => {
             state.pdf.outputName = elements.pdf.outputName.value;
         });
@@ -449,6 +615,31 @@ export function createPdfTabController({
 function isPdfFile(file) {
     if (!file) return false;
     return file.type === 'application/pdf' || /\.pdf$/i.test(file.name || '');
+}
+
+// Compress sorted 0-based page indices into the compact range syntax that
+// parsePdfPageRange understands ("all", "1-3,5"). Keeps the sidebar range box
+// and the click-to-select grid as two views of the same selection.
+function indicesToRangeText(indices, pageCount) {
+    if (!indices.length) return '';
+    if (indices.length === pageCount) return 'all';
+
+    const sorted = [...indices].sort((a, b) => a - b);
+    const parts = [];
+    let start = sorted[0];
+    let prev = sorted[0];
+
+    for (let k = 1; k < sorted.length; k += 1) {
+        if (sorted[k] === prev + 1) {
+            prev = sorted[k];
+            continue;
+        }
+        parts.push(start === prev ? `${start + 1}` : `${start + 1}-${prev + 1}`);
+        start = sorted[k];
+        prev = sorted[k];
+    }
+    parts.push(start === prev ? `${start + 1}` : `${start + 1}-${prev + 1}`);
+    return parts.join(',');
 }
 
 function escapeHtml(value) {

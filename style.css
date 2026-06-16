@@ -6858,29 +6858,110 @@ body.app-shell-v2 .pdf-v2 {
 .pdf-preview-card-meta { color: var(--pdf-faint); font-size: 0.76rem; font-weight: 700; }
 .pdf-preview-card[data-status="error"] .pdf-preview-card-meta { color: var(--pdf-error); }
 
-.pdf-preview-pages { display: flex; flex-wrap: wrap; gap: 0.3rem; }
-.pdf-preview-page {
+/* Clickable page thumbnail grid (rendered by pdf.js) */
+.pdf-thumb-grid {
     display: grid;
-    place-items: center;
-    min-width: 1.6rem;
-    height: 1.6rem;
-    padding: 0 0.35rem;
+    grid-template-columns: repeat(auto-fill, minmax(62px, 1fr));
+    gap: 0.5rem;
+}
+.pdf-thumb {
+    position: relative;
+    display: block;
+    padding: 0;
+    border: none;
+    background: none;
+    text-align: left;
+    cursor: pointer;
+    border-radius: 9px;
+}
+.pdf-thumb-frame {
+    display: block;
+    position: relative;
+    aspect-ratio: 3 / 4;
+    overflow: hidden;
     border: 1px solid var(--pdf-line);
-    border-radius: 7px;
+    border-radius: 9px;
     background: rgba(255, 255, 255, 0.04);
+    transition: border-color 160ms ease, box-shadow 160ms ease,
+                transform 160ms cubic-bezier(0.16, 1, 0.3, 1),
+                opacity 160ms ease, filter 160ms ease;
+}
+.pdf-thumb-img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    background: #fff;
+}
+.pdf-thumb-frame.is-loading {
+    background: linear-gradient(100deg,
+        rgba(255, 255, 255, 0.03) 30%,
+        rgba(255, 255, 255, 0.08) 50%,
+        rgba(255, 255, 255, 0.03) 70%);
+    background-size: 200% 100%;
+    animation: pdf-thumb-shimmer 1.2s ease-in-out infinite;
+}
+@keyframes pdf-thumb-shimmer {
+    from { background-position: 200% 0; }
+    to   { background-position: -200% 0; }
+}
+.pdf-thumb:hover .pdf-thumb-frame { transform: translateY(-1px); border-color: var(--pdf-line-strong); }
+
+.pdf-thumb-num {
+    position: absolute;
+    left: 4px;
+    bottom: 4px;
+    padding: 0.05rem 0.32rem;
+    border-radius: 5px;
+    background: rgba(2, 6, 23, 0.8);
     color: var(--pdf-muted);
     font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    font-size: 0.6rem;
+    font-weight: 700;
+    pointer-events: none;
+}
+.pdf-thumb-check {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    width: 1.05rem;
+    height: 1.05rem;
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    background: var(--case-accent, #f87171);
+    color: #0b0e14;
+    font-size: 0.62rem;
+    font-weight: 900;
+    opacity: 0;
+    transform: scale(0.6);
+    transition: opacity 160ms ease, transform 160ms cubic-bezier(0.34, 1.56, 0.64, 1);
+    pointer-events: none;
+}
+
+/* Excluded pages dim out; included pages get the accent ring + check badge. */
+.pdf-thumb:not(.is-included) .pdf-thumb-frame { opacity: 0.42; filter: grayscale(0.4); }
+.pdf-thumb.is-included .pdf-thumb-frame {
+    border-color: var(--case-accent, #f87171);
+    box-shadow: 0 0 0 2px rgba(var(--case-accent-rgb, 248, 113, 113), 0.5);
+}
+.pdf-thumb.is-included .pdf-thumb-check { opacity: 1; transform: scale(1); }
+.pdf-thumb:focus-visible { outline: none; }
+.pdf-thumb:focus-visible .pdf-thumb-frame {
+    border-color: var(--case-accent, #f87171);
+    box-shadow: 0 0 0 2px rgba(var(--case-accent-rgb, 248, 113, 113), 0.65);
+}
+
+.pdf-thumb-overflow {
+    grid-column: 1 / -1;
+    margin-top: 0.15rem;
+    color: var(--pdf-faint);
     font-size: 0.72rem;
     font-weight: 700;
 }
-.pdf-preview-more {
-    display: grid;
-    place-items: center;
-    height: 1.6rem;
-    padding: 0 0.5rem;
-    color: var(--pdf-faint);
-    font-size: 0.72rem;
-    font-weight: 800;
+
+@media (prefers-reduced-motion: reduce) {
+    .pdf-thumb-frame.is-loading { animation: none; }
 }
 
 /* Loader overlay — match palette */
