@@ -167,23 +167,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         return Boolean(elements.sourceImage?.getAttribute('src'));
     }
 
-    function setOriginalPanelMode(mode) {
-        const showBulk = mode === 'bulk';
-        const showPanel = mode === 'single'; // hide for both 'bulk' and 'svg'
-        if (elements.originalImagePanel) {
-            elements.originalImagePanel.classList.toggle('hidden', !showPanel);
-        }
-        if (elements.singleOriginalView) {
-            elements.singleOriginalView.classList.toggle('hidden', showBulk);
-        }
-        if (elements.bulkOriginalView) {
-            elements.bulkOriginalView.classList.toggle('hidden', !showBulk);
-        }
-    }
-
+    // The active tab's case (modules/tab-cases.js) owns which original-image
+    // panel mode shows in column 2 — applied via applyCurrentTabCase below.
+    // This only reveals the workspace shell (welcome -> main/output).
     function syncWorkspaceView() {
-        const isSvgLike = state.activeTab === 'svg' || state.activeTab === 'logo';
-
         if (elements.welcomeScreen) {
             elements.welcomeScreen.style.display = 'none';
         }
@@ -193,67 +180,16 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (elements.outputSection) {
             elements.outputSection.style.display = 'flex';
         }
-
-        const hideOriginal = isSvgLike || state.activeTab === 'raster' || state.activeTab === 'pdf';
-        setOriginalPanelMode(state.activeTab === 'bulk' ? 'bulk' : hideOriginal ? 'svg' : 'single');
     }
 
-    function syncImportPanel() {
-        const isBulk = state.activeTab === 'bulk';
-        const isLogo = state.activeTab === 'logo';
-        const isSvg = state.activeTab === 'svg';
-        const isPdf = state.activeTab === 'pdf';
-        const usesConversionSidebar = isSvg || isLogo;
-
-        if (elements.sidebarImportSection) {
-            elements.sidebarImportSection.classList.toggle('hidden', isPdf);
-        }
-        if (elements.importPanelTitle) {
-            elements.importPanelTitle.textContent = isBulk ? '1. Load Folder' : '1. Load Image';
-        }
-        if (elements.importBtnLabel) {
-            elements.importBtnLabel.textContent = isBulk ? 'Choose Folder' : 'Import From Device';
-        }
-        if (elements.importModeCopy) {
-            elements.importModeCopy.textContent = isBulk
-                ? `Scan a folder of ${IMPORTABLE_IMAGE_PROMPT} for batch resize and ZIP export.`
-                : `Choose a single image from your device or paste a direct image URL. Supported imports: ${IMPORTABLE_IMAGE_PROMPT}.`;
-        }
-        if (elements.importUrlShell) {
-            elements.importUrlShell.classList.toggle('hidden', isBulk);
-        }
-        if (elements.sidebar?.adjustSection) {
-            elements.sidebar.adjustSection.classList.toggle('hidden', !usesConversionSidebar);
-        }
-        if (elements.sidebar?.footer) {
-            elements.sidebar.footer.classList.toggle('hidden', !usesConversionSidebar);
-        }
-        if (elements.sidebar?.svgControls) {
-            elements.sidebar.svgControls.classList.toggle('hidden', !isSvg);
-        }
-        if (elements.sidebar?.logoControls) {
-            elements.sidebar.logoControls.classList.toggle('hidden', !isLogo);
-        }
-        if (elements.sidebar?.svgActions) {
-            elements.sidebar.svgActions.classList.toggle('hidden', !isSvg);
-        }
-        if (elements.sidebar?.logoActions) {
-            elements.sidebar.logoActions.classList.toggle('hidden', !isLogo);
-        }
-        if (elements.sidebar?.svgResetBtn) {
-            elements.sidebar.svgResetBtn.classList.remove('hidden');
-            elements.sidebar.svgResetBtn.style.display = isSvg && state.isDirty ? 'inline' : 'none';
-        }
-        if (elements.sidebar?.logoResetBtn) {
-            elements.sidebar.logoResetBtn.classList.remove('hidden');
-            elements.sidebar.logoResetBtn.style.display = isLogo && state.logo.isDirty ? 'inline' : 'none';
-        }
-        if (elements.resolutionNotice && (isBulk || isPdf)) {
-            elements.resolutionNotice.classList.add('hidden');
-        }
-        if (elements.importBtn) {
-            elements.importBtn.setAttribute('aria-label', isBulk ? 'Choose a folder for bulk conversion' : 'Import an image from your device');
-        }
+    // Drive column 1 (sidebar) and column 2 (workspace) for the active tab from
+    // a single declarative source. Replaces the old per-element toggle pile.
+    function applyCurrentTabCase() {
+        return applyTabCase(state.activeTab, {
+            importablePrompt: IMPORTABLE_IMAGE_PROMPT,
+            svgIsDirty: state.isDirty,
+            logoIsDirty: state.logo?.isDirty
+        });
     }
 
     function updateSegmentedControlIndicator() {
@@ -375,26 +311,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     function switchExportTab(target) {
         state.activeTab = target;
 
-        elements.exportTabs.forEach((btn) => {
-            const isActive = btn.dataset.tab === target;
-            btn.classList.toggle('active', isActive);
-        });
-
-        elements.exportPanels.forEach((panel) => {
-            const isVisible = panel.id === `tab-${target}`;
-            panel.classList.toggle('hidden', !isVisible);
-        });
-
-        document.querySelectorAll('[data-tab-footer]').forEach(f => {
-            f.classList.toggle('hidden', f.dataset.tabFooter !== target);
-        });
-
-        const isSvgLike = target === 'svg' || target === 'logo';
-        const hideOriginalPanel = isSvgLike || target === 'raster' || target === 'pdf';
-        setOriginalPanelMode(target === 'bulk' ? 'bulk' : hideOriginalPanel ? 'svg' : 'single');
-        syncImportPanel();
+        // One declarative call drives BOTH columns for this tab: sidebar
+        // sections (column 1) plus the tab button, export panel, footer, and
+        // original-image panel (column 2), the accent color, and the case strip.
+        applyCurrentTabCase();
         syncWorkspaceView();
-
         updateSegmentedControlIndicator();
 
         if (target === 'svg' && hasSingleImageLoaded()) {
@@ -624,7 +545,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         svgTab.syncTraceControlUi();
         logoTab.syncTraceControlUi();
         rasterTab.updateExportScaleDisplay();
-        syncImportPanel();
+        applyCurrentTabCase();
         syncWorkspaceView();
     }
 

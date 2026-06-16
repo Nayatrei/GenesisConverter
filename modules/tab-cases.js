@@ -104,17 +104,23 @@ export const TAB_CASES = {
         importButton: 'Choose Folder',
         importCopy: 'Scan a folder of {{formats}} for batch resize and ZIP export.',
         importAria: 'Choose a folder for bulk conversion',
+        hideResolutionNotice: true,
         sections: new Set([
             'import-image',
             'original-folder'
         ])
     },
 
+    // PDF follows the same column contract as every other tab: column 1 is for
+    // input. Here that means adding and selecting files ('pdf-tools' — the add
+    // button, dropzone, and the merge queue with per-file page ranges). Column 2
+    // is the merge preview. Future page-thumbnail rendering slots into the same
+    // preview surface with no new wiring.
     pdf: {
         label: 'PDF',
         eyebrow: 'Document Stack',
         title: 'PDF Merger',
-        description: 'Combine PDFs with page-range selection.',
+        description: 'Add files on the left, preview the merge on the right.',
         accent: '#f87171',
         accentSoft: 'rgba(248, 113, 113, 0.16)',
         accentRgb: '248, 113, 113',
@@ -122,7 +128,10 @@ export const TAB_CASES = {
         importButton: null,
         importCopy: null,
         importAria: null,
-        sections: new Set([])
+        hideResolutionNotice: true,
+        sections: new Set([
+            'pdf-tools'
+        ])
     }
 };
 
@@ -133,6 +142,7 @@ const SIDEBAR_SECTION_NODES = [
     'adjust-svg',
     'adjust-logo',
     'adjust-3d',
+    'pdf-tools',
     'footer',
     'footer-svg',
     'footer-logo'
@@ -162,6 +172,19 @@ export function applyTabCase(name, ctx = {}) {
 
     const { sections } = caseConfig;
     const importablePrompt = ctx.importablePrompt || 'image files';
+
+    // --- 0. Tab chrome: active button, second-column panel, footer ---------
+    // The case owns the whole second column, not just the sidebar. These are
+    // derived from the tab name (panel id `tab-<name>`, footer data-tab-footer).
+    document.querySelectorAll('.segmented-control-tab').forEach((btn) => {
+        btn.classList.toggle('active', btn.dataset.tab === name);
+    });
+    document.querySelectorAll('.export-panel').forEach((panel) => {
+        panel.classList.toggle('hidden', panel.id !== `tab-${name}`);
+    });
+    document.querySelectorAll('[data-tab-footer]').forEach((footer) => {
+        footer.classList.toggle('hidden', footer.dataset.tabFooter !== name);
+    });
 
     // --- 1. Sidebar visibility ---------------------------------------------
     SIDEBAR_SECTION_NODES.forEach((sectionId) => {
@@ -205,6 +228,12 @@ export function applyTabCase(name, ctx = {}) {
     }
     if (importBtnEl && caseConfig.importAria) {
         importBtnEl.setAttribute('aria-label', caseConfig.importAria);
+    }
+
+    // Resolution notice is only meaningful for single-image conversion tabs.
+    // Bulk and PDF force it hidden (it is otherwise shown by image-load logic).
+    if (caseConfig.hideResolutionNotice) {
+        document.getElementById('resolution-notice')?.classList.add('hidden');
     }
 
     // --- 4. Dirty-state reset buttons (live, not in static case) ----------

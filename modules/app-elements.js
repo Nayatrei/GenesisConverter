@@ -129,6 +129,8 @@ export function createElements() {
             errorCount: document.getElementById('pdf-error-count'),
             emptyState: document.getElementById('pdf-empty-state'),
             fileList: document.getElementById('pdf-file-list'),
+            previewEmpty: document.getElementById('pdf-preview-empty'),
+            previewList: document.getElementById('pdf-preview-list'),
             outputName: document.getElementById('pdf-output-name'),
             footerStatus: document.getElementById('pdf-footer-status'),
             mergeBtn: document.getElementById('pdf-merge-btn'),

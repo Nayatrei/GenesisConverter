@@ -1,80 +1,26 @@
                     <div id="tab-pdf" class="export-panel hidden pdf-v2">
-                        <div class="pdf-grid">
-                            <section class="pdf-shell pdf-shell--intake">
-                                <div class="pdf-core">
-                                    <header class="pdf-section-head">
-                                        <span class="pdf-eyebrow">PDF Merge</span>
-                                        <h4 class="pdf-section-title">Select Files</h4>
-                                        <p class="pdf-section-copy">Build one PDF from multiple source files. Files stay in this browser session.</p>
-                                    </header>
-
-                                    <button id="pdf-add-btn" type="button" class="pdf-add-btn">
-                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
-                                            <path d="M12 5v14"/><path d="M5 12h14"/>
-                                        </svg>
-                                        <span>Add PDF Files</span>
-                                    </button>
-                                    <input id="pdf-file-input" type="file" accept="application/pdf,.pdf" multiple class="hidden">
-
-                                    <div id="pdf-dropzone" class="pdf-dropzone" role="button" tabindex="0" aria-label="Add PDF files">
-                                        <svg class="pdf-dropzone-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
-                                            <path d="M14 2H7a2 2 0 00-2 2v16a2 2 0 002 2h10a2 2 0 002-2V7z"/>
-                                            <path d="M14 2v5h5"/>
-                                            <path d="M12 17V9"/>
-                                            <path d="M8 13l4-4 4 4"/>
-                                        </svg>
-                                        <div>
-                                            <div class="pdf-dropzone-title">Drop PDFs here</div>
-                                            <div class="pdf-dropzone-copy">Multiple files supported</div>
-                                        </div>
-                                    </div>
-
-                                    <div class="pdf-help-panel">
-                                        <div class="pdf-help-title">Range Syntax</div>
-                                        <div class="pdf-help-examples">
-                                            <code>all</code>
-                                            <code>1-3,5,last</code>
-                                            <code>2,4,6</code>
-                                        </div>
-                                        <p>Ranges are 1-based and merge in the order shown in the queue.</p>
-                                    </div>
+                        <section class="pdf-preview-shell">
+                            <header class="pdf-preview-head">
+                                <div class="pdf-preview-head-copy">
+                                    <span class="pdf-eyebrow">Merge Preview</span>
+                                    <h4 class="pdf-section-title">Page Selection</h4>
                                 </div>
-                            </section>
+                                <p class="pdf-preview-lead">Files you add on the left appear here in merge order, with the pages each one contributes.</p>
+                            </header>
 
-                            <section class="pdf-shell pdf-shell--queue">
-                                <div class="pdf-core">
-                                    <header class="pdf-section-head pdf-section-head--row">
-                                        <div>
-                                            <span class="pdf-eyebrow">Merge Queue</span>
-                                            <h4 class="pdf-section-title">Page Selection</h4>
-                                        </div>
-                                        <div id="pdf-status" class="pdf-status" data-tone="muted">Add PDF files to build a merge queue.</div>
-                                    </header>
+                            <div id="pdf-preview-empty" class="pdf-preview-empty">
+                                <svg class="pdf-preview-empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M14 2H7a2 2 0 00-2 2v16a2 2 0 002 2h10a2 2 0 002-2V7z"/>
+                                    <path d="M14 2v5h5"/>
+                                    <path d="M9 13h6"/>
+                                    <path d="M9 17h4"/>
+                                </svg>
+                                <div class="pdf-preview-empty-title">Your merged document previews here</div>
+                                <div class="pdf-preview-empty-copy">Use <strong>Add &amp; Select Files</strong> in the left panel to choose PDFs and page ranges. The merge order and selected pages show up here.</div>
+                            </div>
 
-                                    <div class="pdf-summary-grid">
-                                        <div class="pdf-summary-stat">
-                                            <span>Files</span>
-                                            <strong id="pdf-file-count">0</strong>
-                                        </div>
-                                        <div class="pdf-summary-stat">
-                                            <span>Selected Pages</span>
-                                            <strong id="pdf-page-count">0</strong>
-                                        </div>
-                                        <div class="pdf-summary-stat">
-                                            <span>Issues</span>
-                                            <strong id="pdf-error-count">0</strong>
-                                        </div>
-                                    </div>
-
-                                    <div id="pdf-empty-state" class="pdf-empty-state">
-                                        <div class="pdf-empty-title">No PDFs selected</div>
-                                        <div class="pdf-empty-copy">Add two or more PDFs, then set each row to <code>all</code> or a page range.</div>
-                                    </div>
-
-                                    <div id="pdf-file-list" class="pdf-file-list" aria-live="polite"></div>
-                                </div>
-                            </section>
-                        </div>
+                            <div id="pdf-preview-list" class="pdf-preview-list" aria-live="polite"></div>
+                        </section>
                     </div>
 
 <footer id="pdf-merge-footer" data-tab-footer="pdf" class="hidden p-4 border-t border-gray-700 bg-gray-800 flex-shrink-0 pdf-v2">

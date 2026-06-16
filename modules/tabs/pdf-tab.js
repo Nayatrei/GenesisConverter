@@ -94,6 +94,82 @@ export function createPdfTabController({
         });
 
         renderSummary();
+        renderPreview();
+    }
+
+    // Column 2 mirror of the queue: shows each source file in merge order with
+    // the pages it contributes. Built from the same state.pdf.files the sidebar
+    // queue uses — no extra source of truth. DOM-built (no innerHTML) because
+    // file names are user-controlled.
+    function renderPreview() {
+        const list = elements.pdf.previewList;
+        if (!list) return;
+
+        const hasFiles = state.pdf.files.length > 0;
+        elements.pdf.previewEmpty?.classList.toggle('hidden', hasFiles);
+        list.classList.toggle('hidden', !hasFiles);
+        list.textContent = '';
+        if (!hasFiles) return;
+
+        let order = 0;
+        state.pdf.files.forEach((item) => {
+            const isReady = item.status === 'ready' && !item.error;
+            const isContributing = isReady && item.selectedIndices.length > 0;
+
+            const card = document.createElement('article');
+            card.className = 'pdf-preview-card';
+            card.dataset.status = item.error ? 'error' : item.status;
+
+            const top = document.createElement('div');
+            top.className = 'pdf-preview-card-top';
+
+            const orderEl = document.createElement('span');
+            orderEl.className = 'pdf-preview-order';
+            orderEl.textContent = isContributing ? String(++order) : '·';
+            top.appendChild(orderEl);
+
+            const info = document.createElement('div');
+            info.className = 'pdf-preview-card-info';
+
+            const nameEl = document.createElement('span');
+            nameEl.className = 'pdf-preview-card-name';
+            nameEl.textContent = item.name;
+            nameEl.title = item.name;
+            info.appendChild(nameEl);
+
+            const metaEl = document.createElement('span');
+            metaEl.className = 'pdf-preview-card-meta';
+            metaEl.textContent = item.status === 'loading'
+                ? 'Reading…'
+                : item.error
+                    ? item.error
+                    : `${item.selectedIndices.length} of ${item.pageCount} page${item.pageCount === 1 ? '' : 's'}`;
+            info.appendChild(metaEl);
+
+            top.appendChild(info);
+            card.appendChild(top);
+
+            if (isReady && item.selectedIndices.length) {
+                const pages = document.createElement('div');
+                pages.className = 'pdf-preview-pages';
+                const MAX_CHIPS = 30;
+                item.selectedIndices.slice(0, MAX_CHIPS).forEach((pageIndex) => {
+                    const chip = document.createElement('span');
+                    chip.className = 'pdf-preview-page';
+                    chip.textContent = String(pageIndex + 1);
+                    pages.appendChild(chip);
+                });
+                if (item.selectedIndices.length > MAX_CHIPS) {
+                    const more = document.createElement('span');
+                    more.className = 'pdf-preview-more';
+                    more.textContent = `+${item.selectedIndices.length - MAX_CHIPS}`;
+                    pages.appendChild(more);
+                }
+                card.appendChild(pages);
+            }
+
+            list.appendChild(card);
+        });
     }
 
     function createFileRow(item, index) {
@@ -168,6 +244,7 @@ export function createPdfTabController({
         }
         row.dataset.status = item.error ? 'error' : item.status;
         renderSummary();
+        renderPreview();
     }
 
     async function addPdfFiles(fileList) {
