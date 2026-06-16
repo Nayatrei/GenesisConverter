@@ -48,10 +48,21 @@
                 </div>
             </header>
 
+            <!-- Tab case identity strip: shows which tab's context is active -->
+            <div id="tab-case-strip" class="tab-case-strip" data-case="svg" aria-live="polite">
+                <span class="tab-case-strip-rail" aria-hidden="true"></span>
+                <div class="tab-case-strip-body">
+                    <span class="tab-case-strip-eyebrow" data-case-eyebrow>Vector Trace</span>
+                    <span class="tab-case-strip-title" data-case-title>Color-layer SVG</span>
+                    <span class="tab-case-strip-desc" data-case-desc>Trace bitmap into colored vector layers for 3D printing.</span>
+                </div>
+                <span class="tab-case-strip-badge" data-case-badge>SVG</span>
+            </div>
+
             <div class="flex-grow p-4 overflow-y-auto sidebar-scroll">
 
                 <!-- 1. Load Image -->
-                <div id="sidebar-import-section" class="sidebar-accordion">
+                <div id="sidebar-import-section" class="sidebar-accordion" data-case-section="import-image">
                     <button class="sidebar-accordion-header expanded" onclick="toggleSidebarAccordion(this, 'sidebar-import-content')">
                         <span class="sidebar-accordion-label">
                             <svg class="sidebar-accordion-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -72,7 +83,7 @@
                             <input type="file" id="file-input" accept="image/*" class="hidden">
                             <input type="file" id="bulk-folder-input" class="hidden" webkitdirectory directory multiple accept="image/*,.png,.jpg,.jpeg,.jfif,.webp,.gif,.bmp,.avif,.svg,.ico,.tif,.tiff">
                             <p id="import-mode-copy" class="text-xs text-gray-400 mt-2">Choose a single image from your device or paste a direct image URL. Supported imports: PNG, JPG, JPEG, WEBP, GIF, BMP, AVIF, SVG, ICO, TIFF, and other browser-compatible image files.</p>
-                            <div id="import-url-shell">
+                            <div id="import-url-shell" data-case-section="import-url">
                                 <p id="import-url-divider" class="text-xs text-gray-500 my-2">OR</p>
                                 <div class="flex">
                                     <input type="text" id="url-input" placeholder="Paste image URL" class="flex-grow text-sm p-2 border bg-gray-900 border-gray-600 rounded-l-md outline-none text-white">
@@ -86,7 +97,7 @@
                 </div>
 
                 <!-- 2. Adjust Conversion -->
-                <div id="sidebar-adjust-section" class="sidebar-accordion">
+                <div id="sidebar-adjust-section" class="sidebar-accordion" data-case-section="adjust">
                     <div class="sidebar-accordion-header expanded" role="button" tabindex="0" onclick="toggleSidebarAccordion(this, 'sidebar-adjust-content')" onkeydown="if(event.key==='Enter'||event.key===' ')toggleSidebarAccordion(this,'sidebar-adjust-content')">
                         <span class="sidebar-accordion-label">
                             <svg class="sidebar-accordion-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -105,7 +116,7 @@
                     <div id="sidebar-adjust-content" class="sidebar-accordion-body">
                         <div class="sidebar-accordion-body-inner">
                         
-                        <div id="svg-sidebar-controls" class="sidebar-sub-sections">
+                        <div id="svg-sidebar-controls" class="sidebar-sub-sections" data-case-section="adjust-svg">
                             <div class="sidebar-sub-accordion">
                                 <button class="sidebar-sub-header" aria-expanded="false" onclick="toggleSidebarAccordion(this, 'color-controls-body')">
                                     <span class="sidebar-sub-label">
@@ -209,7 +220,7 @@
                             </div>
                         </div>
 
-                        <div id="logo-sidebar-controls" class="sidebar-sub-sections hidden">
+                        <div id="logo-sidebar-controls" class="sidebar-sub-sections hidden" data-case-section="adjust-logo">
                             <div class="sidebar-sub-accordion">
                                 <button class="sidebar-sub-header" aria-expanded="false" onclick="toggleSidebarAccordion(this, 'logo-color-controls-body')">
                                     <span class="sidebar-sub-label">
@@ -317,7 +328,7 @@
                         </div>
 
                 <!-- 3. Unified OBJ Settings -->
-                <div id="shared-obj-controls" class="sidebar-sub-sections">
+                <div id="shared-obj-controls" class="sidebar-sub-sections" data-case-section="adjust-3d">
                             <div class="sidebar-sub-accordion">
                                 <button class="sidebar-sub-header expanded" onclick="toggleSidebarAccordion(this, 'obj-controls-body')">
                                     <span class="sidebar-sub-label">
@@ -394,13 +405,13 @@
 
             </div>
 
-            <footer id="sidebar-primary-footer" class="p-6 border-t border-gray-700">
-                <div id="svg-sidebar-actions" class="space-y-3">
+            <footer id="sidebar-primary-footer" class="p-6 border-t border-gray-700" data-case-section="footer">
+                <div id="svg-sidebar-actions" class="space-y-3" data-case-section="footer-svg">
                     <button id="generate-preview-btn" class="w-full btn-primary font-bold py-3 px-4 rounded-lg text-lg disabled:bg-gray-600 disabled:cursor-not-allowed" disabled>
                         Generate Preview
                     </button>
                 </div>
-                <div id="logo-sidebar-actions" class="space-y-3 hidden">
+                <div id="logo-sidebar-actions" class="space-y-3 hidden" data-case-section="footer-logo">
                     <button id="logo-generate-preview-btn" class="w-full btn-primary font-bold py-3 px-4 rounded-lg text-lg disabled:bg-gray-600 disabled:cursor-not-allowed" disabled>
                         Generate Preview
                     </button>
@@ -459,8 +470,8 @@
             <div id="main-content" class="hidden h-full min-h-0 flex flex-col">
                 <!-- Tabs Section -->
                 <div id="output-section" class="card p-6 flex-1 min-h-0 overflow-y-auto flex flex-col gap-4" style="display:none;">
-                    <div id="original-image-panel" class="card-inner bg-gray-800 rounded-lg original-image-panel" style="padding: clamp(0.75rem, 2vw, 1rem); margin-bottom: clamp(0.75rem, 1.5vw, 1rem);">
-                        <div id="single-original-view">
+                    <div id="original-image-panel" class="card-inner bg-gray-800 rounded-lg original-image-panel" data-case-section="original-panel" style="padding: clamp(0.75rem, 2vw, 1rem); margin-bottom: clamp(0.75rem, 1.5vw, 1rem);">
+                        <div id="single-original-view" data-case-section="original-image">
                             <div class="flex justify-between items-center mb-2 original-image-header">
                                 <h3 class="font-semibold text-gray-200" style="font-size: clamp(0.875rem, 1.5vw, 1rem);">Original Image</h3>
                                 <div id="original-resolution" class="text-xs text-gray-400"></div>
@@ -470,7 +481,7 @@
                             </div>
                         </div>
 
-                        <div id="bulk-original-view" class="hidden">
+                        <div id="bulk-original-view" class="hidden" data-case-section="original-folder">
                             <div class="flex justify-between items-center mb-3 original-image-header">
                                 <div>
                                     <h3 class="font-semibold text-gray-200" style="font-size: clamp(0.875rem, 1.5vw, 1rem);">Original Images</h3>

@@ -12,6 +12,7 @@ import {
 } from './modules/raster-utils.js';
 import { createElements } from './modules/app-elements.js?v=5';
 import { createState } from './modules/app-state.js';
+import { applyTabCase, TAB_CASES } from './modules/tab-cases.js?v=1';
 
 async function loadTabPartials() {
     const tabs = ['svg', 'logo', 'raster', 'bulk', 'pdf'];
