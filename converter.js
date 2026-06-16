@@ -2,7 +2,7 @@ import { createBulkTabController } from './modules/tabs/bulk-tab.js';
 import { createRasterTabController } from './modules/tabs/raster-tab.js';
 import { createSvgTabController } from './modules/tabs/svg-tab.js';
 import { createLogoTabController } from './modules/tabs/logo-tab.js?v=18';
-import { createPdfTabController } from './modules/tabs/pdf-tab.js';
+import { createPdfTabController } from './modules/tabs/pdf-tab.js?v=20260616a';
 import {
     getDataUrlSize,
     getImageFormat,
@@ -10,14 +10,14 @@ import {
     isImportableImageFile,
     normalizeImageBlob
 } from './modules/raster-utils.js';
-import { createElements } from './modules/app-elements.js?v=5';
+import { createElements } from './modules/app-elements.js?v=20260616a';
 import { createState } from './modules/app-state.js';
-import { applyTabCase, TAB_CASES } from './modules/tab-cases.js?v=1';
+import { applyTabCase, TAB_CASES } from './modules/tab-cases.js?v=20260616a';
 
 async function loadTabPartials() {
     const tabs = ['svg', 'logo', 'raster', 'bulk', 'pdf'];
     await Promise.all(tabs.map(async (name) => {
-        const res = await fetch(`modules/tabs/html/tab-${name}.html?v=20260324j`);
+        const res = await fetch(`modules/tabs/html/tab-${name}.html?v=20260616a`);
         const html = await res.text();
         const tmp = document.createElement('div');
         tmp.innerHTML = html;
