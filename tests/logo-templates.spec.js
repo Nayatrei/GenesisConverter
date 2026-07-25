@@ -109,6 +109,26 @@ test('logo sidebar controls stay isolated from SVG controls', async ({ page }) =
     await expect(page.locator('#output-colors')).toHaveValue('3');
 });
 
+test('quick logo builder updates the HTML source and completes 3D preflight', async ({ page }) => {
+    await openLogoTab(page);
+
+    await expect(page.locator('#logo-simple-builder')).toBeVisible();
+    await expect(page.locator('#logo-advanced-editor')).not.toHaveAttribute('open', '');
+
+    const previousSource = await page.locator('#logo-html-source-img').getAttribute('src');
+    await page.locator('#logo-builder-text').fill('GENESIS');
+    await page.locator('#logo-builder-shape').selectOption('rounded');
+
+    await expect.poll(
+        () => page.locator('#logo-html-source-img').getAttribute('src'),
+        { timeout: 30_000 }
+    ).not.toBe(previousSource);
+    await expect(page.locator('#logo-html-input')).toHaveValue(/GENESIS/);
+    await expect(page.locator('#logo-html-status')).toHaveText('Ready', { timeout: 30_000 });
+    await expect(page.locator('#logo-preflight-status')).toContainText(/Ready|Check|Auto-fit/);
+    await expect(page.locator('#logo-maker-workflow')).toHaveAttribute('data-stage', 'export');
+});
+
 test('pill, badge, and CTA render cleanly in the logo workflow', async ({ page }) => {
     await openLogoTab(page);
 

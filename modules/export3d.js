@@ -1,4 +1,4 @@
-import { buildObjGeometryBundle, buildObjModelPlan } from './obj-model-plan.js?v=20260412b';
+import { buildObjGeometryBundle, buildObjModelPlan } from './obj-model-plan.js?v=20260725e';
 import { buildBambuProjectFiles } from './bambu-project.js';
 import { BAMBU_PROJECT_NOZZLE_DIAMETER } from './config.js';
 import { canvasToBlobAsync, dataUrlToBlob } from './raster-utils.js';

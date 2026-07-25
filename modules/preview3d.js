@@ -1,7 +1,7 @@
 import { OBJ_ZOOM_MIN, OBJ_ZOOM_MAX, BED_PRESETS } from './config.js';
 import { formatObjScalePercent } from './obj-scale.js';
-import { buildObjGeometryBundle, buildObjModelPlan } from './obj-model-plan.js?v=20260412b';
-import { resolveMergedLayerGroups } from './shared/trace-utils.js';
+import { buildObjGeometryBundle, buildObjModelPlan } from './obj-model-plan.js?v=20260725e';
+import { resolveMergedLayerGroups } from './shared/trace-utils.js?v=20260725a';
 
 const BED_CONTACT_EPSILON = 0.005;
 
@@ -280,9 +280,13 @@ export function createObjPreview({
     }
 
     function updateSizeReadout(scalePlan) {
-        if (!model.objSizeReadout) return;
+        const readouts = [model.objSizeReadout, view.modelSizeReadout].filter(Boolean);
+        if (!readouts.length) return;
         if (!scalePlan || !scalePlan.footprintWidth || !scalePlan.footprintDepth) {
-            model.objSizeReadout.textContent = 'Footprint: —';
+            readouts.forEach((readout) => {
+                readout.textContent = readout === model.objSizeReadout ? 'Footprint: —' : '—';
+                readout.dataset.bedFit = 'unknown';
+            });
             return;
         }
 
@@ -297,10 +301,28 @@ export function createObjPreview({
             suffix = ` · fits ${scalePlan.bedLabel}`;
         }
 
-        model.objSizeReadout.textContent = `Footprint: ${scalePlan.footprintWidth.toFixed(1)} × ${scalePlan.footprintDepth.toFixed(1)} mm${suffix}`;
+        const size = `${scalePlan.footprintWidth.toFixed(1)} × ${scalePlan.footprintDepth.toFixed(1)} mm`;
+        if (model.objSizeReadout) {
+            model.objSizeReadout.textContent = `Footprint: ${size}${suffix}`;
+        }
+        if (view.modelSizeReadout) {
+            view.modelSizeReadout.textContent = size;
+        }
+        readouts.forEach((readout) => {
+            readout.dataset.bedFit = scalePlan.fitsBed ? 'fits' : 'overflow';
+            readout.dataset.autoFitted = scalePlan.wasAutoFitted ? 'true' : 'false';
+            readout.title = scalePlan.wasAutoFitted
+                ? `Auto-fitted to ${scalePlan.bedLabel}`
+                : scalePlan.fitsBed
+                    ? `Fits ${scalePlan.bedLabel}`
+                    : `Exceeds ${scalePlan.bedLabel}`;
+        });
     }
 
     function updateStructureWarning(warnings) {
+        if (view.modelSizeReadout) {
+            view.modelSizeReadout.dataset.structureWarning = Array.isArray(warnings) && warnings.length ? 'true' : 'false';
+        }
         if (!model.objStructureWarning) return;
         if (!Array.isArray(warnings) || warnings.length === 0) {
             model.objStructureWarning.textContent = '';
@@ -318,7 +340,10 @@ export function createObjPreview({
 
     function updateTriangleEstimate({ triangleCount = 0, decimatePercent = 0 } = {}) {
         if (view.triangleEstimate) {
-            view.triangleEstimate.textContent = `Approx. triangles: ${triangleCount > 0 ? formatTriangleCount(triangleCount) : '—'}`;
+            view.triangleEstimate.textContent = triangleCount > 0 ? formatTriangleCount(triangleCount) : '—';
+            view.triangleEstimate.title = triangleCount > 0
+                ? `Approx. ${formatTriangleCount(triangleCount)} triangles`
+                : 'Triangle estimate unavailable';
         }
 
         if (view.triangleControlsHint) {

@@ -228,8 +228,13 @@ async function saveDownloadBuffer(download, testInfo) {
 
 async function exportLayerStls(page, buttonSelector, expectedCount) {
     const statusLocator = page.locator('#status-text');
+    const button = page.locator(buttonSelector);
+    await button.evaluate((exportButton) => {
+        const advancedGroup = exportButton.closest('details');
+        if (advancedGroup) advancedGroup.open = true;
+    });
     return collectDownloads(page, async () => {
-        await page.locator(buttonSelector).click();
+        await button.click();
         await expect(statusLocator).toContainText(`Exported ${expectedCount} STL files.`, { timeout: 30_000 });
     }, expectedCount);
 }
@@ -323,6 +328,7 @@ test('logo support base stays continuous while detail reduction lowers triangle 
     await page.locator('.segmented-control-tab[data-tab="logo"]').click();
     await expect(page.locator('#tab-logo')).toBeVisible();
 
+    await page.locator('#logo-advanced-editor summary').click();
     await page.locator('#logo-html-input').fill(buildConnectedBlocksHtml());
     await page.locator('#logo-html-render-btn').click();
 

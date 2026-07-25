@@ -1,8 +1,8 @@
 import { SLIDER_TOOLTIPS } from '../config.js';
-import { createObjPreview } from '../preview3d.js?v=20260412b';
-import { createObjExporter } from '../export3d.js?v=20260412b';
+import { createObjPreview } from '../preview3d.js?v=20260725a';
+import { createObjExporter } from '../export3d.js?v=20260725a';
 import { hasTransparentPixels, markTransparentPixels, stripTransparentPalette } from '../shared/image-utils.js';
-import { debounce, layerHasPaths, buildTracedataSubset, createMergedTracedata, assess3DPrintQuality } from '../shared/trace-utils.js';
+import { debounce, layerHasPaths, buildTracedataSubset, createMergedTracedata, assess3DPrintQuality } from '../shared/trace-utils.js?v=20260725a';
 import { buildWeldedSilhouetteSvgString } from '../shared/silhouette-builder.js';
 import { saveInitialSliderValues, updateAllSliderDisplays, resetSlidersToInitial } from '../shared/slider-manager.js';
 import { createZoomPanController } from '../shared/zoom-pan.js';
@@ -18,6 +18,7 @@ import {
     getColorCountNoticeMessage,
     readTraceControls
 } from '../shared/trace-controls.js';
+import { setMakerWorkflow, updateMakerPreflight } from '../shared/maker-workflow.js?v=20260725a';
 
 export function createSvgTabController({
     state,
@@ -48,13 +49,21 @@ export function createSvgTabController({
         ...viewControls,
         ...exportElements
     };
+    setMakerWorkflow(elements.workflow, elements.sourceImage?.src ? 'layers' : 'source');
 
     // ── Debounced re-trace ─────────────────────────────────────────────────────
 
-    const debounceGeneratePreview = debounce(() => {
+    const runDebouncedGeneratePreview = debounce(() => {
         if (!state.colorsAnalyzed || !elements.sourceImage.src) return;
         void generatePreviewClick().catch(() => {});
     });
+
+    function debounceGeneratePreview() {
+        if (!state.colorsAnalyzed || !elements.sourceImage.src) return;
+        if (elements.generatePreviewBtn) elements.generatePreviewBtn.disabled = true;
+        setMakerWorkflow(elements.workflow, 'layers', { tone: 'processing' });
+        runDebouncedGeneratePreview();
+    }
 
     function queueAutoBaseSelection() {
         state.autoBaseLayerSelectionPending = true;
@@ -203,6 +212,7 @@ export function createSvgTabController({
         if (!elements.sourceImage.src) return;
         state.layerThicknessById = {};
         queueAutoBaseSelection();
+        setMakerWorkflow(elements.workflow, 'layers', { tone: 'processing' });
 
         try {
             const options = buildOptimizedOptions();
@@ -215,6 +225,7 @@ export function createSvgTabController({
             await traceVectorPaths();
         } catch (error) {
             state.colorsAnalyzed = false;
+            setMakerWorkflow(elements.workflow, 'layers', { tone: 'error' });
             throw error;
         }
     }
@@ -244,8 +255,9 @@ export function createSvgTabController({
 
     function updateQualityDisplay(quality) {
         if (elements.qualityIndicator) {
-            elements.qualityIndicator.textContent = `${quality.pathCount} paths, ${quality.colorCount} colors`;
+            elements.qualityIndicator.textContent = `${quality.pathCount.toLocaleString()} paths · ${quality.colorCount} colors`;
         }
+        updateMakerPreflight(viewControls, quality);
     }
 
     // ── 3D preview / exporter ──────────────────────────────────────────────────
@@ -277,6 +289,7 @@ export function createSvgTabController({
         showLoader(true);
         elements.statusText.textContent = 'Tracing vector paths...';
         if (elements.generatePreviewBtn) elements.generatePreviewBtn.disabled = true;
+        setMakerWorkflow(elements.workflow, 'model', { tone: 'processing' });
 
         return new Promise((resolve, reject) => {
             setTimeout(async () => {
@@ -322,6 +335,7 @@ export function createSvgTabController({
                     await updateFilteredPreview();
 
                     updateQualityDisplay(assess3DPrintQuality(state.tracedata, getVisibleLayerIndices));
+                    setMakerWorkflow(elements.workflow, 'export');
                     elements.statusText.textContent = 'Preview generated!';
                     enableDownloadButtons();
                     onRasterExportStateChanged();
@@ -329,6 +343,7 @@ export function createSvgTabController({
                 } catch (error) {
                     console.error('Tracing error:', error);
                     elements.statusText.textContent = `Error: ${error.message}`;
+                    setMakerWorkflow(elements.workflow, 'model', { tone: 'error' });
                     reject(error);
                 } finally {
                     showLoader(false);
@@ -366,6 +381,9 @@ export function createSvgTabController({
 
     async function updateFilteredPreview() {
         objPreview.render();
+        if (state.tracedata) {
+            updateQualityDisplay(assess3DPrintQuality(state.tracedata, getVisibleLayerIndices));
+        }
         if (!state.tracedata || !elements.svgPreviewFiltered) return;
 
         let dataToShow = state.tracedata;
@@ -475,6 +493,7 @@ export function createSvgTabController({
         updateResolutionNotice(w, h);
         onRasterImageLoaded();
         state.colorsAnalyzed = false;
+        setMakerWorkflow(elements.workflow, 'layers');
 
         if (state.activeTab !== 'svg') {
             showLoader(false);
@@ -492,8 +511,12 @@ export function createSvgTabController({
     }
 
     function onTabActivated() {
-        if (!hasSingleImageLoaded()) return;
+        if (!hasSingleImageLoaded()) {
+            setMakerWorkflow(elements.workflow, 'source');
+            return;
+        }
         if (!state.colorsAnalyzed) {
+            setMakerWorkflow(elements.workflow, 'layers');
             if (elements.generatePreviewBtn) elements.generatePreviewBtn.disabled = false;
             buildWorkingImageCache();
             saveInitialSliderValues(state, elements);
@@ -501,6 +524,7 @@ export function createSvgTabController({
             void generatePreviewClick().catch(() => {});
             return;
         }
+        setMakerWorkflow(elements.workflow, 'export');
         objPreview.render();
     }
 

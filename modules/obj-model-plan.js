@@ -568,10 +568,11 @@ function simplifyMaskLoop(loop) {
             const previous = simplified[(index - 1 + simplified.length) % simplified.length];
             const current = simplified[index];
             const next = simplified[(index + 1) % simplified.length];
-            const collinear = (
-                (Math.abs(previous.x - current.x) < 1e-9 && Math.abs(current.x - next.x) < 1e-9)
-                || (Math.abs(previous.y - current.y) < 1e-9 && Math.abs(current.y - next.y) < 1e-9)
+            const crossProduct = (
+                ((current.x - previous.x) * (next.y - current.y))
+                - ((current.y - previous.y) * (next.x - current.x))
             );
+            const collinear = Math.abs(crossProduct) < 1e-9;
             if (!collinear) continue;
             simplified.splice(index, 1);
             changed = true;
@@ -622,7 +623,7 @@ function simplifyExtrusionLoop(points, tolerance) {
     const ring = points.concat(points[0]);
     const simplified = simplifyPolyline(ring, tolerance).slice(0, -1);
     const cleaned = simplifyMaskLoop(simplified);
-    return cleaned.length >= 4 ? cleaned : points.slice();
+    return cleaned.length >= 3 ? cleaned : points.slice();
 }
 
 function extractMaskLoops(maskSpace, maskData) {
@@ -1362,7 +1363,139 @@ function concatenateGeometries(geometries, THREERef) {
 }
 
 function getRepairVertexKey(vertex) {
-    return `${vertex.x.toFixed(5)},${vertex.y.toFixed(5)},${vertex.z.toFixed(5)}`;
+    return `${vertex.x.toFixed(4)},${vertex.y.toFixed(4)},${vertex.z.toFixed(4)}`;
+}
+
+function getRepairEdgeKey(start, end) {
+    const startKey = getRepairVertexKey(start);
+    const endKey = getRepairVertexKey(end);
+    return startKey < endKey
+        ? `${startKey}|${endKey}`
+        : `${endKey}|${startKey}`;
+}
+
+function repairCollinearBoundaryTJunctions(positions) {
+    if (!Array.isArray(positions) || positions.length < 9) return positions;
+
+    let workingPositions = positions.slice();
+
+    for (let pass = 0; pass < 4; pass++) {
+        const triangles = [];
+        const vertexByKey = new Map();
+        const edgeMap = new Map();
+
+        for (let offset = 0; offset < workingPositions.length; offset += 9) {
+            const triangle = [
+                { x: workingPositions[offset], y: workingPositions[offset + 1], z: workingPositions[offset + 2] },
+                { x: workingPositions[offset + 3], y: workingPositions[offset + 4], z: workingPositions[offset + 5] },
+                { x: workingPositions[offset + 6], y: workingPositions[offset + 7], z: workingPositions[offset + 8] }
+            ];
+            const triangleIndex = triangles.length;
+            triangles.push(triangle);
+
+            for (let edgeIndex = 0; edgeIndex < 3; edgeIndex++) {
+                const start = triangle[edgeIndex];
+                const end = triangle[(edgeIndex + 1) % 3];
+                const startKey = getRepairVertexKey(start);
+                const endKey = getRepairVertexKey(end);
+                const edgeKey = getRepairEdgeKey(start, end);
+                vertexByKey.set(startKey, start);
+                vertexByKey.set(endKey, end);
+
+                const entry = edgeMap.get(edgeKey) || {
+                    count: 0,
+                    triangleIndex,
+                    edgeIndex,
+                    start,
+                    end
+                };
+                entry.count += 1;
+                edgeMap.set(edgeKey, entry);
+            }
+        }
+
+        const boundaryEdges = [...edgeMap.values()].filter((edge) => edge.count % 2 === 1);
+        if (!boundaryEdges.length) return workingPositions;
+
+        const boundaryVertexKeys = new Set();
+        boundaryEdges.forEach((edge) => {
+            boundaryVertexKeys.add(getRepairVertexKey(edge.start));
+            boundaryVertexKeys.add(getRepairVertexKey(edge.end));
+        });
+
+        const splitByTriangle = new Map();
+        boundaryEdges.forEach((edge) => {
+            if (splitByTriangle.has(edge.triangleIndex)) return;
+
+            const dx = edge.end.x - edge.start.x;
+            const dy = edge.end.y - edge.start.y;
+            const dz = edge.end.z - edge.start.z;
+            const lengthSquared = (dx * dx) + (dy * dy) + (dz * dz);
+            if (lengthSquared <= 1e-12) return;
+
+            const intermediate = [];
+            boundaryVertexKeys.forEach((vertexKey) => {
+                const vertex = vertexByKey.get(vertexKey);
+                if (!vertex) return;
+
+                const offsetX = vertex.x - edge.start.x;
+                const offsetY = vertex.y - edge.start.y;
+                const offsetZ = vertex.z - edge.start.z;
+                const t = ((offsetX * dx) + (offsetY * dy) + (offsetZ * dz)) / lengthSquared;
+                if (t <= 1e-6 || t >= 1 - 1e-6) return;
+
+                const projected = {
+                    x: edge.start.x + (dx * t),
+                    y: edge.start.y + (dy * t),
+                    z: edge.start.z + (dz * t)
+                };
+                const distance = Math.hypot(
+                    vertex.x - projected.x,
+                    vertex.y - projected.y,
+                    vertex.z - projected.z
+                );
+                if (distance <= 1e-4) {
+                    intermediate.push({ vertex, t });
+                }
+            });
+
+            if (!intermediate.length) return;
+            intermediate.sort((left, right) => left.t - right.t);
+            const chain = [
+                edge.start,
+                ...intermediate.map((item) => item.vertex),
+                edge.end
+            ];
+            const chainIsOpenBoundary = chain.slice(0, -1).every((point, index) => {
+                return (edgeMap.get(getRepairEdgeKey(point, chain[index + 1]))?.count || 0) % 2 === 1;
+            });
+            if (!chainIsOpenBoundary) return;
+
+            splitByTriangle.set(edge.triangleIndex, {
+                edgeIndex: edge.edgeIndex,
+                chain
+            });
+        });
+
+        if (!splitByTriangle.size) return workingPositions;
+
+        const repairedPositions = [];
+        triangles.forEach((triangle, triangleIndex) => {
+            const split = splitByTriangle.get(triangleIndex);
+            if (!split) {
+                appendTriangle(repairedPositions, triangle[0], triangle[1], triangle[2]);
+                return;
+            }
+
+            const opposite = triangle[(split.edgeIndex + 2) % 3];
+            split.chain.slice(0, -1).forEach((point, index) => {
+                appendTriangle(repairedPositions, point, split.chain[index + 1], opposite);
+            });
+        });
+        workingPositions = repairedPositions;
+    }
+
+    return workingPositions;
 }
 
 function appendCapLoopTriangles(positions, loop, z, THREERef, orientation = 'up') {
@@ -1550,7 +1683,8 @@ function sanitizeGeometry(geometry, THREERef, bufferUtils, { mergeVerticesEnable
     working.dispose();
     if (!filteredPositions.length) return null;
 
-    const repairedPositions = repairPlanarCapHoles(filteredPositions, THREERef);
+    const topologyRepairedPositions = repairCollinearBoundaryTJunctions(filteredPositions);
+    const repairedPositions = repairPlanarCapHoles(topologyRepairedPositions, THREERef);
 
     let sanitized = new THREERef.BufferGeometry();
     sanitized.setAttribute('position', new THREERef.Float32BufferAttribute(repairedPositions, 3));
@@ -1558,6 +1692,31 @@ function sanitizeGeometry(geometry, THREERef, bufferUtils, { mergeVerticesEnable
         const merged = bufferUtils.mergeVertices(sanitized, 1e-5);
         if (merged !== sanitized) sanitized.dispose();
         sanitized = merged;
+
+        // Vertex welding can expose tiny planar gaps that were not visible while
+        // the source geometries still used separate, nearly-identical vertices.
+        // Re-run the cap repair against the welded coordinates so stacked bezel
+        // segments remain watertight in the exported STL.
+        const weldedTriangles = sanitized.index ? sanitized.toNonIndexed() : sanitized.clone();
+        const weldedPositions = weldedTriangles.getAttribute('position');
+        const weldedPositionValues = weldedPositions
+            ? Array.from(weldedPositions.array)
+            : [];
+        weldedTriangles.dispose();
+
+        const topologySealedPositionValues = repairCollinearBoundaryTJunctions(weldedPositionValues);
+        const sealedPositionValues = repairPlanarCapHoles(topologySealedPositionValues, THREERef);
+        if (sealedPositionValues.length > weldedPositionValues.length) {
+            const sealedGeometry = new THREERef.BufferGeometry();
+            sealedGeometry.setAttribute(
+                'position',
+                new THREERef.Float32BufferAttribute(sealedPositionValues, 3)
+            );
+            const mergedSealedGeometry = bufferUtils.mergeVertices(sealedGeometry, 1e-5);
+            if (mergedSealedGeometry !== sealedGeometry) sealedGeometry.dispose();
+            sanitized.dispose();
+            sanitized = mergedSealedGeometry;
+        }
     }
     sanitized.computeVertexNormals();
     return sanitized;

@@ -656,7 +656,7 @@ export function createHtmlEditor({ ls, le, elements, syncWorkspaceView, generate
         }
     }
 
-    const RENDER_DELAY = 4000;
+    const RENDER_DELAY = 1200;
     const COUNTDOWN_CIRCUMFERENCE = 31.42; // 2 * π * r (r=5)
 
     function startCountdownVisual() {
@@ -717,8 +717,8 @@ export function createHtmlEditor({ ls, le, elements, syncWorkspaceView, generate
         if (typeof onModeChanged === 'function') onModeChanged(true);
         await generatePreviewClick();
 
-        // Scroll the compare panels into view so the result is visible without manual scrolling
-        le.svgSourceMirror?.closest('.svg-compare-grid')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        // Keep the builder in place while automatic rendering finishes. The 3D
+        // result sits directly below it, so the user can choose when to inspect it.
     }
 
     // Render source preview only (no full pipeline) — used by width slider for instant feedback
@@ -744,9 +744,19 @@ export function createHtmlEditor({ ls, le, elements, syncWorkspaceView, generate
         if (!active) {
             ls.sourceRenderScale = ls.workingImageScale || 1;
         }
-        if (le.htmlModeToggle) {
-            le.htmlModeToggle.textContent = active ? 'Switch to Image Mode' : 'Switch to HTML Mode';
+        le.htmlModeButtons?.forEach((button) => {
+            const buttonIsHtml = button.dataset.logoSourceMode === 'html';
+            const selected = buttonIsHtml === active;
+            button.classList.toggle('active', selected);
+            button.setAttribute('aria-pressed', selected ? 'true' : 'false');
+        });
+        if (le.htmlEditorBody) {
+            le.htmlEditorBody.dataset.sourceMode = active ? 'html' : 'image';
         }
+        le.htmlRenderBtn?.classList.toggle('hidden', !active);
+        le.htmlWidthRow?.classList.toggle('hidden', !active);
+        le.simpleBuilder?.classList.toggle('hidden', !active);
+        le.advancedEditor?.classList.toggle('hidden', !active);
         if (!active && elements.sourceImage?.src) {
             if (le.svgSourceMirror) le.svgSourceMirror.src = elements.sourceImage.src;
         }

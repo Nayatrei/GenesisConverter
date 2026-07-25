@@ -1,6 +1,6 @@
 import { SLIDER_TOOLTIPS } from '../config.js';
-import { createObjPreview } from '../preview3d.js?v=20260412b';
-import { createObjExporter } from '../export3d.js?v=20260412b';
+import { createObjPreview } from '../preview3d.js?v=20260725a';
+import { createObjExporter } from '../export3d.js?v=20260725a';
 import {
     hasTransparentPixels,
     markTransparentPixels,
@@ -8,14 +8,14 @@ import {
     remapQuantizedPaletteToColors,
     stripTransparentPalette
 } from '../shared/image-utils.js';
-import { debounce, layerHasPaths, buildTracedataSubset, createMergedTracedata, assess3DPrintQuality } from '../shared/trace-utils.js';
+import { debounce, layerHasPaths, buildTracedataSubset, createMergedTracedata, assess3DPrintQuality } from '../shared/trace-utils.js?v=20260725a';
 import { saveInitialSliderValues, updateAllSliderDisplays, resetSlidersToInitial } from '../shared/slider-manager.js';
 import { createZoomPanController } from '../shared/zoom-pan.js';
 import { svgToPng } from '../shared/svg-renderer.js';
 import { createPaletteManager } from '../shared/palette-manager.js';
 import { buildWeldedSilhouetteSvgString } from '../shared/silhouette-builder.js';
 import { formatObjScalePercent } from '../obj-scale.js';
-import { HTML_PRESETS, createHtmlEditor, extractDeclaredHtmlColors } from './logo/html-editor.js?v=13';
+import { HTML_PRESETS, createHtmlEditor, extractDeclaredHtmlColors } from './logo/html-editor.js?v=20260725a';
 import { createAutoWorkingImageFromSource } from '../raster-utils.js';
 import { canAttemptBambuLaunch } from '../bambu-bridge.js';
 import {
@@ -25,6 +25,7 @@ import {
     getColorCountNoticeMessage,
     readTraceControls
 } from '../shared/trace-controls.js';
+import { setMakerWorkflow, updateMakerPreflight } from '../shared/maker-workflow.js?v=20260725a';
 
 export function createLogoTabController({
     state,
@@ -59,6 +60,48 @@ export function createLogoTabController({
         ...exportElements,
         ...htmlElements
     };
+    setMakerWorkflow(le.workflow, 'source');
+
+    function escapeLogoText(value) {
+        return String(value || '')
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
+    }
+
+    function buildSimpleLogoMarkup() {
+        const text = escapeLogoText(le.builderText?.value.trim() || 'MY BRAND');
+        const shape = le.builderShape?.value || 'pill';
+        const fontSize = Math.max(12, Math.min(96, Number.parseInt(le.builderFontSize?.value || '32', 10) || 32));
+        const background = le.builderBgColor?.value || '#2563eb';
+        const foreground = le.builderTextColor?.value || '#f8fafc';
+
+        const shapeStyles = {
+            pill: `padding:22px 48px;border-radius:999px;background-color:${background};`,
+            rounded: `min-width:260px;min-height:160px;padding:28px 42px;border-radius:28px;background-color:${background};`,
+            badge: `width:240px;height:240px;padding:24px;border-radius:999px;background-color:${background};text-align:center;`,
+            plain: 'padding:18px;background-color:transparent;'
+        };
+
+        return `<div style="
+  display:inline-flex;align-items:center;justify-content:center;
+  box-sizing:border-box;white-space:nowrap;
+  ${shapeStyles[shape] || shapeStyles.pill}
+  color:${foreground};font-family:system-ui,sans-serif;
+  font-size:${fontSize}px;font-weight:800;letter-spacing:0.08em;line-height:1;">
+  ${text}
+</div>`;
+    }
+
+    function syncSimpleBuilderToHtml({ render = true } = {}) {
+        if (!le.htmlInput) return;
+        le.htmlInput.value = buildSimpleLogoMarkup();
+        if (render && ls.htmlModeActive) {
+            htmlEditor.scheduleHtmlRender();
+        }
+    }
 
     // Returns the active source image (HTML-rendered or imported)
     function getLogoSourceImage() {
@@ -72,10 +115,17 @@ export function createLogoTabController({
 
     // ── Debounced re-trace ─────────────────────────────────────────────────────
 
-    const debounceGeneratePreview = debounce(() => {
+    const runDebouncedGeneratePreview = debounce(() => {
         if (!ls.colorsAnalyzed || !hasLogoSourceLoaded()) return;
         void generatePreviewClick().catch(() => {});
     });
+
+    function debounceGeneratePreview() {
+        if (!ls.colorsAnalyzed || !hasLogoSourceLoaded()) return;
+        if (le.generatePreviewBtn) le.generatePreviewBtn.disabled = true;
+        setMakerWorkflow(le.workflow, 'layers', { tone: 'processing' });
+        runDebouncedGeneratePreview();
+    }
 
     function syncTraceControlMode() {
         if (ls.htmlModeActive) {
@@ -94,6 +144,7 @@ export function createLogoTabController({
         if (le.htmlColorSummary) {
             le.htmlColorSummary.classList.toggle('hidden', !ls.htmlModeActive);
         }
+        setMakerWorkflow(le.workflow, hasLogoSourceLoaded() ? (ls.colorsAnalyzed ? 'export' : 'layers') : 'source');
         syncTraceControlUi();
     }
 
@@ -350,6 +401,7 @@ export function createLogoTabController({
         if (!hasLogoSourceLoaded()) return;
         ls.layerThicknessById = {};
         queueAutoBaseSelection();
+        setMakerWorkflow(le.workflow, 'layers', { tone: 'processing' });
 
         try {
             const declaredHtmlColors = ls.htmlModeActive ? getDeclaredHtmlColors() : [];
@@ -363,6 +415,7 @@ export function createLogoTabController({
             await traceVectorPaths();
         } catch (error) {
             ls.colorsAnalyzed = false;
+            setMakerWorkflow(le.workflow, 'layers', { tone: 'error' });
             throw error;
         }
     }
@@ -403,8 +456,9 @@ export function createLogoTabController({
 
     function updateQualityDisplay(quality) {
         if (le.qualityIndicator) {
-            le.qualityIndicator.textContent = `${quality.pathCount} paths, ${quality.colorCount} colors`;
+            le.qualityIndicator.textContent = `${quality.pathCount.toLocaleString()} paths · ${quality.colorCount} colors`;
         }
+        updateMakerPreflight(viewControls, quality);
     }
 
     // ── 3D preview / exporter ──────────────────────────────────────────────────
@@ -436,6 +490,7 @@ export function createLogoTabController({
         showLoader(true);
         le.statusText.textContent = 'Tracing vector paths...';
         if (le.generatePreviewBtn) le.generatePreviewBtn.disabled = true;
+        setMakerWorkflow(le.workflow, 'model', { tone: 'processing' });
 
         return new Promise((resolve, reject) => {
             setTimeout(async () => {
@@ -485,6 +540,7 @@ export function createLogoTabController({
                     await updateFilteredPreview();
 
                     updateQualityDisplay(assess3DPrintQuality(ls.tracedata, getVisibleLayerIndices));
+                    setMakerWorkflow(le.workflow, 'export');
                     le.statusText.textContent = 'Preview generated!';
                     enableDownloadButtons();
                     onRasterExportStateChanged();
@@ -492,6 +548,7 @@ export function createLogoTabController({
                 } catch (error) {
                     console.error('Tracing error:', error);
                     le.statusText.textContent = `Error: ${error.message}`;
+                    setMakerWorkflow(le.workflow, 'model', { tone: 'error' });
                     reject(error);
                 } finally {
                     showLoader(false);
@@ -527,6 +584,9 @@ export function createLogoTabController({
 
     function updateFilteredPreview() {
         objPreview.render();
+        if (ls.tracedata) {
+            updateQualityDisplay(assess3DPrintQuality(ls.tracedata, getVisibleLayerIndices));
+        }
     }
 
     // ── Download buttons ───────────────────────────────────────────────────────
@@ -594,6 +654,7 @@ export function createLogoTabController({
         updateResolutionNotice(w, h);
         onRasterImageLoaded();
         ls.colorsAnalyzed = false;
+        setMakerWorkflow(le.workflow, 'layers');
 
         if (state.activeTab !== 'logo') {
             showLoader(false);
@@ -613,21 +674,30 @@ export function createLogoTabController({
     function onTabActivated() {
         if (ls.htmlModeActive) {
             if (!ls.colorsAnalyzed && le.htmlInput?.value.trim()) {
+                setMakerWorkflow(le.workflow, 'layers');
                 htmlEditor.triggerHtmlRender();
             } else if (ls.colorsAnalyzed) {
+                setMakerWorkflow(le.workflow, 'export');
                 objPreview.render();
+            } else {
+                setMakerWorkflow(le.workflow, 'source');
             }
             return;
         }
 
-        if (!hasSingleImageLoaded()) return;
+        if (!hasSingleImageLoaded()) {
+            setMakerWorkflow(le.workflow, 'source');
+            return;
+        }
         if (!ls.colorsAnalyzed) {
+            setMakerWorkflow(le.workflow, 'layers');
             if (le.generatePreviewBtn) le.generatePreviewBtn.disabled = false;
             buildWorkingImageCache();
             saveInitialSliderValues(ls, le);
             syncTraceControlMode();
             void generatePreviewClick().catch(() => {});
         } else {
+            setMakerWorkflow(le.workflow, 'export');
             objPreview.render();
         }
     }
@@ -878,14 +948,17 @@ export function createLogoTabController({
         le.sourceImage.addEventListener('load', onSourceImageLoaded);
 
         // ── HTML editor bindings ───────────────────────────────────────────────
-        if (le.htmlModeToggle) {
-            le.htmlModeToggle.addEventListener('click', () => {
-                htmlEditor.setHtmlMode(!ls.htmlModeActive);
-                if (ls.htmlModeActive && le.htmlInput?.value.trim()) {
+        le.htmlModeButtons?.forEach((button) => {
+            button.addEventListener('click', () => {
+                const htmlMode = button.dataset.logoSourceMode === 'html';
+                htmlEditor.setHtmlMode(htmlMode);
+                if (htmlMode && le.htmlInput?.value.trim()) {
                     htmlEditor.scheduleHtmlRender();
+                } else if (!htmlMode && !hasSingleImageLoaded()) {
+                    document.getElementById('import-btn')?.click();
                 }
             });
-        }
+        });
 
         if (le.htmlRenderBtn) {
             le.htmlRenderBtn.addEventListener('click', () => {
@@ -930,6 +1003,23 @@ export function createLogoTabController({
                 if (ls.htmlModeActive) htmlEditor.scheduleHtmlRender();
             });
         });
+
+        const builderControls = [
+            le.builderText,
+            le.builderShape,
+            le.builderFontSize,
+            le.builderBgColor,
+            le.builderTextColor
+        ].filter(Boolean);
+        builderControls.forEach((control) => {
+            const eventName = control.tagName === 'SELECT' || control.type === 'color' ? 'change' : 'input';
+            control.addEventListener(eventName, () => syncSimpleBuilderToHtml());
+        });
+
+        if (le.htmlInput && !le.htmlInput.value.trim()) {
+            syncSimpleBuilderToHtml({ render: false });
+        }
+        htmlEditor.setHtmlMode(ls.htmlModeActive);
     }
 
     function showTraceControlTooltip(controlId, tooltipId = controlId) {

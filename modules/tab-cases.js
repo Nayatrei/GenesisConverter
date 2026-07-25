@@ -29,10 +29,10 @@
 
 export const TAB_CASES = {
     svg: {
-        label: 'SVG',
-        eyebrow: 'Vector Trace',
-        title: 'Color-layer SVG',
-        description: 'Trace bitmap into colored vector layers for 3D printing.',
+        label: '3D OBJ',
+        eyebrow: 'Image to 3D',
+        title: 'Create a 3D model',
+        description: 'Turn an image into layered geometry, check the print, and export a 3D file.',
         accent: '#38bdf8',
         accentSoft: 'rgba(56, 189, 248, 0.16)',
         accentRgb: '56, 189, 248',
@@ -53,9 +53,9 @@ export const TAB_CASES = {
 
     logo: {
         label: 'Logo',
-        eyebrow: 'Brand Mark',
-        title: 'Logo Vector',
-        description: 'Trace a logo or graphic into clean, layered vectors.',
+        eyebrow: 'Logo to 3D',
+        title: 'Build a 3D logo',
+        description: 'Create a text or HTML mark—or import an image—then turn it into printable layers.',
         accent: '#a78bfa',
         accentSoft: 'rgba(167, 139, 250, 0.16)',
         accentRgb: '167, 139, 250',

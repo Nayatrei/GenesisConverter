@@ -152,6 +152,7 @@ test('logo html mode does not use oversized working-image notice', async ({ page
     await page.locator('.segmented-control-tab[data-tab="logo"]').click();
     await expect(page.locator('#tab-logo')).toBeVisible();
 
+    await page.locator('#logo-advanced-editor summary').click();
     await page.locator('#logo-html-input').fill('<div style="width:640px;height:320px;background:#111827;border-radius:40px;"></div>');
     await page.locator('#logo-html-render-btn').click();
 

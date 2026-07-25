@@ -3,11 +3,11 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Genesis Image Tools - Convert Images to SVG for 3D Printing</title>
-    <meta name="description" content="Convert your images to SVG vectors for 3D printing. Resize, trace, and export images as PNG, JPG, TGA, or layered SVG files.">
-    <meta name="keywords" content="image converter, svg converter, 3d printing, vector conversion, image resize">
+    <title>Genesis Image Tools — Create 3D Models, Logos, and Image Exports</title>
+    <meta name="description" content="Create layered 3D models from images and logos, check print dimensions, and export 3MF, OBJ, STL, SVG, PNG, JPG, TGA, and PDF files.">
+    <meta name="keywords" content="image to 3d, logo to 3d, 3mf export, obj export, stl export, image converter, image resize">
     <meta property="og:title" content="Genesis Image Tools">
-    <meta property="og:description" content="Professional image to SVG conversion tool for 3D printing and design">
+    <meta property="og:description" content="Create print-ready 3D models from images and logos, then export them for Bambu Studio and other 3D tools.">
     <meta property="og:type" content="website">
     <meta property="og:image" content="favIcon.png">
     <link rel="icon" type="image/png" href="favIcon.png">
@@ -18,8 +18,8 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet">
     <script src="imagetracer_v1.2.6.js?v=20260324d"></script>
     <script type="module" src="three-setup.js?v=20260324d"></script>
-    <script type="module" src="converter.js?v=20260616a"></script>
-    <link rel="stylesheet" href="style.css?v=20260616a">
+    <script type="module" src="converter.js?v=20260725a"></script>
+    <link rel="stylesheet" href="style.css?v=20260725a">
 </head>
 <body class="app-body antialiased app-shell-v2">
 
@@ -52,11 +52,11 @@
             <div id="tab-case-strip" class="tab-case-strip" data-case="svg" aria-live="polite">
                 <span class="tab-case-strip-rail" aria-hidden="true"></span>
                 <div class="tab-case-strip-body">
-                    <span class="tab-case-strip-eyebrow" data-case-eyebrow>Vector Trace</span>
-                    <span class="tab-case-strip-title" data-case-title>Color-layer SVG</span>
-                    <span class="tab-case-strip-desc" data-case-desc>Trace bitmap into colored vector layers for 3D printing.</span>
+                    <span class="tab-case-strip-eyebrow" data-case-eyebrow>Image to 3D</span>
+                    <span class="tab-case-strip-title" data-case-title>Create a 3D model</span>
+                    <span class="tab-case-strip-desc" data-case-desc>Turn an image into layered geometry, check the print, and export a 3D file.</span>
                 </div>
-                <span class="tab-case-strip-badge" data-case-badge>SVG</span>
+                <span class="tab-case-strip-badge" data-case-badge>3D OBJ</span>
             </div>
 
             <div class="flex-grow p-4 overflow-y-auto sidebar-scroll">
@@ -103,7 +103,7 @@
                             <svg class="sidebar-accordion-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                 <path d="M12 20h9M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/>
                             </svg>
-                            <h2 class="sidebar-accordion-title">2. Adjust Conversion</h2>
+                            <h2 class="sidebar-accordion-title">2. Clean Layers</h2>
                         </span>
                         <div class="flex items-center gap-2">
                             <button id="reset-btn" class="hidden text-xs font-semibold text-blue-400 hover:text-blue-300" onclick="event.stopPropagation()">Reset to Initial</button>
@@ -335,7 +335,7 @@
                                         <svg class="sidebar-sub-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                             <path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/>
                                         </svg>
-                                        3D Export Settings
+                                        3. Build 3D
                                     </span>
                                     <svg class="sidebar-sub-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                         <path d="M19 9l-7 7-7-7"/>
@@ -345,7 +345,7 @@
                                     <div class="sidebar-sub-body-inner">
                                     <fieldset id="obj-controls">
                                         <div>
-                                            <label for="obj-scale" class="text-sm font-medium text-gray-300">OBJ Scale (%)</label>
+                                            <label for="obj-scale" class="text-sm font-medium text-gray-300">Model Scale (%)</label>
                                             <div class="flex items-center space-x-2">
                                                 <input type="range" id="obj-scale" min="0.1" max="200" value="100" step="0.1">
                                                 <span id="obj-scale-value" class="text-sm font-mono bg-gray-700 border border-gray-600 rounded-md px-2 py-0.5 w-12 text-center text-gray-200">100</span>
@@ -473,12 +473,12 @@
             <footer id="sidebar-primary-footer" class="p-6 border-t border-gray-700" data-case-section="footer">
                 <div id="svg-sidebar-actions" class="space-y-3" data-case-section="footer-svg">
                     <button id="generate-preview-btn" class="w-full btn-primary font-bold py-3 px-4 rounded-lg text-lg disabled:bg-gray-600 disabled:cursor-not-allowed" disabled>
-                        Generate Preview
+                        Update 3D Model
                     </button>
                 </div>
                 <div id="logo-sidebar-actions" class="space-y-3 hidden" data-case-section="footer-logo">
                     <button id="logo-generate-preview-btn" class="w-full btn-primary font-bold py-3 px-4 rounded-lg text-lg disabled:bg-gray-600 disabled:cursor-not-allowed" disabled>
-                        Generate Preview
+                        Update 3D Model
                     </button>
                 </div>
             </footer>
@@ -494,11 +494,11 @@
                     <div class="segmented-control-container export-tabs-overlay" aria-label="Export Tabs">
                         <div class="segmented-control">
                             <div class="segmented-control-indicator"></div>
-                            <button class="segmented-control-tab export-tab active" data-tab="svg">SVG</button>
-                            <button class="segmented-control-tab export-tab" data-tab="logo">Logo</button>
-                            <button class="segmented-control-tab export-tab" data-tab="raster">Raster</button>
-                            <button class="segmented-control-tab export-tab" data-tab="bulk">Bulk</button>
-                            <button class="segmented-control-tab export-tab" data-tab="pdf">PDF</button>
+                            <button class="segmented-control-tab export-tab active" data-tab="svg"><span class="workspace-tab-title">3D OBJ</span><span class="workspace-tab-subtitle">Create 3D from Image</span></button>
+                            <button class="segmented-control-tab export-tab" data-tab="logo"><span class="workspace-tab-title">Logo</span><span class="workspace-tab-subtitle">Custom HTML logo to 3D</span></button>
+                            <button class="segmented-control-tab export-tab" data-tab="raster"><span class="workspace-tab-title">Raster</span><span class="workspace-tab-subtitle">Resize Images</span></button>
+                            <button class="segmented-control-tab export-tab" data-tab="bulk"><span class="workspace-tab-title">Bulk</span><span class="workspace-tab-subtitle">Resize Bulk Images</span></button>
+                            <button class="segmented-control-tab export-tab" data-tab="pdf"><span class="workspace-tab-title">PDF</span><span class="workspace-tab-subtitle">Fix PDF</span></button>
                         </div>
                     </div>
                     <button id="mobile-controls-toggle" class="mobile-controls-toggle" aria-expanded="false" aria-label="Open settings panel">
@@ -535,6 +535,7 @@
             <div id="main-content" class="hidden h-full min-h-0 flex flex-col">
                 <!-- Tabs Section -->
                 <div id="output-section" class="card p-6 flex-1 min-h-0 overflow-y-auto flex flex-col gap-4" style="display:none;">
+                    <h2 class="workspace-card-header">Workspace</h2>
                     <div id="original-image-panel" class="card-inner bg-gray-800 rounded-lg original-image-panel" data-case-section="original-panel" style="padding: clamp(0.75rem, 2vw, 1rem); margin-bottom: clamp(0.75rem, 1.5vw, 1rem);">
                         <div id="single-original-view" data-case-section="original-image">
                             <div class="flex justify-between items-center mb-2 original-image-header">

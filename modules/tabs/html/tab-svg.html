@@ -1,11 +1,36 @@
                     <!-- SVG Tab Content -->
                     <div id="tab-svg" class="export-panel svg-v2">
+                        <nav id="svg-maker-workflow" class="maker-workflow" aria-label="3D creation progress" data-stage="source">
+                            <div class="maker-workflow-copy">
+                                <span class="maker-workflow-eyebrow">Image to 3D</span>
+                                <strong>Build progress</strong>
+                            </div>
+                            <ol class="maker-workflow-steps">
+                                <li class="maker-workflow-step" data-workflow-step="source">
+                                    <span class="maker-workflow-index">1</span>
+                                    <span><strong>Source</strong><small>Import image</small></span>
+                                </li>
+                                <li class="maker-workflow-step" data-workflow-step="layers">
+                                    <span class="maker-workflow-index">2</span>
+                                    <span><strong>Layers</strong><small>Clean colors</small></span>
+                                </li>
+                                <li class="maker-workflow-step" data-workflow-step="model">
+                                    <span class="maker-workflow-index">3</span>
+                                    <span><strong>Model</strong><small>Inspect 3D</small></span>
+                                </li>
+                                <li class="maker-workflow-step" data-workflow-step="export">
+                                    <span class="maker-workflow-index">4</span>
+                                    <span><strong>Export</strong><small>Print-ready file</small></span>
+                                </li>
+                            </ol>
+                        </nav>
+
                         <!-- Preview Grid -->
-                        <div class="output-grid two-col">
-                            <div class="output-card">
+                        <div class="output-grid two-col maker-primary-grid">
+                            <div class="output-card vector-layers-card">
                                 <div class="output-card-header">
                                     <h3 class="output-card-title">
-                                        3D Print Preview
+                                        Vector Layers
                                         <span id="quality-indicator" class="text-xs text-gray-400 font-normal"></span>
                                     </h3>
                                     <div class="preview-card-actions flex items-center gap-2">
@@ -54,10 +79,10 @@
                                 </div>
                             </div>
 
-                            <div class="output-card">
+                            <div class="output-card model-preview-card">
                                 <div class="output-card-header">
                                     <h3 class="output-card-title">
-                                        3D Preview
+                                        3D Model Preview
                                         <span class="text-xs text-gray-400 font-normal">Drag to rotate · Scroll to zoom</span>
                                     </h3>
                                     <div class="preview-card-actions flex items-center gap-2">
@@ -78,7 +103,28 @@
                                 </div>
                                 <div class="preview-container preview-container-flexible bg-grid rounded-md overflow-hidden relative obj-preview-stage">
                                     <canvas id="obj-preview-canvas" class="obj-preview-canvas"></canvas>
-                                    <div id="obj-preview-placeholder" class="preview-placeholder">3D preview will appear after analysis.</div>
+                                    <div id="obj-preview-placeholder" class="preview-placeholder">Import an image to build the 3D model.</div>
+                                </div>
+                                <div class="model-preflight" aria-live="polite">
+                                    <div class="model-preflight-head">
+                                        <span class="model-preflight-label">Print preflight</span>
+                                        <span id="svg-preflight-status" class="model-preflight-status is-waiting">Waiting for source</span>
+                                    </div>
+                                    <div class="model-preflight-grid">
+                                        <div class="model-preflight-metric">
+                                            <span>Model size</span>
+                                            <strong id="svg-model-size-readout">—</strong>
+                                        </div>
+                                        <div class="model-preflight-metric">
+                                            <span>Geometry</span>
+                                            <strong id="svg-triangle-estimate">—</strong>
+                                        </div>
+                                        <div class="model-preflight-metric">
+                                            <span>Layers</span>
+                                            <strong id="svg-preflight-layers">—</strong>
+                                        </div>
+                                    </div>
+                                    <p id="svg-preflight-note" class="model-preflight-note">Load a source image, then update the 3D model.</p>
                                 </div>
                                 <div class="layer-stack-card">
                                     <div class="layer-stack-header">
@@ -107,9 +153,9 @@
                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
                                     </svg>
-                                    Layers & Merging
+                                    Edit layers &amp; merging
                                 </h4>
-                                <span class="text-xs text-gray-400">Click to expand</span>
+                                <span class="text-xs text-gray-400">Open layer controls</span>
                             </div>
                             <div id="layers-section" class="collapsible-section collapsed">
                                 <div class="output-grid two-col" style="margin-bottom: 0;">
@@ -137,7 +183,44 @@
 
 <footer id="svg-export-footer" data-tab-footer="svg" class="p-4 border-t border-gray-700 bg-gray-800 flex-shrink-0 svg-v2">
     <div class="footer-action-stack footer-action-grouped">
-        <div class="footer-action-group">
+        <div class="export-recommended-group">
+            <div class="export-group-heading">
+                <span>Recommended</span>
+                <small>Best choices for multicolor 3D printing</small>
+            </div>
+            <div class="footer-action-group">
+                <div class="footer-action-card is-recommended">
+                    <button id="export-3mf-btn" class="export-icon-btn btn-primary font-semibold py-3 px-4 rounded-md text-sm disabled:bg-gray-600 disabled:cursor-not-allowed" disabled>
+                        <svg class="export-btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="3" y="3" width="18" height="18" rx="2"/>
+                            <path d="M3 9h18M9 21V9"/>
+                            <path d="M15 14l-3 3-3-3"/>
+                        </svg>
+                        <span>Export 3MF</span>
+                    </button>
+                    <div class="footer-action-meta">Print-ready Bambu Studio project</div>
+                </div>
+                <div class="footer-action-card">
+                    <button id="svg-bambu-open-btn" class="export-icon-btn btn-secondary font-semibold py-3 px-4 rounded-md text-sm disabled:bg-gray-600 disabled:cursor-not-allowed" disabled>
+                        <svg class="export-btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="3" y="4" width="18" height="12" rx="1"/>
+                            <line x1="6" y1="20" x2="18" y2="20"/>
+                            <line x1="8" y1="16" x2="8" y2="20"/>
+                            <line x1="16" y1="16" x2="16" y2="20"/>
+                            <rect x="7" y="8" width="10" height="4" rx="0.5" fill="currentColor" stroke="none" opacity="0.3"/>
+                        </svg>
+                        <span>Open in Bambu</span>
+                    </button>
+                    <div id="svg-bambu-open-meta" class="footer-action-meta">Download 3MF &amp; launch Bambu Studio</div>
+                </div>
+            </div>
+        </div>
+        <details class="export-advanced-group">
+            <summary>
+                <span>Advanced formats</span>
+                <small>OBJ, STL, and vector layer files</small>
+            </summary>
+            <div class="footer-action-group">
             <div class="footer-action-card">
                 <button id="export-layers-btn" class="export-icon-btn btn-secondary font-semibold py-3 px-4 rounded-md text-sm disabled:bg-gray-600 disabled:cursor-not-allowed" disabled>
                     <svg class="export-btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
@@ -159,10 +242,8 @@
                 </button>
                 <div class="footer-action-meta">Single file (original or merged)</div>
             </div>
-        </div>
-        <div class="footer-action-group">
             <div class="footer-action-card">
-                <button id="export-obj-btn" class="export-icon-btn btn-primary font-semibold py-3 px-4 rounded-md text-sm disabled:bg-gray-600 disabled:cursor-not-allowed" disabled>
+                <button id="export-obj-btn" class="export-icon-btn btn-secondary font-semibold py-3 px-4 rounded-md text-sm disabled:bg-gray-600 disabled:cursor-not-allowed" disabled>
                     <svg class="export-btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
                         <path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/>
                         <polyline points="3.27 6.96 12 12.01 20.73 6.96"/>
@@ -170,18 +251,7 @@
                     </svg>
                     <span>Export OBJ</span>
                 </button>
-                <div class="footer-action-meta">3D model + materials for Bambu</div>
-            </div>
-            <div class="footer-action-card">
-                <button id="export-3mf-btn" class="export-icon-btn btn-secondary font-semibold py-3 px-4 rounded-md text-sm disabled:bg-gray-600 disabled:cursor-not-allowed" disabled>
-                    <svg class="export-btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                        <rect x="3" y="3" width="18" height="18" rx="2"/>
-                        <path d="M3 9h18M9 21V9"/>
-                        <path d="M15 14l-3 3-3-3"/>
-                    </svg>
-                    <span>Export 3MF</span>
-                </button>
-                <div class="footer-action-meta">Bambu Studio project · double-click to open</div>
+                <div class="footer-action-meta">OBJ + MTL for other 3D tools</div>
             </div>
             <div class="footer-action-card">
                 <button id="export-stl-btn" class="export-icon-btn btn-secondary font-semibold py-3 px-4 rounded-md text-sm disabled:bg-gray-600 disabled:cursor-not-allowed" disabled>
@@ -194,21 +264,7 @@
                 </button>
                 <div class="footer-action-meta">Per-layer STL files</div>
             </div>
-        </div>
-        <div class="footer-action-group">
-            <div class="footer-action-card">
-                <button id="svg-bambu-open-btn" class="export-icon-btn btn-secondary font-semibold py-3 px-4 rounded-md text-sm disabled:bg-gray-600 disabled:cursor-not-allowed" disabled>
-                    <svg class="export-btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                        <rect x="3" y="4" width="18" height="12" rx="1"/>
-                        <line x1="6" y1="20" x2="18" y2="20"/>
-                        <line x1="8" y1="16" x2="8" y2="20"/>
-                        <line x1="16" y1="16" x2="16" y2="20"/>
-                        <rect x="7" y="8" width="10" height="4" rx="0.5" fill="currentColor" stroke="none" opacity="0.3"/>
-                    </svg>
-                    <span>Open in Bambu</span>
-                </button>
-                <div id="svg-bambu-open-meta" class="footer-action-meta">Download 3MF &amp; launch Bambu Studio</div>
             </div>
-        </div>
+        </details>
     </div>
 </footer>

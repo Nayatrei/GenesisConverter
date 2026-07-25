@@ -6108,6 +6108,170 @@ body.app-shell-v2 .mobile-controls-toggle:hover {
     background: rgba(255, 255, 255, 0.09);
 }
 
+/* Workspace navigation — make the active workflow unmissable without icons. */
+body.app-shell-v2 .workspace-topbar {
+    display: block;
+    padding: 0.9rem 1rem 1rem;
+    background: rgba(8, 10, 16, 0.72);
+}
+
+body.app-shell-v2 .workspace-toolbar-group {
+    position: static;
+    display: block;
+    width: 100%;
+    margin: 0;
+}
+
+body.app-shell-v2 .workspace-topbar .segmented-control-container {
+    position: static;
+    top: auto;
+    right: auto;
+    z-index: auto;
+    display: block;
+    width: 100%;
+    margin: 0;
+}
+
+body.app-shell-v2 .workspace-card-header {
+    flex: 0 0 auto;
+    margin: 0;
+    padding: 0 0 0.7rem;
+    border-bottom: 1px solid var(--bulk-hairline);
+    color: var(--bulk-text-muted);
+    font-family: var(--bulk-display-font);
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    line-height: 1;
+    text-transform: uppercase;
+}
+
+body.app-shell-v2 #main-content {
+    flex: 1 1 0;
+    height: auto;
+    min-height: 0;
+}
+
+body.app-shell-v2 .workspace-topbar .segmented-control {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 0.65rem;
+    width: 100%;
+    padding: 0;
+    overflow: visible;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+}
+
+body.app-shell-v2 .workspace-topbar .segmented-control-indicator {
+    display: none;
+}
+
+body.app-shell-v2 .workspace-topbar .segmented-control-tab {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 0.28rem;
+    min-height: 4.125rem;
+    padding: 0.65rem;
+    border: 1px solid var(--bulk-hairline-strong);
+    border-radius: 14px;
+    background: rgba(255, 255, 255, 0.025);
+    color: var(--bulk-text-secondary);
+    font-size: clamp(0.9rem, 1.25vw, 1.15rem);
+    font-weight: 650;
+    letter-spacing: -0.01em;
+    text-align: center;
+    transition: transform 180ms ease, color 180ms ease, border-color 180ms ease, background-color 180ms ease;
+}
+
+body.app-shell-v2 .workspace-tab-title,
+body.app-shell-v2 .workspace-tab-subtitle {
+    display: block;
+    max-width: 100%;
+}
+
+body.app-shell-v2 .workspace-tab-title {
+    color: inherit;
+    font-size: 1em;
+    line-height: 1.1;
+}
+
+body.app-shell-v2 .workspace-tab-subtitle {
+    color: var(--bulk-text-muted);
+    font-family: var(--bulk-body-font);
+    font-size: 0.66rem;
+    font-weight: 500;
+    letter-spacing: 0;
+    line-height: 1.2;
+}
+
+body.app-shell-v2 .workspace-topbar .segmented-control-tab.active .workspace-tab-subtitle,
+body.app-shell-v2 .workspace-topbar .segmented-control-tab:hover .workspace-tab-subtitle {
+    color: var(--bulk-text-secondary);
+}
+
+body.app-shell-v2 .workspace-topbar .segmented-control-tab:hover:not(.active) {
+    color: var(--bulk-text-primary);
+    border-color: rgba(255, 255, 255, 0.22);
+    background: rgba(255, 255, 255, 0.055);
+}
+
+body.app-shell-v2 .workspace-topbar .segmented-control-tab:active {
+    transform: scale(0.985);
+}
+
+body.app-shell-v2 .workspace-topbar .segmented-control-tab.active {
+    color: var(--bulk-text-primary);
+    border-color: #3b82f6;
+    background: rgba(37, 99, 235, 0.12);
+    box-shadow: inset 0 -3px 0 #3b82f6;
+}
+
+body.app-shell-v2 .workspace-topbar .segmented-control-tab:focus-visible {
+    outline: 2px solid #93c5fd;
+    outline-offset: 3px;
+}
+
+body.app-shell-v2 .mobile-controls-toggle {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+}
+
+@media (max-width: 1023px) {
+    body.app-shell-v2 .workspace-topbar {
+        padding: 1rem;
+    }
+
+    body.app-shell-v2 .workspace-topbar .segmented-control {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    body.app-shell-v2 .workspace-topbar .segmented-control-tab {
+        min-height: 4rem;
+    }
+}
+
+@media (max-width: 560px) {
+    body.app-shell-v2 .workspace-topbar .segmented-control {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 0.55rem;
+    }
+
+    body.app-shell-v2 .workspace-topbar .segmented-control-tab {
+        min-height: 3.75rem;
+        font-size: 0.9rem;
+    }
+
+    body.app-shell-v2 .workspace-tab-subtitle {
+        font-size: 0.58rem;
+    }
+}
+
 /* Welcome screen workspace dropzone — double-bezel */
 body.app-shell-v2 .workspace-dropzone {
     background: var(--bulk-shell-bg);
@@ -7117,4 +7281,614 @@ body.app-shell-v2 .sidebar-accordion-icon,
 body.app-shell-v2 .sidebar-sub-icon {
     color: var(--case-accent);
     transition: color 380ms var(--bulk-ease, ease);
+}
+
+/* ════════════════════════════════════════════════════════════════
+   3D MAKER FLOW — IMAGE / LOGO
+   Clear source → layers → model → export progression.
+   ════════════════════════════════════════════════════════════════ */
+
+.svg-v2 .maker-workflow,
+.logo-v2 .maker-workflow {
+    display: grid;
+    grid-template-columns: minmax(8.5rem, 0.42fr) minmax(0, 1.58fr);
+    gap: 1rem;
+    align-items: center;
+    margin: 0 0 1rem;
+    padding: 0.9rem 1rem;
+    border: 1px solid var(--bulk-hairline);
+    border-radius: 18px;
+    background: rgba(255, 255, 255, 0.025);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.035);
+}
+
+.maker-workflow-copy {
+    display: grid;
+    gap: 0.15rem;
+    padding-right: 1rem;
+    border-right: 1px solid var(--bulk-hairline);
+}
+
+.maker-workflow-copy strong {
+    color: var(--bulk-text-primary);
+    font-family: var(--bulk-display-font);
+    font-size: 0.9rem;
+    letter-spacing: -0.01em;
+}
+
+.maker-workflow-eyebrow,
+.maker-card-eyebrow {
+    color: var(--case-accent, var(--bulk-accent));
+    font-size: 0.58rem;
+    font-weight: 800;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+}
+
+.maker-workflow-steps {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0.45rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.maker-workflow-step {
+    position: relative;
+    display: grid;
+    grid-template-columns: 1.6rem minmax(0, 1fr);
+    gap: 0.45rem;
+    align-items: center;
+    min-width: 0;
+    padding: 0.45rem 0.5rem;
+    border-radius: 10px;
+    color: var(--bulk-text-muted);
+    transition: color 180ms ease, background-color 180ms ease;
+}
+
+.maker-workflow-index {
+    display: grid;
+    place-items: center;
+    width: 1.6rem;
+    height: 1.6rem;
+    border: 1px solid var(--bulk-hairline-strong);
+    border-radius: 7px;
+    font-family: var(--bulk-mono-font, ui-monospace, monospace);
+    font-size: 0.65rem;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+}
+
+.maker-workflow-step > span:last-child {
+    display: grid;
+    min-width: 0;
+}
+
+.maker-workflow-step strong {
+    overflow: hidden;
+    font-size: 0.72rem;
+    line-height: 1.15;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.maker-workflow-step small {
+    overflow: hidden;
+    margin-top: 0.1rem;
+    font-size: 0.58rem;
+    line-height: 1.2;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.maker-workflow-step.is-complete {
+    color: var(--bulk-text-secondary);
+}
+
+.maker-workflow-step.is-complete .maker-workflow-index {
+    border-color: rgba(52, 211, 153, 0.38);
+    background: rgba(52, 211, 153, 0.1);
+    color: #6ee7b7;
+}
+
+.maker-workflow-step.is-current {
+    background: rgba(var(--case-accent-rgb, 96, 165, 250), 0.1);
+    color: var(--bulk-text-primary);
+}
+
+.maker-workflow-step.is-current .maker-workflow-index {
+    border-color: rgba(var(--case-accent-rgb, 96, 165, 250), 0.55);
+    background: rgba(var(--case-accent-rgb, 96, 165, 250), 0.17);
+    color: var(--case-accent, #93c5fd);
+}
+
+.maker-workflow[data-tone="processing"] .maker-workflow-step.is-current .maker-workflow-index {
+    animation: makerPulse 1.2s ease-in-out infinite;
+}
+
+.maker-workflow[data-tone="error"] .maker-workflow-step.is-current {
+    background: rgba(248, 113, 113, 0.09);
+}
+
+.maker-workflow[data-tone="error"] .maker-workflow-step.is-current .maker-workflow-index {
+    border-color: rgba(248, 113, 113, 0.5);
+    color: #fca5a5;
+}
+
+@keyframes makerPulse {
+    50% { box-shadow: 0 0 0 4px rgba(var(--case-accent-rgb, 96, 165, 250), 0.08); }
+}
+
+/* Actual 3D model owns the primary visual position; vector output supports it. */
+@media (min-width: 1100px) {
+    .svg-v2 .maker-primary-grid {
+        grid-template-columns: minmax(0, 1.35fr) minmax(18rem, 0.72fr);
+        grid-template-areas: "model vector";
+        align-items: start;
+    }
+
+    .svg-v2 .maker-primary-grid .model-preview-card {
+        grid-area: model;
+    }
+
+    .svg-v2 .maker-primary-grid .vector-layers-card {
+        grid-area: vector;
+    }
+}
+
+.svg-v2 .model-preview-card .obj-preview-stage,
+.logo-v2 .model-preview-card .obj-preview-stage {
+    min-height: clamp(290px, 42vh, 470px);
+}
+
+.svg-v2 .vector-layers-card .preview-container {
+    min-height: clamp(230px, 31vh, 340px);
+}
+
+.model-preflight {
+    display: grid;
+    gap: 0.75rem;
+    margin: 0.75rem;
+    padding: 0.9rem;
+    border: 1px solid var(--bulk-hairline);
+    border-radius: 15px;
+    background: rgba(255, 255, 255, 0.025);
+}
+
+.model-preflight-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+}
+
+.model-preflight-label {
+    color: var(--bulk-text-muted);
+    font-size: 0.58rem;
+    font-weight: 800;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+}
+
+.model-preflight-status {
+    padding: 0.24rem 0.46rem;
+    border: 1px solid var(--bulk-hairline-strong);
+    border-radius: 7px;
+    color: var(--bulk-text-secondary);
+    background: rgba(255, 255, 255, 0.035);
+    font-size: 0.62rem;
+    font-weight: 750;
+}
+
+.model-preflight-status.is-ready {
+    border-color: rgba(52, 211, 153, 0.38);
+    background: rgba(52, 211, 153, 0.09);
+    color: #86efac;
+}
+
+.model-preflight-status.is-review {
+    border-color: rgba(251, 191, 36, 0.38);
+    background: rgba(251, 191, 36, 0.08);
+    color: #fde68a;
+}
+
+.model-preflight-status.is-blocked {
+    border-color: rgba(248, 113, 113, 0.4);
+    background: rgba(248, 113, 113, 0.08);
+    color: #fecaca;
+}
+
+.model-preflight-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.55rem;
+}
+
+.model-preflight-metric {
+    display: grid;
+    gap: 0.2rem;
+    min-width: 0;
+    padding: 0.55rem 0.65rem;
+    border-left: 2px solid var(--bulk-hairline-strong);
+    background: rgba(255, 255, 255, 0.02);
+}
+
+.model-preflight-metric span {
+    color: var(--bulk-text-muted);
+    font-size: 0.57rem;
+    font-weight: 650;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+}
+
+.model-preflight-metric strong {
+    overflow: hidden;
+    color: var(--bulk-text-primary);
+    font-family: var(--bulk-mono-font, ui-monospace, monospace);
+    font-size: 0.74rem;
+    font-variant-numeric: tabular-nums;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.model-preflight-note {
+    margin: 0;
+    max-width: 70ch;
+    color: var(--bulk-text-muted);
+    font-size: 0.66rem;
+    line-height: 1.45;
+}
+
+/* Logo source selector and progressive builder. */
+#tab-logo.logo-v2 {
+    display: flex;
+    flex-direction: column;
+}
+
+#tab-logo.logo-v2.hidden {
+    display: none;
+}
+
+.logo-v2 .maker-workflow { order: 0; }
+.logo-v2 .logo-source-card { order: 1; margin-bottom: 1rem; }
+.logo-v2 .logo-model-grid { order: 2; }
+.logo-v2 .logo-cleanup-grid { order: 3; }
+.logo-v2 > .output-card:not(.logo-source-card) { order: 4; }
+.logo-v2 > #logo-html-source-img { order: 5; }
+
+.logo-v2 .logo-source-card .output-card-header > div:first-child {
+    display: grid;
+    gap: 0.22rem;
+}
+
+.logo-source-mode {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+    padding: 0.3rem;
+    border: 1px solid var(--bulk-hairline);
+    border-radius: 13px;
+    background: rgba(255, 255, 255, 0.025);
+}
+
+.logo-source-mode-btn {
+    display: grid;
+    gap: 0.12rem;
+    min-height: 3.2rem;
+    padding: 0.55rem 0.7rem;
+    border: 1px solid transparent;
+    border-radius: 10px;
+    background: transparent;
+    color: var(--bulk-text-muted);
+    text-align: left;
+    transition: border-color 180ms ease, background-color 180ms ease, color 180ms ease, transform 180ms ease;
+}
+
+.logo-source-mode-btn strong {
+    font-size: 0.76rem;
+}
+
+.logo-source-mode-btn span {
+    font-size: 0.62rem;
+}
+
+.logo-source-mode-btn:hover {
+    color: var(--bulk-text-primary);
+    background: rgba(255, 255, 255, 0.04);
+}
+
+.logo-source-mode-btn:active {
+    transform: translateY(1px);
+}
+
+.logo-source-mode-btn.active {
+    border-color: rgba(var(--case-accent-rgb, 167, 139, 250), 0.48);
+    background: rgba(var(--case-accent-rgb, 167, 139, 250), 0.11);
+    color: var(--bulk-text-primary);
+}
+
+.logo-source-mode-btn:focus-visible,
+.logo-builder-field input:focus-visible,
+.logo-builder-field select:focus-visible,
+.logo-advanced-editor summary:focus-visible,
+.export-advanced-group summary:focus-visible {
+    outline: 2px solid color-mix(in srgb, var(--case-accent, #93c5fd) 70%, white);
+    outline-offset: 2px;
+}
+
+.logo-simple-builder {
+    display: grid;
+    gap: 0.8rem;
+    margin-bottom: 0.85rem;
+    padding: 0.95rem;
+    border: 1px solid rgba(var(--case-accent-rgb, 167, 139, 250), 0.22);
+    border-radius: 15px;
+    background: rgba(var(--case-accent-rgb, 167, 139, 250), 0.045);
+}
+
+.logo-builder-heading {
+    display: flex;
+    align-items: end;
+    justify-content: space-between;
+    gap: 1rem;
+}
+
+.logo-builder-heading h4 {
+    margin: 0.2rem 0 0;
+    color: var(--bulk-text-primary);
+    font-family: var(--bulk-display-font);
+    font-size: 0.9rem;
+    letter-spacing: -0.01em;
+}
+
+.logo-builder-auto-note {
+    color: var(--bulk-text-muted);
+    font-size: 0.6rem;
+}
+
+.logo-builder-grid {
+    display: grid;
+    grid-template-columns: minmax(10rem, 1.5fr) repeat(4, minmax(6.5rem, 0.7fr));
+    gap: 0.65rem;
+}
+
+.logo-builder-field {
+    display: grid;
+    align-content: start;
+    gap: 0.3rem;
+    min-width: 0;
+}
+
+.logo-builder-field > span {
+    color: var(--bulk-text-muted);
+    font-size: 0.58rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.logo-builder-field input,
+.logo-builder-field select {
+    width: 100%;
+    min-height: 2.35rem;
+    padding: 0.45rem 0.6rem;
+    border: 1px solid var(--bulk-hairline-strong);
+    border-radius: 9px;
+    background: rgba(4, 6, 11, 0.64);
+    color: var(--bulk-text-primary);
+    font-size: 0.72rem;
+}
+
+.logo-builder-field input[type="color"] {
+    padding: 0.22rem;
+    cursor: pointer;
+}
+
+.logo-builder-number {
+    position: relative;
+}
+
+.logo-builder-number small {
+    position: absolute;
+    top: 50%;
+    right: 0.55rem;
+    color: var(--bulk-text-muted);
+    font-size: 0.62rem;
+    transform: translateY(-50%);
+    pointer-events: none;
+}
+
+.logo-advanced-editor,
+.export-advanced-group {
+    border: 1px solid var(--bulk-hairline);
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.02);
+}
+
+.logo-advanced-editor summary,
+.export-advanced-group summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.72rem 0.8rem;
+    color: var(--bulk-text-secondary);
+    cursor: pointer;
+    list-style: none;
+}
+
+.logo-advanced-editor summary::-webkit-details-marker,
+.export-advanced-group summary::-webkit-details-marker {
+    display: none;
+}
+
+.logo-advanced-editor summary span,
+.export-advanced-group summary span {
+    font-size: 0.7rem;
+    font-weight: 750;
+}
+
+.logo-advanced-editor summary small,
+.export-advanced-group summary small {
+    color: var(--bulk-text-muted);
+    font-size: 0.6rem;
+}
+
+.logo-advanced-editor[open] summary,
+.export-advanced-group[open] summary {
+    border-bottom: 1px solid var(--bulk-hairline);
+}
+
+.logo-advanced-editor-body {
+    padding: 0.8rem;
+}
+
+.logo-v2 .output-card-content[data-source-mode="image"] .logo-template-row {
+    display: none;
+}
+
+.logo-v2 .output-card-content[data-source-mode="image"]::after {
+    content: "Use Import From Device in the left panel to choose a logo image. PNG or SVG with a transparent background gives the cleanest layers.";
+    display: block;
+    padding: 0.85rem;
+    border: 1px dashed var(--bulk-hairline-strong);
+    border-radius: 12px;
+    color: var(--bulk-text-muted);
+    font-size: 0.68rem;
+    line-height: 1.5;
+}
+
+/* Export choice: recommended targets first, uncommon formats on demand. */
+.svg-v2 .footer-action-grouped,
+.logo-v2 .footer-action-grouped {
+    display: grid;
+    grid-template-columns: minmax(0, 1.25fr) minmax(16rem, 0.75fr);
+    align-items: start;
+}
+
+.export-recommended-group {
+    display: grid;
+    gap: 0.55rem;
+}
+
+.export-group-heading {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0 0.2rem;
+}
+
+.export-group-heading span {
+    color: var(--bulk-text-secondary);
+    font-size: 0.62rem;
+    font-weight: 800;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+}
+
+.export-group-heading small {
+    color: var(--bulk-text-muted);
+    font-size: 0.59rem;
+}
+
+.svg-v2 .export-recommended-group .footer-action-group,
+.logo-v2 .export-recommended-group .footer-action-group,
+.svg-v2 .export-advanced-group .footer-action-group,
+.logo-v2 .export-advanced-group .footer-action-group {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.6rem;
+}
+
+.svg-v2 .export-advanced-group .footer-action-group,
+.logo-v2 .export-advanced-group .footer-action-group {
+    padding: 0.65rem;
+}
+
+.svg-v2 .export-advanced-group .footer-action-group {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.svg-v2 .export-advanced-group .footer-action-card:first-child {
+    grid-column: auto;
+}
+
+.svg-v2 .export-advanced-group[open] {
+    grid-column: 1 / -1;
+}
+
+.svg-v2 .export-advanced-group[open] .footer-action-group {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.footer-action-card.is-recommended {
+    border-color: rgba(var(--case-accent-rgb, 96, 165, 250), 0.35);
+    background: rgba(var(--case-accent-rgb, 96, 165, 250), 0.06);
+}
+
+@media (max-width: 1180px) {
+    .logo-builder-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .logo-builder-field-wide {
+        grid-column: 1 / -1;
+    }
+}
+
+@media (max-width: 900px) {
+    .svg-v2 .maker-workflow,
+    .logo-v2 .maker-workflow {
+        grid-template-columns: 1fr;
+    }
+
+    .maker-workflow-copy {
+        padding: 0 0 0.65rem;
+        border-right: 0;
+        border-bottom: 1px solid var(--bulk-hairline);
+    }
+
+    .svg-v2 .footer-action-grouped,
+    .logo-v2 .footer-action-grouped {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 620px) {
+    .maker-workflow-steps {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .logo-source-mode,
+    .logo-builder-grid,
+    .model-preflight-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .logo-builder-field-wide {
+        grid-column: auto;
+    }
+
+    .logo-builder-heading,
+    .export-group-heading {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 0.25rem;
+    }
+
+    .svg-v2 .export-recommended-group .footer-action-group,
+    .logo-v2 .export-recommended-group .footer-action-group,
+    .svg-v2 .export-advanced-group[open] .footer-action-group,
+    .logo-v2 .export-advanced-group .footer-action-group {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .maker-workflow[data-tone="processing"] .maker-workflow-step.is-current .maker-workflow-index {
+        animation: none;
+    }
 }

@@ -147,15 +147,65 @@ export function createConcatenatedSilhouetteTracedata(tracedata, getVisibleLayer
 }
 
 /**
- * Returns { pathCount, colorCount } quality metrics for 3D printing.
+ * Returns lightweight preflight metrics for the layered 3D build.
+ * These checks intentionally describe geometry complexity and layer presence;
+ * slicer-specific wall/nozzle validation still belongs in the slicer.
  * @param {object} tracedata
  * @param {function} getVisibleLayerIndices - () => number[]
  */
 export function assess3DPrintQuality(tracedata, getVisibleLayerIndices) {
-    if (!tracedata) return { pathCount: 0, colorCount: 0 };
-    const totalPaths = tracedata.layers.reduce(
-        (sum, layer) => sum + (Array.isArray(layer) ? layer.length : 0), 0
-    );
-    const visibleColors = getVisibleLayerIndices().length;
-    return { pathCount: totalPaths, colorCount: visibleColors };
+    if (!tracedata) {
+        return {
+            pathCount: 0,
+            colorCount: 0,
+            status: 'waiting',
+            label: 'Waiting for source',
+            note: 'Load or create a source, then update the 3D model.'
+        };
+    }
+
+    const visibleIndices = getVisibleLayerIndices();
+    const pathCount = visibleIndices.reduce((sum, index) => {
+        const layer = tracedata.layers[index];
+        return sum + (Array.isArray(layer) ? layer.length : 0);
+    }, 0);
+    const colorCount = visibleIndices.length;
+
+    if (pathCount === 0 || colorCount === 0) {
+        return {
+            pathCount,
+            colorCount,
+            status: 'blocked',
+            label: 'No printable layers',
+            note: 'Adjust cleanup or color settings until at least one visible layer remains.'
+        };
+    }
+
+    if (pathCount > 12000 || colorCount > 10) {
+        return {
+            pathCount,
+            colorCount,
+            status: 'review',
+            label: 'Review complexity',
+            note: 'This model is dense. Reduce colors or increase cleanup before exporting for a faster slice.'
+        };
+    }
+
+    if (pathCount > 4500 || colorCount > 6) {
+        return {
+            pathCount,
+            colorCount,
+            status: 'review',
+            label: 'Check in slicer',
+            note: 'The model is usable but moderately complex. Confirm small details and color changes in your slicer.'
+        };
+    }
+
+    return {
+        pathCount,
+        colorCount,
+        status: 'ready',
+        label: 'Ready to export',
+        note: 'Layer and complexity checks pass. Confirm nozzle-sized details in your slicer before printing.'
+    };
 }

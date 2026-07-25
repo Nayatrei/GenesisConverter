@@ -208,6 +208,7 @@ test('logo html mode shows declared-color summary and retraces path cleanup', as
     await page.locator('.segmented-control-tab[data-tab="logo"]').click();
     await expect(page.locator('#tab-logo')).toBeVisible();
 
+    await page.locator('#logo-advanced-editor summary').click();
     await page.locator('#logo-html-input').fill(buildHtmlDotsSnippet());
     await page.locator('#logo-html-render-btn').click();
 

@@ -70,7 +70,13 @@ test('PDF range parser handles supported syntax and validation', async ({ page }
 test('PDF tab is registered as fifth tab and hides image import sidebar', async ({ page }) => {
     await page.goto('/converter.html');
 
-    await expect(page.locator('.segmented-control-tab')).toHaveText(['SVG', 'Logo', 'Raster', 'Bulk', 'PDF']);
+    await expect(page.locator('.segmented-control-tab .workspace-tab-title')).toHaveText([
+        '3D OBJ',
+        'Logo',
+        'Raster',
+        'Bulk',
+        'PDF',
+    ]);
     await page.locator('.segmented-control-tab[data-tab="pdf"]').click();
 
     await expect(page.locator('#tab-pdf')).toBeVisible();

@@ -203,6 +203,12 @@ export function createElements() {
                 objModeSolo: document.getElementById('obj-mode-solo'),
                 layerStackList: document.getElementById('layer-stack-list'),
                 layerStackMeta: document.getElementById('layer-stack-meta'),
+                modelSizeReadout: document.getElementById('svg-model-size-readout'),
+                triangleEstimate: document.getElementById('svg-triangle-estimate'),
+                preflightStatus: document.getElementById('svg-preflight-status'),
+                preflightLayers: document.getElementById('svg-preflight-layers'),
+                preflightNote: document.getElementById('svg-preflight-note'),
+                workflow: document.getElementById('svg-maker-workflow'),
                 useBaseLayerCheckbox: document.getElementById('use-base-layer'),
                 baseLayerSelect: document.getElementById('base-layer-select')
             },
@@ -276,8 +282,13 @@ export function createElements() {
                 objModeSolo: document.getElementById('logo-obj-mode-solo'),
                 layerStackList: document.getElementById('logo-layer-stack-list'),
                 layerStackMeta: document.getElementById('logo-layer-stack-meta'),
+                modelSizeReadout: document.getElementById('logo-model-size-readout'),
                 triangleEstimate: document.getElementById('logo-triangle-estimate'),
                 triangleControlsHint: document.getElementById('logo-triangle-controls-hint'),
+                preflightStatus: document.getElementById('logo-preflight-status'),
+                preflightLayers: document.getElementById('logo-preflight-layers'),
+                preflightNote: document.getElementById('logo-preflight-note'),
+                workflow: document.getElementById('logo-maker-workflow'),
                 useBaseLayerCheckbox: document.getElementById('logo-use-base-layer'),
                 baseLayerSelect: document.getElementById('logo-base-layer-select')
             },
@@ -300,11 +311,19 @@ export function createElements() {
                 htmlCountdown: document.getElementById('logo-html-countdown'),
                 htmlCountdownArc: document.getElementById('logo-html-countdown-arc'),
                 htmlModeToggle: document.getElementById('logo-html-mode-toggle'),
+                htmlModeButtons: document.querySelectorAll('#tab-logo [data-logo-source-mode]'),
                 htmlEditorBody: document.getElementById('logo-html-editor-body'),
                 htmlFontSelect: document.getElementById('logo-html-font-select'),
                 htmlFontSearch: document.getElementById('logo-html-font-search'),
                 htmlFontPills: document.getElementById('logo-html-font-pills'),
-                htmlFontAccessBtn: document.getElementById('logo-html-font-access-btn')
+                htmlFontAccessBtn: document.getElementById('logo-html-font-access-btn'),
+                simpleBuilder: document.getElementById('logo-simple-builder'),
+                builderText: document.getElementById('logo-builder-text'),
+                builderShape: document.getElementById('logo-builder-shape'),
+                builderFontSize: document.getElementById('logo-builder-font-size'),
+                builderBgColor: document.getElementById('logo-builder-bg-color'),
+                builderTextColor: document.getElementById('logo-builder-text-color'),
+                advancedEditor: document.getElementById('logo-advanced-editor')
             }
         },
 
