@@ -1515,6 +1515,12 @@ function appendCapLoopTriangles(positions, loop, z, THREERef, orientation = 'up'
         const vB = loop[b];
         const vC = loop[c];
         if (!vA || !vB || !vC) return;
+        const abX = vB.x - vA.x;
+        const abY = vB.y - vA.y;
+        const acX = vC.x - vA.x;
+        const acY = vC.y - vA.y;
+        const crossZ = abX * acY - abY * acX;
+        if (crossZ * crossZ <= 1e-16) return;
 
         if (orientation === 'down') {
             appendTriangle(positions,
@@ -1718,8 +1724,62 @@ function sanitizeGeometry(geometry, THREERef, bufferUtils, { mergeVerticesEnable
             sanitized = mergedSealedGeometry;
         }
     }
+    // Cap triangulation and vertex welding may collapse a very short edge after
+    // the first pass. Remove those zero-area faces at the final precision used
+    // by print validation so text glyphs cannot poison an otherwise closed mesh.
+    const finalTriangles = sanitized.index ? sanitized.toNonIndexed() : sanitized.clone();
+    const finalPositions = finalTriangles.getAttribute('position');
+    const cleanPositions = [];
+    if (finalPositions) {
+        for (let index = 0; index + 2 < finalPositions.count; index += 3) {
+            vA.fromBufferAttribute(finalPositions, index);
+            vB.fromBufferAttribute(finalPositions, index + 1);
+            vC.fromBufferAttribute(finalPositions, index + 2);
+            const abX = vB.x - vA.x;
+            const abY = vB.y - vA.y;
+            const abZ = vB.z - vA.z;
+            const acX = vC.x - vA.x;
+            const acY = vC.y - vA.y;
+            const acZ = vC.z - vA.z;
+            const crossX = abY * acZ - abZ * acY;
+            const crossY = abZ * acX - abX * acZ;
+            const crossZ = abX * acY - abY * acX;
+            const areaSquared = crossX * crossX + crossY * crossY + crossZ * crossZ;
+            if (areaSquared <= 1e-16) continue;
+            cleanPositions.push(
+                vA.x, vA.y, vA.z,
+                vB.x, vB.y, vB.z,
+                vC.x, vC.y, vC.z
+            );
+        }
+    }
+    finalTriangles.dispose();
+
+    if (!cleanPositions.length) {
+        sanitized.dispose();
+        return null;
+    }
+    const resealedPositions = repairPlanarCapHoles(
+        repairCollinearBoundaryTJunctions(cleanPositions),
+        THREERef
+    );
+    const cleanedGeometry = new THREERef.BufferGeometry();
+    cleanedGeometry.setAttribute('position', new THREERef.Float32BufferAttribute(resealedPositions, 3));
+    const mergedCleanedGeometry = mergeVerticesEnabled && bufferUtils?.mergeVertices
+        ? bufferUtils.mergeVertices(cleanedGeometry, 1e-5)
+        : cleanedGeometry;
+    if (mergedCleanedGeometry !== cleanedGeometry) cleanedGeometry.dispose();
+    sanitized.dispose();
+    sanitized = mergedCleanedGeometry;
+
     sanitized.computeVertexNormals();
     return sanitized;
+}
+
+export function sanitizeGeometryForPrint(geometry, THREERef, bufferUtils) {
+    return sanitizeGeometry(geometry, THREERef, bufferUtils, {
+        mergeVerticesEnabled: true
+    });
 }
 
 export function buildObjGeometryBundle(plan, { THREERef, bufferUtils }) {

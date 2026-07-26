@@ -1,0 +1,1300 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Genesis PDF Workspace Concepts</title>
+    <style>
+        :root {
+            color-scheme: dark;
+            --bg: #07090e;
+            --panel: #0b0e15;
+            --panel-2: #10141d;
+            --panel-3: #151a24;
+            --line: #242b37;
+            --line-soft: #1a202a;
+            --text: #f5f7fa;
+            --muted: #8d96a6;
+            --subtle: #626c7b;
+            --accent: #e36e62;
+            --accent-soft: rgba(227, 110, 98, .12);
+            --accent-line: rgba(227, 110, 98, .42);
+            --paper: #f4f1eb;
+            --paper-ink: #252932;
+            --paper-muted: #8b8f97;
+            --radius: 18px;
+            font-family: "Avenir Next", "Geist", "Helvetica Neue", sans-serif;
+        }
+
+        * { box-sizing: border-box; }
+        html, body { margin: 0; background: var(--bg); color: var(--text); }
+        body { min-width: 1180px; }
+        button, input, select { font: inherit; }
+        button { color: inherit; }
+
+        .concept {
+            display: none;
+            min-height: 100dvh;
+            max-height: 100dvh;
+            overflow: hidden;
+            background:
+                radial-gradient(circle at 86% 16%, rgba(227, 110, 98, .035), transparent 28%),
+                var(--bg);
+        }
+        .concept.is-active { display: grid; }
+
+        .shell {
+            grid-template-columns: 344px minmax(0, 1fr);
+            grid-template-rows: 96px minmax(0, 1fr);
+        }
+
+        .sidebar {
+            grid-row: 1 / 3;
+            border-right: 1px solid var(--line-soft);
+            background: #080b11;
+            padding: 26px 16px 18px;
+            min-height: 0;
+            overflow: hidden;
+        }
+
+        .brand {
+            height: 56px;
+            display: flex;
+            align-items: center;
+            gap: 13px;
+            padding: 0 8px 18px;
+            border-bottom: 1px solid var(--line-soft);
+        }
+
+        .brand img {
+            width: 38px;
+            height: 38px;
+            border-radius: 11px;
+            border: 1px solid var(--line);
+        }
+
+        .brand strong { display: block; font-size: 16px; letter-spacing: -.02em; }
+        .brand span {
+            display: block;
+            margin-top: 4px;
+            color: var(--subtle);
+            font-size: 10px;
+            letter-spacing: .13em;
+            text-transform: uppercase;
+        }
+
+        .mode-card {
+            margin-top: 20px;
+            padding: 17px 18px 17px 22px;
+            border: 1px solid var(--accent-line);
+            border-radius: 16px;
+            background: linear-gradient(120deg, var(--accent-soft), rgba(15, 18, 26, .35) 58%);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .mode-card::before {
+            content: "";
+            position: absolute;
+            inset: 14px auto 14px 0;
+            width: 3px;
+            border-radius: 3px;
+            background: var(--accent);
+        }
+
+        .eyebrow {
+            color: var(--accent);
+            font: 700 10px/1.1 "Menlo", "Geist Mono", monospace;
+            letter-spacing: .15em;
+            text-transform: uppercase;
+        }
+
+        .mode-card h2 { margin: 7px 0 4px; font-size: 18px; letter-spacing: -.03em; }
+        .mode-card p { margin: 0; color: var(--muted); font-size: 12px; line-height: 1.45; }
+
+        .side-section { padding: 21px 0 0; }
+        .side-section-head {
+            display: flex;
+            align-items: end;
+            justify-content: space-between;
+            padding: 0 4px 10px;
+        }
+        .side-label {
+            color: var(--subtle);
+            font: 700 10px/1 "Menlo", "Geist Mono", monospace;
+            letter-spacing: .14em;
+            text-transform: uppercase;
+        }
+        .side-count {
+            color: var(--muted);
+            font: 600 11px/1 "Menlo", "Geist Mono", monospace;
+        }
+
+        .add-button {
+            width: 100%;
+            height: 42px;
+            border: 1px solid var(--accent-line);
+            border-radius: 11px;
+            background: var(--accent);
+            color: #170c0b;
+            font-weight: 750;
+            cursor: default;
+        }
+
+        .file-item {
+            margin-top: 10px;
+            border: 1px solid var(--line);
+            background: var(--panel);
+            border-radius: 14px;
+            padding: 13px;
+            display: grid;
+            grid-template-columns: 34px minmax(0, 1fr) auto;
+            gap: 11px;
+            align-items: center;
+        }
+        .file-thumb {
+            width: 34px;
+            height: 43px;
+            border-radius: 4px;
+            background: #e9e6df;
+            box-shadow: inset 0 0 0 1px rgba(255,255,255,.35);
+            position: relative;
+        }
+        .file-thumb::after {
+            content: "";
+            position: absolute;
+            left: 7px;
+            right: 7px;
+            top: 11px;
+            height: 2px;
+            background: #777d87;
+            box-shadow: 0 6px 0 #a1a5ac, 0 12px 0 #c0c2c7;
+        }
+        .file-name {
+            overflow: hidden;
+            color: #e6e9ef;
+            font-size: 12px;
+            font-weight: 650;
+            white-space: nowrap;
+            text-overflow: ellipsis;
+        }
+        .file-meta { margin-top: 5px; color: var(--subtle); font-size: 10px; }
+        .file-more { color: var(--subtle); font-size: 16px; letter-spacing: .1em; }
+        .file-item.secondary { opacity: .72; }
+
+        .side-stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 7px;
+            margin-top: 10px;
+        }
+        .side-stat {
+            padding: 10px;
+            border-top: 1px solid var(--line);
+            color: var(--subtle);
+            font: 700 9px/1.3 "Menlo", "Geist Mono", monospace;
+            text-transform: uppercase;
+            letter-spacing: .08em;
+        }
+        .side-stat b { display: block; color: var(--text); font-size: 15px; margin-top: 6px; }
+
+        .privacy-note {
+            margin: 18px 4px 0;
+            color: var(--subtle);
+            font-size: 11px;
+            line-height: 1.5;
+        }
+        .privacy-note strong { color: #b7bfcb; }
+
+        .topbar {
+            grid-column: 2;
+            padding: 12px 18px;
+            border-bottom: 1px solid var(--line-soft);
+            background: rgba(8, 11, 17, .94);
+        }
+        .main-nav {
+            height: 70px;
+            display: grid;
+            grid-template-columns: repeat(5, minmax(0, 1fr));
+            gap: 10px;
+        }
+        .nav-item {
+            border: 1px solid var(--line);
+            border-radius: 15px;
+            background: #0b0e15;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+        }
+        .nav-item strong { font-size: 15px; letter-spacing: -.02em; }
+        .nav-item span { margin-top: 5px; color: var(--subtle); font-size: 9.5px; }
+        .nav-item.active {
+            border-color: var(--accent);
+            background: var(--accent-soft);
+            box-shadow: inset 0 0 0 3px #080b11;
+        }
+        .nav-item.active strong { color: #fff; }
+        .nav-item.active span { color: #c9948f; }
+
+        .workspace {
+            grid-column: 2;
+            min-height: 0;
+            overflow: hidden;
+            padding: 20px 22px 18px;
+        }
+
+        .workspace-head {
+            min-height: 62px;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 24px;
+        }
+        .workspace-kicker {
+            color: var(--subtle);
+            font: 700 10px/1 "Menlo", "Geist Mono", monospace;
+            letter-spacing: .16em;
+            text-transform: uppercase;
+        }
+        .workspace-title {
+            margin: 7px 0 0;
+            font-size: 27px;
+            line-height: 1;
+            letter-spacing: -.04em;
+        }
+        .workspace-sub {
+            margin-top: 8px;
+            color: var(--muted);
+            font-size: 12px;
+        }
+        .status-pair { display: flex; gap: 8px; }
+        .status-chip {
+            height: 29px;
+            display: inline-flex;
+            align-items: center;
+            padding: 0 11px;
+            border: 1px solid var(--line);
+            border-radius: 999px;
+            color: var(--muted);
+            font: 650 10px/1 "Menlo", "Geist Mono", monospace;
+            text-transform: uppercase;
+            letter-spacing: .08em;
+        }
+        .status-chip.accent { color: #f5b4ae; border-color: var(--accent-line); background: var(--accent-soft); }
+
+        .tool-switcher {
+            display: inline-grid;
+            grid-template-columns: repeat(3, 1fr);
+            padding: 4px;
+            border: 1px solid var(--line);
+            border-radius: 13px;
+            background: #090c12;
+        }
+        .tool-switcher button {
+            min-width: 132px;
+            height: 36px;
+            padding: 0 14px;
+            border: 0;
+            border-radius: 9px;
+            background: transparent;
+            color: var(--muted);
+            font-size: 12px;
+            font-weight: 650;
+        }
+        .tool-switcher button.active {
+            background: var(--panel-3);
+            color: var(--text);
+            box-shadow: inset 0 0 0 1px var(--line);
+        }
+
+        .button-secondary {
+            height: 36px;
+            padding: 0 14px;
+            border: 1px solid var(--line);
+            border-radius: 10px;
+            background: var(--panel);
+            color: #c7cdd7;
+            font-size: 11px;
+            font-weight: 650;
+        }
+        .button-primary {
+            height: 38px;
+            padding: 0 18px;
+            border: 1px solid var(--accent);
+            border-radius: 10px;
+            background: var(--accent);
+            color: #190c0b;
+            font-size: 12px;
+            font-weight: 800;
+        }
+
+        .panel {
+            border: 1px solid var(--line);
+            border-radius: var(--radius);
+            background: var(--panel);
+        }
+
+        .panel-head {
+            min-height: 48px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 15px;
+            border-bottom: 1px solid var(--line-soft);
+        }
+        .panel-head strong { font-size: 12px; letter-spacing: -.01em; }
+        .panel-head span { color: var(--subtle); font: 600 9px/1 "Menlo", "Geist Mono", monospace; }
+
+        .page-paper {
+            position: relative;
+            background: var(--paper);
+            color: var(--paper-ink);
+            border-radius: 3px;
+            box-shadow: 0 22px 60px rgba(0, 0, 0, .28);
+            overflow: hidden;
+        }
+        .paper-brand {
+            font: 800 8px/1 "Menlo", monospace;
+            letter-spacing: .18em;
+            text-transform: uppercase;
+        }
+        .paper-rule { height: 1px; background: #d4d0c9; }
+        .paper-line {
+            height: 3px;
+            border-radius: 3px;
+            background: #c5c2bc;
+        }
+        .paper-line.dark { background: #6d7077; }
+        .paper-field {
+            border: 1px solid #c9c5bd;
+            border-radius: 3px;
+            background: rgba(255,255,255,.46);
+        }
+        .paper-signature {
+            font-family: "Snell Roundhand", "Apple Chancery", cursive;
+            color: #2d4e7d;
+            transform: rotate(-5deg);
+        }
+
+        /* Concept 1 — editor */
+        .editor-body {
+            height: calc(100% - 70px);
+            display: grid;
+            grid-template-rows: 49px minmax(0, 1fr) 58px;
+            border: 1px solid var(--line);
+            border-radius: 20px;
+            overflow: hidden;
+            background: #090c12;
+        }
+        .editor-toolbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 12px 0 14px;
+            border-bottom: 1px solid var(--line-soft);
+        }
+        .editor-toolbar .left, .editor-toolbar .right { display: flex; align-items: center; gap: 8px; }
+        .toolbar-action {
+            height: 30px;
+            padding: 0 11px;
+            border: 1px solid transparent;
+            border-radius: 8px;
+            background: transparent;
+            color: var(--muted);
+            font-size: 11px;
+        }
+        .toolbar-action.selected { color: #f3b4ae; background: var(--accent-soft); border-color: var(--accent-line); }
+        .toolbar-divider { width: 1px; height: 20px; background: var(--line); }
+
+        .editor-grid {
+            min-height: 0;
+            display: grid;
+            grid-template-columns: 154px minmax(380px, 1fr) 278px;
+        }
+        .thumb-rail {
+            padding: 14px 12px;
+            border-right: 1px solid var(--line-soft);
+            overflow: hidden;
+        }
+        .thumb-rail-head {
+            display: flex;
+            justify-content: space-between;
+            color: var(--subtle);
+            font: 700 9px/1 "Menlo", monospace;
+            text-transform: uppercase;
+            letter-spacing: .11em;
+        }
+        .thumb-page {
+            width: 86px;
+            height: 111px;
+            margin: 13px auto 0;
+            padding: 12px 9px;
+            background: #ebe8e2;
+            border-radius: 3px;
+            box-shadow: 0 0 0 1px #2a303c, 0 8px 18px rgba(0,0,0,.24);
+            position: relative;
+        }
+        .thumb-page.active { box-shadow: 0 0 0 2px var(--accent), 0 8px 18px rgba(0,0,0,.24); }
+        .thumb-page .paper-line { margin-top: 7px; height: 2px; }
+        .thumb-num {
+            position: absolute;
+            right: -26px;
+            top: 5px;
+            color: var(--subtle);
+            font: 700 9px/1 "Menlo", monospace;
+        }
+        .thumb-page.faded { margin-top: 16px; opacity: .68; }
+
+        .document-stage {
+            min-width: 0;
+            display: grid;
+            place-items: center;
+            background:
+                linear-gradient(rgba(255,255,255,.012) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255,255,255,.012) 1px, transparent 1px),
+                #0a0d13;
+            background-size: 28px 28px;
+        }
+        .document-stage .page-paper {
+            width: 350px;
+            height: 454px;
+            padding: 35px 38px;
+        }
+        .contract-title {
+            margin-top: 30px;
+            font-size: 21px;
+            font-weight: 800;
+            letter-spacing: -.04em;
+        }
+        .contract-copy { margin-top: 10px; color: #72767e; font-size: 7px; line-height: 1.8; }
+        .contract-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 22px; }
+        .contract-fields .paper-field { height: 30px; padding: 7px; font-size: 7px; color: #767981; }
+        .contract-block { margin-top: 20px; }
+        .contract-block .paper-line { margin-top: 8px; }
+        .signature-area {
+            position: absolute;
+            left: 38px;
+            right: 38px;
+            bottom: 39px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+        }
+        .signature-line { border-top: 1px solid #aaa7a1; padding-top: 7px; color: #96938e; font-size: 6px; }
+        .signature-line.signed { position: relative; }
+        .signature-line.signed .paper-signature {
+            position: absolute;
+            left: 6px;
+            top: -27px;
+            font-size: 21px;
+        }
+        .signature-selection {
+            position: absolute;
+            left: 35px;
+            bottom: 26px;
+            width: 120px;
+            height: 45px;
+            border: 1px dashed var(--accent);
+            background: rgba(227, 110, 98, .05);
+        }
+        .selection-handle {
+            position: absolute;
+            width: 6px;
+            height: 6px;
+            background: var(--accent);
+            border: 1px solid #fff4;
+        }
+        .selection-handle.tl { left: -4px; top: -4px; }
+        .selection-handle.tr { right: -4px; top: -4px; }
+        .selection-handle.bl { left: -4px; bottom: -4px; }
+        .selection-handle.br { right: -4px; bottom: -4px; }
+
+        .inspector {
+            border-left: 1px solid var(--line-soft);
+            background: #0b0e15;
+            padding: 18px;
+            overflow: hidden;
+        }
+        .inspector h3 { margin: 6px 0 3px; font-size: 18px; letter-spacing: -.03em; }
+        .inspector-intro { margin: 0 0 20px; color: var(--muted); font-size: 11px; line-height: 1.5; }
+        .field-group { margin-top: 15px; }
+        .field-group label {
+            display: block;
+            margin-bottom: 7px;
+            color: var(--subtle);
+            font: 700 9px/1 "Menlo", monospace;
+            text-transform: uppercase;
+            letter-spacing: .1em;
+        }
+        .field-box {
+            min-height: 38px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 11px;
+            border: 1px solid var(--line);
+            border-radius: 9px;
+            background: #090c12;
+            color: #d6dae1;
+            font-size: 11px;
+        }
+        .signature-preset {
+            height: 66px;
+            display: grid;
+            place-items: center;
+            border: 1px solid var(--accent-line);
+            border-radius: 11px;
+            background: var(--accent-soft);
+            color: #d9e3f2;
+            font: 24px/1 "Snell Roundhand", "Apple Chancery", cursive;
+            transform: none;
+        }
+        .inspector .apply-wide { width: 100%; margin-top: 18px; }
+
+        .export-bar {
+            display: grid;
+            grid-template-columns: 1fr auto auto;
+            align-items: center;
+            gap: 10px;
+            padding: 0 13px 0 16px;
+            border-top: 1px solid var(--line-soft);
+            background: #0c1017;
+        }
+        .export-summary { color: var(--muted); font-size: 11px; }
+        .export-summary strong { color: var(--text); }
+
+        /* Concept 2 — guided */
+        .guided-workspace {
+            display: grid;
+            grid-template-rows: 75px 74px minmax(0, 1fr) 58px;
+            height: 100%;
+            border: 1px solid var(--line);
+            border-radius: 20px;
+            overflow: hidden;
+            background: #090c12;
+        }
+        .guided-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 19px;
+            border-bottom: 1px solid var(--line-soft);
+        }
+        .guided-header .workspace-title { font-size: 24px; }
+        .step-track {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 0;
+            padding: 0 18px;
+            border-bottom: 1px solid var(--line-soft);
+            background: #0c0f16;
+        }
+        .step {
+            position: relative;
+            display: grid;
+            grid-template-columns: 31px 1fr;
+            align-items: center;
+            gap: 10px;
+        }
+        .step:not(:last-child)::after {
+            content: "";
+            position: absolute;
+            top: 36px;
+            left: 45px;
+            right: 20px;
+            height: 1px;
+            background: var(--line);
+        }
+        .step-num {
+            width: 28px;
+            height: 28px;
+            display: grid;
+            place-items: center;
+            border: 1px solid var(--line);
+            border-radius: 50%;
+            background: var(--panel-2);
+            color: var(--muted);
+            font: 700 10px/1 "Menlo", monospace;
+        }
+        .step.active .step-num { border-color: var(--accent); background: var(--accent); color: #190c0b; }
+        .step-copy strong { display: block; font-size: 12px; }
+        .step-copy span { display: block; margin-top: 4px; color: var(--subtle); font-size: 10px; }
+
+        .guided-content {
+            min-height: 0;
+            display: grid;
+            grid-template-columns: minmax(0, 1.45fr) minmax(300px, .78fr);
+            gap: 14px;
+            padding: 14px;
+        }
+        .spread-panel { min-height: 0; overflow: hidden; }
+        .spread-canvas {
+            height: calc(100% - 49px);
+            display: grid;
+            grid-template-columns: repeat(2, 218px);
+            align-content: center;
+            justify-content: center;
+            gap: 19px;
+            background: #0a0d13;
+            padding: 18px;
+        }
+        .spread-canvas .page-paper { width: 218px; height: 282px; padding: 24px; }
+        .spread-canvas .page-paper .contract-title { margin-top: 17px; font-size: 15px; }
+        .spread-canvas .page-paper .contract-copy { font-size: 5px; margin-top: 8px; }
+        .spread-canvas .paper-line { height: 2px; margin-top: 8px; }
+        .spread-canvas .page-paper.selected { outline: 2px solid var(--accent); outline-offset: 4px; }
+        .page-caption {
+            position: absolute;
+            left: 0;
+            right: 0;
+            bottom: -22px;
+            color: var(--muted);
+            font: 700 9px/1 "Menlo", monospace;
+            text-align: center;
+        }
+
+        .task-stack {
+            min-height: 0;
+            display: grid;
+            grid-template-rows: 1.15fr .8fr .8fr;
+            gap: 10px;
+        }
+        .task-card {
+            border: 1px solid var(--line);
+            border-radius: 15px;
+            background: var(--panel);
+            padding: 15px;
+            overflow: hidden;
+        }
+        .task-card.active { border-color: var(--accent-line); background: linear-gradient(135deg, var(--accent-soft), var(--panel) 70%); }
+        .task-top { display: flex; justify-content: space-between; align-items: center; }
+        .task-index { color: var(--accent); font: 700 9px/1 "Menlo", monospace; letter-spacing: .12em; }
+        .task-state { color: var(--subtle); font: 700 9px/1 "Menlo", monospace; }
+        .task-card h3 { margin: 9px 0 4px; font-size: 16px; letter-spacing: -.03em; }
+        .task-card p { margin: 0; color: var(--muted); font-size: 10px; line-height: 1.5; }
+        .task-actions { display: flex; gap: 7px; margin-top: 12px; flex-wrap: wrap; }
+        .mini-action {
+            height: 28px;
+            padding: 0 10px;
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            background: #0a0d13;
+            color: #b8c0cb;
+            font-size: 10px;
+        }
+        .mini-action.hot { border-color: var(--accent-line); color: #efaaa4; background: var(--accent-soft); }
+        .guided-export {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 14px 0 19px;
+            border-top: 1px solid var(--line-soft);
+            background: #0c1017;
+        }
+        .quality-line { color: var(--muted); font-size: 11px; }
+        .quality-line strong { color: #e8ebef; }
+
+        /* Concept 3 — page board */
+        .board-workspace {
+            height: 100%;
+            display: grid;
+            grid-template-rows: 69px minmax(0, 1fr) 58px;
+            border: 1px solid var(--line);
+            border-radius: 20px;
+            overflow: hidden;
+            background: #090c12;
+        }
+        .board-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 17px 0 19px;
+            border-bottom: 1px solid var(--line-soft);
+        }
+        .board-head-left { display: flex; align-items: center; gap: 17px; }
+        .board-head .workspace-title { font-size: 23px; margin-top: 4px; }
+        .board-head-actions { display: flex; gap: 8px; }
+
+        .board-main {
+            min-height: 0;
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) 286px;
+        }
+        .page-board {
+            min-width: 0;
+            padding: 14px;
+            border-right: 1px solid var(--line-soft);
+            overflow: hidden;
+        }
+        .board-toolbar {
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 11px;
+            border: 1px solid var(--line);
+            border-radius: 11px;
+            background: #0c1017;
+        }
+        .selection-copy { color: #cfd4dc; font-size: 11px; }
+        .selection-copy strong { color: #fff; }
+        .batch-actions { display: flex; gap: 5px; }
+        .batch-actions button {
+            height: 27px;
+            padding: 0 9px;
+            border: 0;
+            border-radius: 7px;
+            background: transparent;
+            color: var(--muted);
+            font-size: 10px;
+        }
+        .batch-actions button.danger { color: #e39089; }
+        .board-grid {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(104px, 1fr));
+            gap: 12px;
+            padding-top: 14px;
+        }
+        .board-page {
+            min-width: 0;
+            border: 1px solid var(--line);
+            border-radius: 11px;
+            padding: 8px;
+            background: #0c0f16;
+            position: relative;
+        }
+        .board-page.selected { border-color: var(--accent); background: var(--accent-soft); }
+        .board-page .page-paper {
+            aspect-ratio: .77;
+            width: 100%;
+            padding: 13px;
+            box-shadow: 0 9px 24px rgba(0,0,0,.24);
+        }
+        .board-page .paper-line { height: 2px; margin-top: 7px; }
+        .board-page .paper-field { height: 22px; margin-top: 13px; }
+        .board-page-meta {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 8px;
+            color: var(--muted);
+            font: 700 9px/1 "Menlo", monospace;
+        }
+        .select-dot {
+            position: absolute;
+            top: 13px;
+            right: 13px;
+            width: 16px;
+            height: 16px;
+            display: grid;
+            place-items: center;
+            border: 1px solid #7f8896;
+            border-radius: 50%;
+            background: #111620;
+            color: transparent;
+            font-size: 9px;
+        }
+        .board-page.selected .select-dot { border-color: var(--accent); background: var(--accent); color: #170b0a; }
+
+        .quick-drawer {
+            padding: 17px;
+            background: #0b0e15;
+            overflow: hidden;
+        }
+        .quick-drawer h3 { margin: 7px 0 4px; font-size: 18px; letter-spacing: -.03em; }
+        .drawer-copy { margin: 0 0 17px; color: var(--muted); font-size: 10px; line-height: 1.45; }
+        .drawer-tabs {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 6px;
+            margin-bottom: 16px;
+        }
+        .drawer-tab {
+            height: 34px;
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            background: #090c12;
+            color: var(--muted);
+            font-size: 10px;
+        }
+        .drawer-tab.active { color: #f0aaa4; border-color: var(--accent-line); background: var(--accent-soft); }
+        .stamp-preview {
+            height: 72px;
+            display: grid;
+            place-items: center;
+            border: 1px dashed var(--accent-line);
+            border-radius: 11px;
+            background: rgba(227,110,98,.04);
+            color: var(--accent);
+            font: 800 17px/1 "Menlo", monospace;
+            letter-spacing: .16em;
+            transform: rotate(-4deg);
+        }
+        .drawer-row {
+            display: grid;
+            grid-template-columns: 1fr 94px;
+            gap: 8px;
+            margin-top: 13px;
+        }
+        .drawer-row .field-box { min-height: 34px; }
+        .quick-drawer .apply-wide { width: 100%; margin-top: 15px; }
+        .board-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 14px 0 18px;
+            border-top: 1px solid var(--line-soft);
+            background: #0c1017;
+        }
+        .footer-tabs { display: flex; gap: 20px; color: var(--subtle); font-size: 10px; }
+        .footer-tabs strong { color: #e9ecf1; }
+
+        @media (max-width: 900px) {
+            body { min-width: 0; }
+            .concept { max-height: none; overflow: auto; }
+            .shell { grid-template-columns: 1fr; grid-template-rows: auto auto auto; }
+            .sidebar { grid-row: auto; border-right: 0; }
+            .topbar, .workspace { grid-column: 1; }
+            .main-nav { grid-template-columns: repeat(2, 1fr); height: auto; }
+            .nav-item { min-height: 62px; }
+            .editor-grid, .guided-content, .board-main { grid-template-columns: 1fr; }
+            .inspector, .quick-drawer { border-left: 0; border-top: 1px solid var(--line-soft); }
+            .thumb-rail { display: none; }
+            .board-grid { grid-template-columns: repeat(2, 1fr); }
+        }
+    </style>
+</head>
+<body>
+    <section class="concept shell" data-concept="1">
+        <aside class="sidebar">
+            <div class="brand">
+                <img src="../genesis-logo.png" alt="Genesis Image Tools">
+                <div><strong>Genesis Image Tools</strong><span>Vector &amp; Raster Image Tools</span></div>
+            </div>
+            <div class="mode-card">
+                <div class="eyebrow">PDF Workspace · Concept 01</div>
+                <h2>Direct Editor</h2>
+                <p>Open a page, apply a tool, then export one finished PDF.</p>
+            </div>
+            <div class="side-section">
+                <div class="side-section-head"><span class="side-label">Documents</span><span class="side-count">2 files</span></div>
+                <button class="add-button" type="button">Add PDF Files</button>
+                <div class="file-item">
+                    <div class="file-thumb"></div>
+                    <div><div class="file-name">service-agreement.pdf</div><div class="file-meta">4 pages · 1.8 MB</div></div>
+                    <div class="file-more">···</div>
+                </div>
+                <div class="file-item secondary">
+                    <div class="file-thumb"></div>
+                    <div><div class="file-name">appendix-a.pdf</div><div class="file-meta">2 pages · 640 KB</div></div>
+                    <div class="file-more">···</div>
+                </div>
+                <div class="side-stats">
+                    <div class="side-stat">Files<b>2</b></div>
+                    <div class="side-stat">Pages<b>6</b></div>
+                    <div class="side-stat">Size<b>2.4M</b></div>
+                </div>
+            </div>
+            <p class="privacy-note"><strong>Private by default.</strong><br>Documents stay in this browser while you work.</p>
+        </aside>
+        <header class="topbar">
+            <nav class="main-nav" aria-label="Export tabs">
+                <div class="nav-item"><strong>3D OBJ</strong><span>Create 3D from Image</span></div>
+                <div class="nav-item"><strong>Logo</strong><span>Custom HTML logo to 3D</span></div>
+                <div class="nav-item"><strong>Raster</strong><span>Resize Images</span></div>
+                <div class="nav-item"><strong>Bulk</strong><span>Resize Bulk Images</span></div>
+                <div class="nav-item active"><strong>PDF</strong><span>Fix PDF</span></div>
+            </nav>
+        </header>
+        <main class="workspace">
+            <div class="workspace-head">
+                <div>
+                    <div class="workspace-kicker">Workspace / service-agreement.pdf</div>
+                    <h1 class="workspace-title">Edit &amp; Finish</h1>
+                    <div class="workspace-sub">Arrange pages, add a signature, and finish the document in one view.</div>
+                </div>
+                <div class="status-pair"><span class="status-chip">6 pages</span><span class="status-chip accent">Saved locally</span></div>
+            </div>
+            <section class="editor-body">
+                <div class="editor-toolbar">
+                    <div class="left">
+                        <button class="toolbar-action">Organize</button>
+                        <button class="toolbar-action selected">Sign</button>
+                        <button class="toolbar-action">Text</button>
+                        <button class="toolbar-action">Stamp</button>
+                        <button class="toolbar-action">Page Numbers</button>
+                    </div>
+                    <div class="right">
+                        <button class="toolbar-action">Undo</button>
+                        <button class="toolbar-action">Redo</button>
+                        <span class="toolbar-divider"></span>
+                        <button class="toolbar-action">Fit page</button>
+                        <span class="status-chip">118%</span>
+                    </div>
+                </div>
+                <div class="editor-grid">
+                    <aside class="thumb-rail">
+                        <div class="thumb-rail-head"><span>Pages</span><span>6</span></div>
+                        <div class="thumb-page active">
+                            <span class="thumb-num">01</span>
+                            <div class="paper-line dark"></div><div class="paper-line"></div><div class="paper-line"></div>
+                            <div class="paper-field" style="height:22px;margin-top:10px"></div>
+                        </div>
+                        <div class="thumb-page faded">
+                            <span class="thumb-num">02</span>
+                            <div class="paper-line dark"></div><div class="paper-line"></div><div class="paper-line"></div><div class="paper-line"></div>
+                        </div>
+                        <div class="thumb-page faded">
+                            <span class="thumb-num">03</span>
+                            <div class="paper-line dark"></div><div class="paper-line"></div><div class="paper-line"></div><div class="paper-line"></div>
+                        </div>
+                    </aside>
+                    <div class="document-stage">
+                        <div class="page-paper">
+                            <div class="paper-brand">Northline Studio / Agreement</div>
+                            <div class="paper-rule" style="margin-top:13px"></div>
+                            <div class="contract-title">Service Agreement</div>
+                            <div class="contract-copy">This service agreement confirms the scope, schedule, and approval terms between the parties listed below.</div>
+                            <div class="contract-fields">
+                                <div class="paper-field">Client name</div>
+                                <div class="paper-field">Effective date</div>
+                            </div>
+                            <div class="contract-block">
+                                <div class="paper-line dark" style="width:43%"></div>
+                                <div class="paper-line" style="width:100%"></div>
+                                <div class="paper-line" style="width:92%"></div>
+                                <div class="paper-line" style="width:97%"></div>
+                                <div class="paper-line" style="width:68%"></div>
+                            </div>
+                            <div class="signature-area">
+                                <div class="signature-line signed"><span class="paper-signature">Jong Lee</span>Authorized signature</div>
+                                <div class="signature-line">Date signed</div>
+                            </div>
+                            <div class="signature-selection">
+                                <i class="selection-handle tl"></i><i class="selection-handle tr"></i><i class="selection-handle bl"></i><i class="selection-handle br"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <aside class="inspector">
+                        <div class="eyebrow">Selected Tool</div>
+                        <h3>Signature</h3>
+                        <p class="inspector-intro">Place a saved signature on this page, then resize it directly on the document.</p>
+                        <div class="field-group">
+                            <label>Saved signature</label>
+                            <div class="signature-preset">Jong Lee</div>
+                        </div>
+                        <div class="field-group">
+                            <label>Appearance</label>
+                            <div class="field-box"><span>Ink blue</span><span>#2D4E7D</span></div>
+                        </div>
+                        <div class="field-group">
+                            <label>Apply to</label>
+                            <div class="field-box"><span>Current page</span><span>01</span></div>
+                        </div>
+                        <button class="button-primary apply-wide" type="button">Place Signature</button>
+                    </aside>
+                </div>
+                <footer class="export-bar">
+                    <div class="export-summary"><strong>6 pages</strong> · 1 signature · Original quality</div>
+                    <button class="button-secondary" type="button">Preview Output</button>
+                    <button class="button-primary" type="button">Download Finished PDF</button>
+                </footer>
+            </section>
+        </main>
+    </section>
+
+    <section class="concept shell" data-concept="2">
+        <aside class="sidebar">
+            <div class="brand">
+                <img src="../genesis-logo.png" alt="Genesis Image Tools">
+                <div><strong>Genesis Image Tools</strong><span>Vector &amp; Raster Image Tools</span></div>
+            </div>
+            <div class="mode-card">
+                <div class="eyebrow">PDF Workspace · Concept 02</div>
+                <h2>Guided Finish</h2>
+                <p>Three clear stages for people who do not edit PDFs every day.</p>
+            </div>
+            <div class="side-section">
+                <div class="side-section-head"><span class="side-label">Current project</span><span class="side-count">Ready</span></div>
+                <button class="add-button" type="button">Replace or Add Files</button>
+                <div class="file-item">
+                    <div class="file-thumb"></div>
+                    <div><div class="file-name">proposal-final.pdf</div><div class="file-meta">8 pages · 3.2 MB</div></div>
+                    <div class="file-more">···</div>
+                </div>
+                <div class="side-stats">
+                    <div class="side-stat">Pages<b>8</b></div>
+                    <div class="side-stat">Edits<b>3</b></div>
+                    <div class="side-stat">Issues<b>0</b></div>
+                </div>
+            </div>
+            <div class="side-section">
+                <div class="side-section-head"><span class="side-label">Recent settings</span></div>
+                <div class="file-item secondary">
+                    <div class="file-thumb" style="height:34px;border-radius:7px;background:var(--accent-soft)"></div>
+                    <div><div class="file-name">Client-ready preset</div><div class="file-meta">Footer + page number</div></div>
+                    <div class="file-more">···</div>
+                </div>
+            </div>
+            <p class="privacy-note"><strong>Private by default.</strong><br>Nothing leaves this browser session.</p>
+        </aside>
+        <header class="topbar">
+            <nav class="main-nav" aria-label="Export tabs">
+                <div class="nav-item"><strong>3D OBJ</strong><span>Create 3D from Image</span></div>
+                <div class="nav-item"><strong>Logo</strong><span>Custom HTML logo to 3D</span></div>
+                <div class="nav-item"><strong>Raster</strong><span>Resize Images</span></div>
+                <div class="nav-item"><strong>Bulk</strong><span>Resize Bulk Images</span></div>
+                <div class="nav-item active"><strong>PDF</strong><span>Fix PDF</span></div>
+            </nav>
+        </header>
+        <main class="workspace">
+            <section class="guided-workspace">
+                <header class="guided-header">
+                    <div>
+                        <div class="workspace-kicker">Workspace / Guided workflow</div>
+                        <h1 class="workspace-title">Prepare a finished PDF</h1>
+                    </div>
+                    <div class="status-pair"><span class="status-chip accent">Step 2 of 3</span><span class="status-chip">Auto-saved</span></div>
+                </header>
+                <div class="step-track">
+                    <div class="step">
+                        <div class="step-num">1</div>
+                        <div class="step-copy"><strong>Arrange pages</strong><span>Order, rotate, remove</span></div>
+                    </div>
+                    <div class="step active">
+                        <div class="step-num">2</div>
+                        <div class="step-copy"><strong>Add finishing</strong><span>Sign, stamp, number</span></div>
+                    </div>
+                    <div class="step">
+                        <div class="step-num">3</div>
+                        <div class="step-copy"><strong>Review &amp; export</strong><span>Check and download</span></div>
+                    </div>
+                </div>
+                <div class="guided-content">
+                    <section class="panel spread-panel">
+                        <div class="panel-head"><strong>Document preview</strong><span>Pages 4–5 of 8</span></div>
+                        <div class="spread-canvas">
+                            <div class="page-paper">
+                                <div class="paper-brand">Project Proposal</div>
+                                <div class="paper-rule" style="margin-top:10px"></div>
+                                <div class="contract-title">Scope &amp; Schedule</div>
+                                <div class="contract-copy">Production timeline, handoff milestones, and client review windows.</div>
+                                <div class="paper-line dark" style="margin-top:17px;width:45%"></div>
+                                <div class="paper-line"></div><div class="paper-line"></div><div class="paper-line" style="width:75%"></div>
+                                <div class="page-caption">PAGE 04</div>
+                            </div>
+                            <div class="page-paper selected">
+                                <div class="paper-brand">Project Proposal</div>
+                                <div class="paper-rule" style="margin-top:10px"></div>
+                                <div class="contract-title">Approval</div>
+                                <div class="contract-copy">Confirm the work outlined in this proposal by signing below.</div>
+                                <div class="paper-field" style="height:30px;margin-top:17px"></div>
+                                <div class="paper-signature" style="font-size:19px;margin-top:23px">Jong Lee</div>
+                                <div class="paper-rule" style="margin-top:2px"></div>
+                                <div class="page-caption">PAGE 05 · SELECTED</div>
+                            </div>
+                        </div>
+                    </section>
+                    <aside class="task-stack">
+                        <div class="task-card active">
+                            <div class="task-top"><span class="task-index">ACTIVE TASK</span><span class="task-state">1 applied</span></div>
+                            <h3>Sign or add text</h3>
+                            <p>Choose a page, then place a signature, initials, date, or a short text note.</p>
+                            <div class="task-actions">
+                                <button class="mini-action hot">Signature</button>
+                                <button class="mini-action">Initials</button>
+                                <button class="mini-action">Date</button>
+                                <button class="mini-action">Text</button>
+                            </div>
+                        </div>
+                        <div class="task-card">
+                            <div class="task-top"><span class="task-index">OPTIONAL</span><span class="task-state">Not applied</span></div>
+                            <h3>Add stamp or watermark</h3>
+                            <p>Apply one mark to a page, a range, or the full document.</p>
+                            <div class="task-actions"><button class="mini-action">Open settings</button></div>
+                        </div>
+                        <div class="task-card">
+                            <div class="task-top"><span class="task-index">OPTIONAL</span><span class="task-state">Ready</span></div>
+                            <h3>Add page numbers</h3>
+                            <p>Use a clean footer with optional file name and date.</p>
+                            <div class="task-actions"><button class="mini-action">Use saved preset</button></div>
+                        </div>
+                    </aside>
+                </div>
+                <footer class="guided-export">
+                    <div class="quality-line"><strong>Step 2 complete when ready.</strong> You can return to any step before export.</div>
+                    <div class="status-pair">
+                        <button class="button-secondary" type="button">Back to Arrange</button>
+                        <button class="button-primary" type="button">Review Finished PDF</button>
+                    </div>
+                </footer>
+            </section>
+        </main>
+    </section>
+
+    <section class="concept shell" data-concept="3">
+        <aside class="sidebar">
+            <div class="brand">
+                <img src="../genesis-logo.png" alt="Genesis Image Tools">
+                <div><strong>Genesis Image Tools</strong><span>Vector &amp; Raster Image Tools</span></div>
+            </div>
+            <div class="mode-card">
+                <div class="eyebrow">PDF Workspace · Concept 03</div>
+                <h2>Page Board</h2>
+                <p>Fast batch editing when page order and repeated marks matter most.</p>
+            </div>
+            <div class="side-section">
+                <div class="side-section-head"><span class="side-label">Document stack</span><span class="side-count">3 files</span></div>
+                <button class="add-button" type="button">Add More PDFs</button>
+                <div class="file-item">
+                    <div class="file-thumb"></div>
+                    <div><div class="file-name">invoice-batch-july.pdf</div><div class="file-meta">6 pages · selected</div></div>
+                    <div class="file-more">···</div>
+                </div>
+                <div class="file-item secondary">
+                    <div class="file-thumb"></div>
+                    <div><div class="file-name">receipts.pdf</div><div class="file-meta">12 pages</div></div>
+                    <div class="file-more">···</div>
+                </div>
+                <div class="file-item secondary">
+                    <div class="file-thumb"></div>
+                    <div><div class="file-name">cover-sheet.pdf</div><div class="file-meta">1 page</div></div>
+                    <div class="file-more">···</div>
+                </div>
+            </div>
+            <div class="side-stats">
+                <div class="side-stat">Files<b>3</b></div>
+                <div class="side-stat">Pages<b>19</b></div>
+                <div class="side-stat">Picked<b>3</b></div>
+            </div>
+            <p class="privacy-note"><strong>Batch-ready.</strong><br>Select pages first, then apply one action to all of them.</p>
+        </aside>
+        <header class="topbar">
+            <nav class="main-nav" aria-label="Export tabs">
+                <div class="nav-item"><strong>3D OBJ</strong><span>Create 3D from Image</span></div>
+                <div class="nav-item"><strong>Logo</strong><span>Custom HTML logo to 3D</span></div>
+                <div class="nav-item"><strong>Raster</strong><span>Resize Images</span></div>
+                <div class="nav-item"><strong>Bulk</strong><span>Resize Bulk Images</span></div>
+                <div class="nav-item active"><strong>PDF</strong><span>Fix PDF</span></div>
+            </nav>
+        </header>
+        <main class="workspace">
+            <section class="board-workspace">
+                <header class="board-head">
+                    <div class="board-head-left">
+                        <div>
+                            <div class="workspace-kicker">Workspace / Page board</div>
+                            <h1 class="workspace-title">Arrange &amp; Apply</h1>
+                        </div>
+                        <span class="status-chip accent">3 selected</span>
+                    </div>
+                    <div class="board-head-actions">
+                        <button class="button-secondary" type="button">Select All</button>
+                        <button class="button-secondary" type="button">Clear</button>
+                    </div>
+                </header>
+                <div class="board-main">
+                    <section class="page-board">
+                        <div class="board-toolbar">
+                            <div class="selection-copy"><strong>3 pages selected</strong> from invoice-batch-july.pdf</div>
+                            <div class="batch-actions">
+                                <button>Rotate left</button>
+                                <button>Rotate right</button>
+                                <button>Duplicate</button>
+                                <button>Extract</button>
+                                <button class="danger">Delete</button>
+                            </div>
+                        </div>
+                        <div class="board-grid">
+                            <div class="board-page selected">
+                                <span class="select-dot">✓</span>
+                                <div class="page-paper">
+                                    <div class="paper-brand">Invoice</div><div class="paper-line dark"></div><div class="paper-line"></div>
+                                    <div class="paper-field"></div><div class="paper-line" style="margin-top:14px"></div><div class="paper-line"></div>
+                                </div>
+                                <div class="board-page-meta"><span>PAGE 01</span><span>PORTRAIT</span></div>
+                            </div>
+                            <div class="board-page selected">
+                                <span class="select-dot">✓</span>
+                                <div class="page-paper">
+                                    <div class="paper-brand">Invoice</div><div class="paper-line dark"></div><div class="paper-line"></div>
+                                    <div class="paper-field"></div><div class="paper-line" style="margin-top:14px"></div><div class="paper-line"></div>
+                                </div>
+                                <div class="board-page-meta"><span>PAGE 02</span><span>PORTRAIT</span></div>
+                            </div>
+                            <div class="board-page">
+                                <span class="select-dot">✓</span>
+                                <div class="page-paper">
+                                    <div class="paper-brand">Invoice</div><div class="paper-line dark"></div><div class="paper-line"></div>
+                                    <div class="paper-field"></div><div class="paper-line" style="margin-top:14px"></div><div class="paper-line"></div>
+                                </div>
+                                <div class="board-page-meta"><span>PAGE 03</span><span>PORTRAIT</span></div>
+                            </div>
+                            <div class="board-page selected">
+                                <span class="select-dot">✓</span>
+                                <div class="page-paper">
+                                    <div class="paper-brand">Invoice</div><div class="paper-line dark"></div><div class="paper-line"></div>
+                                    <div class="paper-field"></div><div class="paper-line" style="margin-top:14px"></div><div class="paper-line"></div>
+                                </div>
+                                <div class="board-page-meta"><span>PAGE 04</span><span>PORTRAIT</span></div>
+                            </div>
+                            <div class="board-page">
+                                <span class="select-dot">✓</span>
+                                <div class="page-paper">
+                                    <div class="paper-brand">Invoice</div><div class="paper-line dark"></div><div class="paper-line"></div>
+                                    <div class="paper-field"></div><div class="paper-line" style="margin-top:14px"></div><div class="paper-line"></div>
+                                </div>
+                                <div class="board-page-meta"><span>PAGE 05</span><span>PORTRAIT</span></div>
+                            </div>
+                            <div class="board-page">
+                                <span class="select-dot">✓</span>
+                                <div class="page-paper">
+                                    <div class="paper-brand">Invoice</div><div class="paper-line dark"></div><div class="paper-line"></div>
+                                    <div class="paper-field"></div><div class="paper-line" style="margin-top:14px"></div><div class="paper-line"></div>
+                                </div>
+                                <div class="board-page-meta"><span>PAGE 06</span><span>PORTRAIT</span></div>
+                            </div>
+                        </div>
+                    </section>
+                    <aside class="quick-drawer">
+                        <div class="eyebrow">Batch Tool</div>
+                        <h3>Stamp selected pages</h3>
+                        <p class="drawer-copy">The same placement and style will be applied to all three selected pages.</p>
+                        <div class="drawer-tabs">
+                            <button class="drawer-tab active">Stamp</button>
+                            <button class="drawer-tab">Watermark</button>
+                            <button class="drawer-tab">Page No.</button>
+                            <button class="drawer-tab">Signature</button>
+                        </div>
+                        <div class="stamp-preview">APPROVED</div>
+                        <div class="field-group">
+                            <label>Position</label>
+                            <div class="field-box"><span>Top right</span><span>12 mm</span></div>
+                        </div>
+                        <div class="drawer-row">
+                            <div class="field-box"><span>Opacity</span><span>82%</span></div>
+                            <div class="field-box"><span>Size</span><span>38 mm</span></div>
+                        </div>
+                        <button class="button-primary apply-wide" type="button">Apply to 3 Pages</button>
+                    </aside>
+                </div>
+                <footer class="board-footer">
+                    <div class="footer-tabs"><strong>19 pages</strong><span>3 selected</span><span>1 pending action</span></div>
+                    <div class="status-pair">
+                        <button class="button-secondary" type="button">Preview Output</button>
+                        <button class="button-primary" type="button">Export PDF</button>
+                    </div>
+                </footer>
+            </section>
+        </main>
+    </section>
+
+    <script>
+        const params = new URLSearchParams(window.location.search);
+        const selected = params.get("concept") || "1";
+        const target = document.querySelector(`[data-concept="${selected}"]`) || document.querySelector('[data-concept="1"]');
+        target.classList.add("is-active");
+    </script>
+</body>
+</html>

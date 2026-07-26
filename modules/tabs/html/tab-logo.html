@@ -56,49 +56,85 @@
                                 <section id="logo-simple-builder" class="logo-simple-builder" aria-labelledby="logo-simple-builder-title">
                                     <div class="logo-builder-heading">
                                         <div>
-                                            <span class="maker-card-eyebrow">Quick builder</span>
-                                            <h4 id="logo-simple-builder-title">Shape the mark, then build it in 3D</h4>
+                                            <span class="maker-card-eyebrow">10 print-ready starters</span>
+                                            <h4 id="logo-simple-builder-title">Pick a preset, then change the numbers</h4>
                                         </div>
-                                        <span class="logo-builder-auto-note">Auto-updates after editing</span>
+                                        <button id="logo-builder-reset" class="logo-builder-reset" type="button">Reset preset</button>
+                                    </div>
+                                    <div id="logo-preset-gallery" class="logo-preset-gallery" role="listbox" aria-label="Printable logo presets"></div>
+                                    <div class="logo-builder-controls-head">
+                                        <div>
+                                            <strong id="logo-builder-active-name">Capsule Wordmark</strong>
+                                            <span id="logo-builder-active-use">Brand and product name</span>
+                                        </div>
+                                        <span class="logo-builder-auto-note">No code required · auto-updates</span>
                                     </div>
                                     <div class="logo-builder-grid">
                                         <label class="logo-builder-field logo-builder-field-wide">
-                                            <span>Logo text</span>
-                                            <input id="logo-builder-text" type="text" value="MY BRAND" maxlength="48" autocomplete="off">
+                                            <span>Primary text</span>
+                                            <input id="logo-builder-text" type="text" value="NORTHLINE" maxlength="48" autocomplete="off">
                                         </label>
-                                        <label class="logo-builder-field">
-                                            <span>Shape</span>
-                                            <select id="logo-builder-shape">
-                                                <option value="pill" selected>Pill</option>
-                                                <option value="rounded">Rounded tile</option>
-                                                <option value="badge">Circle badge</option>
-                                                <option value="plain">Text only</option>
-                                            </select>
+                                        <label class="logo-builder-field logo-builder-field-wide">
+                                            <span>Detail text</span>
+                                            <input id="logo-builder-secondary" type="text" value="" maxlength="48" autocomplete="off" placeholder="Optional second line">
                                         </label>
                                         <label class="logo-builder-field">
                                             <span>Font size</span>
                                             <div class="logo-builder-number">
-                                                <input id="logo-builder-font-size" type="number" value="32" min="12" max="96" step="1">
+                                                <input id="logo-builder-font-size" type="number" value="34" min="12" max="112" step="1">
+                                                <small>px</small>
+                                            </div>
+                                        </label>
+                                        <label class="logo-builder-field">
+                                            <span>Plate width</span>
+                                            <div class="logo-builder-number">
+                                                <input id="logo-builder-width" type="number" value="360" min="120" max="720" step="2">
+                                                <small>px</small>
+                                            </div>
+                                        </label>
+                                        <label class="logo-builder-field">
+                                            <span>Plate height</span>
+                                            <div class="logo-builder-number">
+                                                <input id="logo-builder-height" type="number" value="108" min="70" max="420" step="2">
+                                                <small>px</small>
+                                            </div>
+                                        </label>
+                                        <label class="logo-builder-field">
+                                            <span>Corner radius</span>
+                                            <div class="logo-builder-number">
+                                                <input id="logo-builder-radius" type="number" value="54" min="0" max="210" step="1">
+                                                <small>px</small>
+                                            </div>
+                                        </label>
+                                        <label class="logo-builder-field">
+                                            <span>Border</span>
+                                            <div class="logo-builder-number">
+                                                <input id="logo-builder-border" type="number" value="0" min="0" max="18" step="1">
+                                                <small>px</small>
+                                            </div>
+                                        </label>
+                                        <label class="logo-builder-field">
+                                            <span>Letter spacing</span>
+                                            <div class="logo-builder-number">
+                                                <input id="logo-builder-tracking" type="number" value="3" min="-2" max="18" step="0.5">
                                                 <small>px</small>
                                             </div>
                                         </label>
                                         <label class="logo-builder-field">
                                             <span>Surface</span>
-                                            <input id="logo-builder-bg-color" type="color" value="#2563eb">
+                                            <input id="logo-builder-bg-color" type="color" value="#2457c5">
                                         </label>
                                         <label class="logo-builder-field">
                                             <span>Lettering</span>
                                             <input id="logo-builder-text-color" type="color" value="#f8fafc">
                                         </label>
                                     </div>
+                                    <div id="logo-builder-fit-status" class="logo-builder-fit-status is-ready" aria-live="polite">
+                                        <strong>Ready</strong>
+                                        <span>Defaults are sized for clean tracing and a printable support base.</span>
+                                    </div>
                                 </section>
 
-                                <div class="logo-template-row flex flex-wrap gap-2 mb-3">
-                                    <span class="text-xs text-gray-400 self-center">Start from a template:</span>
-                                    <button class="logo-html-preset resize-chip" data-preset="pill">Pill</button>
-                                    <button class="logo-html-preset resize-chip" data-preset="badge">Badge</button>
-                                    <button class="logo-html-preset resize-chip" data-preset="cta">CTA</button>
-                                </div>
                                 <details id="logo-advanced-editor" class="logo-advanced-editor">
                                     <summary>
                                         <span>Advanced HTML &amp; font controls</span>

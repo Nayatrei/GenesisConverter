@@ -1,6 +1,6 @@
 import { OBJ_ZOOM_MIN, OBJ_ZOOM_MAX, BED_PRESETS } from './config.js';
 import { formatObjScalePercent } from './obj-scale.js';
-import { buildObjGeometryBundle, buildObjModelPlan } from './obj-model-plan.js?v=20260725e';
+import { buildObjGeometryBundle, buildObjModelPlan } from './obj-model-plan.js?v=20260725j';
 import { resolveMergedLayerGroups } from './shared/trace-utils.js?v=20260725a';
 import { getGeometryBundleBounds } from './shared/print-validation.js?v=20260725h';
 

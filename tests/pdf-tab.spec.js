@@ -84,9 +84,14 @@ test('PDF tab is registered as fifth tab and hides image import sidebar', async 
     await expect(page.locator('#sidebar-adjust-section')).toBeHidden();
     await expect(page.locator('#original-image-panel')).toBeHidden();
     await expect(page.locator('#pdf-merge-btn')).toBeDisabled();
+    await expect(page.locator('#pdf-guided-shell')).toBeVisible();
+    await expect(page.locator('.pdf-step-button[data-pdf-step="1"]')).toHaveClass(/active/);
+    await expect(page.locator('#pdf-step-arrange')).toBeVisible();
+    await expect(page.locator('#pdf-step-finish')).toBeHidden();
+    await expect(page.locator('#pdf-step-review')).toBeHidden();
 });
 
-test('PDF tab adds files, validates ranges, reorders, and downloads merged output', async ({ page }) => {
+test('PDF guided finish arranges, rotates, finishes, reviews, and downloads output', async ({ page }) => {
     const alphaPdf = await buildPdfBuffer('alpha', [[210, 211], [220, 221]]);
     const betaPdf = await buildPdfBuffer('beta', [[310, 311], [320, 321], [330, 331]]);
 
@@ -120,8 +125,38 @@ test('PDF tab adds files, validates ranges, reorders, and downloads merged outpu
     await rowFor(page, 'beta.pdf').locator('.pdf-range-input').fill('1,3');
     await expect(page.locator('#pdf-page-count')).toHaveText('4');
 
+    const alphaPreview = page.locator('.pdf-preview-card').filter({ hasText: 'alpha.pdf' });
+    await alphaPreview.locator('.pdf-thumb[data-page="0"] .pdf-thumb-preview').click();
+    await page.locator('#pdf-rotate-right-btn').click();
+
     await rowFor(page, 'beta.pdf').locator('[data-action="move-up"]').click();
     await page.locator('#pdf-output-name').fill('combined-check.pdf');
+
+    await page.locator('#pdf-next-btn').click();
+    await expect(page.locator('#pdf-step-finish')).toBeVisible();
+    await expect(page.locator('#pdf-finish-page-label')).toContainText('Output');
+
+    await page.locator('#pdf-signature-enabled').locator('..').click();
+    await expect(page.locator('#pdf-signature-enabled')).toBeChecked();
+    await page.locator('#pdf-signature-text').fill('테스트 서명');
+    await page.locator('#pdf-signature-apply-to').selectOption('last');
+
+    await page.locator('[data-pdf-finish-tool="stamp"]').click();
+    await page.locator('#pdf-stamp-enabled').locator('..').click();
+    await expect(page.locator('#pdf-stamp-enabled')).toBeChecked();
+    await page.locator('#pdf-stamp-text').selectOption('APPROVED');
+    await page.locator('#pdf-stamp-apply-to').selectOption('all');
+
+    await page.locator('[data-pdf-finish-tool="numbers"]').click();
+    await page.locator('#pdf-page-numbers-enabled').locator('..').click();
+    await expect(page.locator('#pdf-page-numbers-enabled')).toBeChecked();
+    await page.locator('#pdf-page-number-format').selectOption('page-total');
+
+    await page.locator('#pdf-next-btn').click();
+    await expect(page.locator('#pdf-step-review')).toBeVisible();
+    await expect(page.locator('#pdf-review-page-count')).toHaveText('4');
+    await expect(page.locator('#pdf-review-edit-count')).toHaveText('3');
+    await expect(page.locator('#pdf-merge-btn')).toBeVisible();
 
     const downloadPromise = page.waitForEvent('download');
     await page.locator('#pdf-merge-btn').click();
@@ -134,6 +169,7 @@ test('PDF tab adds files, validates ranges, reorders, and downloads merged outpu
         Math.round(pdfPage.getWidth()),
         Math.round(pdfPage.getHeight())
     ]);
+    const rotations = mergedDoc.getPages().map((pdfPage) => pdfPage.getRotation().angle);
 
     expect(mergedDoc.getPageCount()).toBe(4);
     expect(pageSizes).toEqual([
@@ -142,4 +178,23 @@ test('PDF tab adds files, validates ranges, reorders, and downloads merged outpu
         [220, 221],
         [210, 211]
     ]);
+    expect(rotations).toEqual([0, 0, 0, 90]);
+
+    const pdfjs = await import('pdfjs-dist/legacy/build/pdf.mjs');
+    const renderedDocument = await pdfjs.getDocument({
+        data: new Uint8Array(fs.readFileSync(downloadPath)),
+        isEvalSupported: false,
+        disableWorker: true
+    }).promise;
+    const extractedText = [];
+    for (let pageNumber = 1; pageNumber <= renderedDocument.numPages; pageNumber += 1) {
+        const pdfPage = await renderedDocument.getPage(pageNumber);
+        const text = await pdfPage.getTextContent();
+        extractedText.push(text.items.map((item) => item.str).join(' '));
+    }
+    await renderedDocument.destroy();
+
+    expect(extractedText.every((text) => text.includes('APPROVED'))).toBe(true);
+    expect(extractedText[0]).toContain('Page 1 of 4');
+    expect(extractedText[3]).toContain('Page 4 of 4');
 });

@@ -111,19 +111,16 @@ export const TAB_CASES = {
         ])
     },
 
-    // PDF follows the same column contract as every other tab: column 1 is for
-    // input. Here that means adding and selecting files ('pdf-tools' — the add
-    // button, dropzone, and the merge queue with per-file page ranges). Column 2
-    // is the merge preview. Future page-thumbnail rendering slots into the same
-    // preview surface with no new wiring.
+    // PDF follows a guided three-step workflow. Column 1 owns project files;
+    // column 2 moves from page arrangement to finishing and final review.
     pdf: {
         label: 'PDF',
-        eyebrow: 'Document Stack',
-        title: 'PDF Merger',
-        description: 'Add files on the left, preview the merge on the right.',
-        accent: '#f87171',
-        accentSoft: 'rgba(248, 113, 113, 0.16)',
-        accentRgb: '248, 113, 113',
+        eyebrow: 'PDF Project',
+        title: 'Guided Finish',
+        description: 'Arrange pages, add finishing, then review and download.',
+        accent: '#e36e62',
+        accentSoft: 'rgba(227, 110, 98, 0.14)',
+        accentRgb: '227, 110, 98',
         importTitle: null,
         importButton: null,
         importCopy: null,
@@ -270,6 +267,7 @@ export function applyTabCase(name, ctx = {}) {
         shell.style.setProperty('--case-accent-rgb', caseConfig.accentRgb);
         shell.dataset.activeCase = name;
     }
+    document.body.dataset.activeCase = name;
 
     return caseConfig;
 }

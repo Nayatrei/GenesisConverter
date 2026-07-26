@@ -1,41 +1,292 @@
-                    <div id="tab-pdf" class="export-panel hidden pdf-v2">
-                        <section class="pdf-preview-shell">
-                            <header class="pdf-preview-head">
-                                <div class="pdf-preview-head-copy">
-                                    <span class="pdf-eyebrow">Merge Preview</span>
-                                    <h4 class="pdf-section-title">Page Selection</h4>
-                                </div>
-                                <p class="pdf-preview-lead">Files you add on the left appear here in merge order, with the pages each one contributes.</p>
-                            </header>
+<div id="tab-pdf" class="export-panel hidden pdf-v2 pdf-guided">
+    <section id="pdf-guided-shell" class="pdf-guided-shell" aria-label="PDF guided finish workspace">
+        <header class="pdf-guided-head">
+            <div>
+                <span class="pdf-eyebrow">Workspace / Guided workflow</span>
+                <h3 class="pdf-guided-title">Prepare a finished PDF</h3>
+                <p class="pdf-guided-copy">Arrange the pages, add only the finishing you need, then review the exact output.</p>
+            </div>
+            <div class="pdf-guided-head-meta">
+                <span id="pdf-step-status" class="pdf-step-status">Step 1 of 3</span>
+                <span class="pdf-local-status">Local session</span>
+            </div>
+        </header>
 
-                            <div id="pdf-preview-empty" class="pdf-preview-empty">
-                                <svg class="pdf-preview-empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round">
-                                    <path d="M14 2H7a2 2 0 00-2 2v16a2 2 0 002 2h10a2 2 0 002-2V7z"/>
-                                    <path d="M14 2v5h5"/>
-                                    <path d="M9 13h6"/>
-                                    <path d="M9 17h4"/>
-                                </svg>
-                                <div class="pdf-preview-empty-title">Your merged document previews here</div>
-                                <div class="pdf-preview-empty-copy">Use <strong>Add &amp; Select Files</strong> in the left panel to choose PDFs and page ranges. The merge order and selected pages show up here.</div>
-                            </div>
+        <nav class="pdf-step-track" aria-label="PDF finish progress">
+            <button type="button" class="pdf-step-button active" data-pdf-step="1" aria-current="step">
+                <span class="pdf-step-number">1</span>
+                <span class="pdf-step-copy">
+                    <strong>Arrange pages</strong>
+                    <small>Order, rotate, remove</small>
+                </span>
+            </button>
+            <button type="button" class="pdf-step-button" data-pdf-step="2">
+                <span class="pdf-step-number">2</span>
+                <span class="pdf-step-copy">
+                    <strong>Add finishing</strong>
+                    <small>Sign, stamp, number</small>
+                </span>
+            </button>
+            <button type="button" class="pdf-step-button" data-pdf-step="3">
+                <span class="pdf-step-number">3</span>
+                <span class="pdf-step-copy">
+                    <strong>Review &amp; export</strong>
+                    <small>Check and download</small>
+                </span>
+            </button>
+        </nav>
 
-                            <div id="pdf-preview-list" class="pdf-preview-list" aria-live="polite"></div>
-                        </section>
+        <div class="pdf-guided-stage">
+            <section id="pdf-step-arrange" class="pdf-step-panel" data-pdf-step-panel="1">
+                <div class="pdf-stage-head">
+                    <div>
+                        <span class="pdf-eyebrow">Step 1</span>
+                        <h4 class="pdf-stage-title">Choose the pages and their order</h4>
+                        <p class="pdf-stage-copy">Click a page to focus it. Use the toolbar to rotate, reorder, or remove it from the output.</p>
                     </div>
+                    <div class="pdf-stage-selection">
+                        <span id="pdf-focused-page-status">No page focused</span>
+                        <button id="pdf-select-all-btn" type="button" class="pdf-text-button">Select all</button>
+                        <button id="pdf-clear-btn" type="button" class="pdf-text-button">Clear</button>
+                    </div>
+                </div>
 
-<footer id="pdf-merge-footer" data-tab-footer="pdf" class="hidden p-4 border-t border-gray-700 bg-gray-800 flex-shrink-0 pdf-v2">
-    <div class="pdf-footer-inner">
+                <div class="pdf-page-toolbar" aria-label="Focused page actions">
+                    <button id="pdf-rotate-left-btn" type="button" disabled>Rotate left</button>
+                    <button id="pdf-rotate-right-btn" type="button" disabled>Rotate right</button>
+                    <span class="pdf-toolbar-divider" aria-hidden="true"></span>
+                    <button id="pdf-page-up-btn" type="button" disabled>Move earlier</button>
+                    <button id="pdf-page-down-btn" type="button" disabled>Move later</button>
+                    <span class="pdf-toolbar-divider" aria-hidden="true"></span>
+                    <button id="pdf-page-remove-btn" type="button" class="pdf-danger-button" disabled>Remove page</button>
+                </div>
+
+                <div id="pdf-preview-empty" class="pdf-preview-empty pdf-guided-empty">
+                    <div class="pdf-empty-mark" aria-hidden="true">
+                        <span></span><span></span><span></span>
+                    </div>
+                    <div class="pdf-preview-empty-title">Add a PDF to start arranging</div>
+                    <div class="pdf-preview-empty-copy">The left panel holds your source files. Page thumbnails will appear here in output order.</div>
+                </div>
+
+                <div id="pdf-preview-list" class="pdf-preview-list pdf-arrange-list hidden" aria-live="polite"></div>
+            </section>
+
+            <section id="pdf-step-finish" class="pdf-step-panel hidden" data-pdf-step-panel="2">
+                <div class="pdf-finish-layout">
+                    <section class="pdf-finish-preview-panel" aria-label="Finishing preview">
+                        <div class="pdf-finish-preview-head">
+                            <div>
+                                <span class="pdf-eyebrow">Document preview</span>
+                                <strong id="pdf-finish-page-label">Select a page in step 1</strong>
+                            </div>
+                            <div class="pdf-preview-pager">
+                                <button id="pdf-finish-prev-btn" type="button" disabled aria-label="Previous output page">Previous</button>
+                                <button id="pdf-finish-next-btn" type="button" disabled aria-label="Next output page">Next</button>
+                            </div>
+                        </div>
+                        <div class="pdf-finish-canvas">
+                            <div id="pdf-finish-preview-empty" class="pdf-finish-preview-empty">A selected page will appear here.</div>
+                            <div class="pdf-finish-paper">
+                                <img id="pdf-finish-preview-image" class="hidden" alt="Selected PDF page preview">
+                                <span id="pdf-finish-signature-preview" class="pdf-live-overlay pdf-live-signature hidden"></span>
+                                <span id="pdf-finish-stamp-preview" class="pdf-live-overlay pdf-live-stamp hidden"></span>
+                                <span id="pdf-finish-number-preview" class="pdf-live-overlay pdf-live-number hidden"></span>
+                            </div>
+                        </div>
+                    </section>
+
+                    <aside class="pdf-finish-inspector">
+                        <div class="pdf-finish-tool-tabs" role="tablist" aria-label="Finishing tools">
+                            <button type="button" class="active" data-pdf-finish-tool="signature" role="tab" aria-selected="true">Signature</button>
+                            <button type="button" data-pdf-finish-tool="stamp" role="tab" aria-selected="false">Stamp</button>
+                            <button type="button" data-pdf-finish-tool="numbers" role="tab" aria-selected="false">Page numbers</button>
+                        </div>
+
+                        <section class="pdf-finish-tool-panel" data-pdf-finish-panel="signature" role="tabpanel">
+                            <div class="pdf-tool-intro">
+                                <div>
+                                    <span class="pdf-eyebrow">Optional</span>
+                                    <h4>Place a typed signature</h4>
+                                </div>
+                                <label class="pdf-tool-toggle">
+                                    <input id="pdf-signature-enabled" type="checkbox">
+                                    <span>Use</span>
+                                </label>
+                            </div>
+                            <p class="pdf-tool-copy">Add a visual signature to the current, last, or every output page.</p>
+                            <div class="pdf-form-field">
+                                <label for="pdf-signature-text">Signature text</label>
+                                <input id="pdf-signature-text" type="text" placeholder="Type a name" autocomplete="name">
+                            </div>
+                            <div class="pdf-form-grid">
+                                <div class="pdf-form-field">
+                                    <label for="pdf-signature-position">Position</label>
+                                    <select id="pdf-signature-position">
+                                        <option value="bottom-left">Bottom left</option>
+                                        <option value="bottom-center">Bottom center</option>
+                                        <option value="bottom-right">Bottom right</option>
+                                    </select>
+                                </div>
+                                <div class="pdf-form-field">
+                                    <label for="pdf-signature-apply-to">Apply to</label>
+                                    <select id="pdf-signature-apply-to">
+                                        <option value="current">Current page</option>
+                                        <option value="last">Last page</option>
+                                        <option value="all">Every page</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="pdf-form-field">
+                                <label for="pdf-signature-size">Signature size</label>
+                                <input id="pdf-signature-size" type="range" min="14" max="46" value="22">
+                            </div>
+                            <p class="pdf-tool-note">This is a visual signature, not a certificate-backed digital signature.</p>
+                        </section>
+
+                        <section class="pdf-finish-tool-panel hidden" data-pdf-finish-panel="stamp" role="tabpanel">
+                            <div class="pdf-tool-intro">
+                                <div>
+                                    <span class="pdf-eyebrow">Optional</span>
+                                    <h4>Add a stamp or watermark</h4>
+                                </div>
+                                <label class="pdf-tool-toggle">
+                                    <input id="pdf-stamp-enabled" type="checkbox">
+                                    <span>Use</span>
+                                </label>
+                            </div>
+                            <p class="pdf-tool-copy">Use a corner stamp or switch to a centered diagonal watermark.</p>
+                            <div class="pdf-form-field">
+                                <label for="pdf-stamp-text">Stamp text</label>
+                                <select id="pdf-stamp-text">
+                                    <option value="APPROVED">Approved</option>
+                                    <option value="DRAFT">Draft</option>
+                                    <option value="CONFIDENTIAL">Confidential</option>
+                                    <option value="COPY">Copy</option>
+                                </select>
+                            </div>
+                            <div class="pdf-form-grid">
+                                <div class="pdf-form-field">
+                                    <label for="pdf-stamp-position">Position</label>
+                                    <select id="pdf-stamp-position">
+                                        <option value="top-right">Top right</option>
+                                        <option value="bottom-right">Bottom right</option>
+                                        <option value="center">Center watermark</option>
+                                    </select>
+                                </div>
+                                <div class="pdf-form-field">
+                                    <label for="pdf-stamp-apply-to">Apply to</label>
+                                    <select id="pdf-stamp-apply-to">
+                                        <option value="all">Every page</option>
+                                        <option value="current">Current page</option>
+                                        <option value="last">Last page</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="pdf-form-grid">
+                                <div class="pdf-form-field">
+                                    <label for="pdf-stamp-opacity">Opacity <span id="pdf-stamp-opacity-value">72%</span></label>
+                                    <input id="pdf-stamp-opacity" type="range" min="20" max="100" value="72">
+                                </div>
+                                <div class="pdf-form-field">
+                                    <label for="pdf-stamp-size">Text size</label>
+                                    <input id="pdf-stamp-size" type="range" min="18" max="64" value="28">
+                                </div>
+                            </div>
+                        </section>
+
+                        <section class="pdf-finish-tool-panel hidden" data-pdf-finish-panel="numbers" role="tabpanel">
+                            <div class="pdf-tool-intro">
+                                <div>
+                                    <span class="pdf-eyebrow">Optional</span>
+                                    <h4>Add page numbers</h4>
+                                </div>
+                                <label class="pdf-tool-toggle">
+                                    <input id="pdf-page-numbers-enabled" type="checkbox">
+                                    <span>Use</span>
+                                </label>
+                            </div>
+                            <p class="pdf-tool-copy">Number the final output after page removal and reordering.</p>
+                            <div class="pdf-form-field">
+                                <label for="pdf-page-number-format">Format</label>
+                                <select id="pdf-page-number-format">
+                                    <option value="page-total">Page 1 of 8</option>
+                                    <option value="number-total">1 / 8</option>
+                                    <option value="number">1</option>
+                                </select>
+                            </div>
+                            <div class="pdf-form-grid">
+                                <div class="pdf-form-field">
+                                    <label for="pdf-page-number-position">Position</label>
+                                    <select id="pdf-page-number-position">
+                                        <option value="bottom-center">Bottom center</option>
+                                        <option value="bottom-right">Bottom right</option>
+                                        <option value="top-right">Top right</option>
+                                    </select>
+                                </div>
+                                <div class="pdf-form-field">
+                                    <label for="pdf-page-number-start">Start at</label>
+                                    <input id="pdf-page-number-start" type="number" min="1" max="9999" value="1">
+                                </div>
+                            </div>
+                            <div class="pdf-form-field">
+                                <label for="pdf-page-number-size">Number size</label>
+                                <input id="pdf-page-number-size" type="range" min="7" max="18" value="9">
+                            </div>
+                        </section>
+                    </aside>
+                </div>
+            </section>
+
+            <section id="pdf-step-review" class="pdf-step-panel hidden" data-pdf-step-panel="3">
+                <div class="pdf-review-head">
+                    <div>
+                        <span class="pdf-eyebrow">Step 3</span>
+                        <h4 class="pdf-stage-title">Review the finished document</h4>
+                        <p class="pdf-stage-copy">Confirm the page count and finishing choices before downloading.</p>
+                    </div>
+                    <div class="pdf-review-stats">
+                        <div><span>Files</span><strong id="pdf-review-file-count">0</strong></div>
+                        <div><span>Pages</span><strong id="pdf-review-page-count">0</strong></div>
+                        <div><span>Finishing</span><strong id="pdf-review-edit-count">0</strong></div>
+                    </div>
+                </div>
+                <div class="pdf-review-body">
+                    <section class="pdf-review-pages">
+                        <div class="pdf-review-section-head">
+                            <strong>Output pages</strong>
+                            <span>First 12 shown</span>
+                        </div>
+                        <div id="pdf-review-list" class="pdf-review-list"></div>
+                    </section>
+                    <aside class="pdf-review-summary-panel">
+                        <span class="pdf-eyebrow">Output summary</span>
+                        <h4>Ready for one final check</h4>
+                        <div id="pdf-review-summary" class="pdf-review-summary"></div>
+                        <div class="pdf-review-privacy">
+                            <strong>Private export</strong>
+                            <span>The source and finished PDF stay on this device.</span>
+                        </div>
+                    </aside>
+                </div>
+            </section>
+        </div>
+    </section>
+</div>
+
+<footer id="pdf-merge-footer" data-tab-footer="pdf" class="hidden pdf-v2 pdf-guided-footer-shell">
+    <div class="pdf-guided-footer">
         <label class="pdf-output-field">
-            <span>Output Name</span>
-            <input id="pdf-output-name" type="text" value="merged.pdf" spellcheck="false">
+            <span>Output name</span>
+            <input id="pdf-output-name" type="text" value="finished.pdf" spellcheck="false">
         </label>
-        <div id="pdf-footer-status" class="pdf-footer-status" data-tone="muted">Add PDF files to build a merge queue.</div>
-        <button id="pdf-merge-btn" type="button" class="pdf-merge-btn" disabled>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M8 7h8"/><path d="M8 12h8"/><path d="M8 17h5"/>
-                <path d="M4 3h10l6 6v12H4z"/><path d="M14 3v6h6"/>
-            </svg>
-            <span>Download Merged PDF</span>
-        </button>
+        <div id="pdf-footer-status" class="pdf-footer-status" data-tone="muted">Add a PDF to start a guided finish.</div>
+        <div class="pdf-footer-actions">
+            <button id="pdf-back-btn" type="button" class="pdf-footer-secondary hidden">Back</button>
+            <button id="pdf-next-btn" type="button" class="pdf-footer-primary" disabled>Continue to finishing</button>
+            <button id="pdf-merge-btn" type="button" class="pdf-footer-primary hidden" disabled>
+                <span>Download Finished PDF</span>
+            </button>
+        </div>
     </div>
 </footer>

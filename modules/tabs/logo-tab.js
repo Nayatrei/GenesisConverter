@@ -1,6 +1,6 @@
 import { SLIDER_TOOLTIPS } from '../config.js';
-import { createObjPreview } from '../preview3d.js?v=20260725h';
-import { createObjExporter } from '../export3d.js?v=20260725h';
+import { createObjPreview } from '../preview3d.js?v=20260725j';
+import { createObjExporter } from '../export3d.js?v=20260725j';
 import {
     hasTransparentPixels,
     markTransparentPixels,
@@ -15,7 +15,14 @@ import { svgToPng } from '../shared/svg-renderer.js';
 import { createPaletteManager } from '../shared/palette-manager.js';
 import { buildWeldedSilhouetteSvgString } from '../shared/silhouette-builder.js';
 import { formatObjScalePercent } from '../obj-scale.js';
-import { HTML_PRESETS, createHtmlEditor, extractDeclaredHtmlColors } from './logo/html-editor.js?v=20260725a';
+import { createHtmlEditor, extractDeclaredHtmlColors } from './logo/html-editor.js?v=20260725a';
+import {
+    DEFAULT_LOGO_PRESET_ID,
+    LOGO_PRESETS,
+    assessLogoPresetFit,
+    buildLogoPresetMarkup,
+    getLogoPreset
+} from './logo/logo-presets.js?v=20260725j';
 import { createAutoWorkingImageFromSource } from '../raster-utils.js';
 import { canAttemptBambuLaunch } from '../bambu-bridge.js?v=20260725f';
 import {
@@ -62,45 +69,138 @@ export function createLogoTabController({
     };
     setMakerWorkflow(le.workflow, 'source');
 
-    function escapeLogoText(value) {
-        return String(value || '')
-            .replace(/&/g, '&amp;')
-            .replace(/</g, '&lt;')
-            .replace(/>/g, '&gt;')
-            .replace(/"/g, '&quot;')
-            .replace(/'/g, '&#039;');
+    function getBuilderValues() {
+        return {
+            primary: le.builderText?.value,
+            secondary: le.builderSecondary?.value,
+            fontSize: le.builderFontSize?.value,
+            width: le.builderWidth?.value,
+            height: le.builderHeight?.value,
+            radius: le.builderRadius?.value,
+            border: le.builderBorder?.value,
+            tracking: le.builderTracking?.value,
+            background: le.builderBgColor?.value,
+            foreground: le.builderTextColor?.value
+        };
+    }
+
+    function updateBuilderFitStatus() {
+        if (!le.builderFitStatus) return;
+        const assessment = assessLogoPresetFit(
+            ls.activeLogoPresetId || DEFAULT_LOGO_PRESET_ID,
+            getBuilderValues()
+        );
+        const title = le.builderFitStatus.querySelector('strong');
+        const detail = le.builderFitStatus.querySelector('span');
+        le.builderFitStatus.classList.toggle('is-ready', assessment.ok && !assessment.warnings.length);
+        le.builderFitStatus.classList.toggle('is-review', !assessment.ok || assessment.warnings.length > 0);
+        if (title) {
+            title.textContent = assessment.ok
+                ? assessment.warnings.length ? 'Check' : 'Ready'
+                : 'Adjust';
+        }
+        if (detail) {
+            detail.textContent = assessment.errors[0]
+                || assessment.warnings[0]
+                || 'Defaults are sized for clean tracing and a printable support base.';
+        }
     }
 
     function buildSimpleLogoMarkup() {
-        const text = escapeLogoText(le.builderText?.value.trim() || 'MY BRAND');
-        const shape = le.builderShape?.value || 'pill';
-        const fontSize = Math.max(12, Math.min(96, Number.parseInt(le.builderFontSize?.value || '32', 10) || 32));
-        const background = le.builderBgColor?.value || '#2563eb';
-        const foreground = le.builderTextColor?.value || '#f8fafc';
-
-        const shapeStyles = {
-            pill: `padding:22px 48px;border-radius:999px;background-color:${background};`,
-            rounded: `min-width:260px;min-height:160px;padding:28px 42px;border-radius:28px;background-color:${background};`,
-            badge: `width:240px;height:240px;padding:24px;border-radius:999px;background-color:${background};text-align:center;`,
-            plain: 'padding:18px;background-color:transparent;'
-        };
-
-        return `<div style="
-  display:inline-flex;align-items:center;justify-content:center;
-  box-sizing:border-box;white-space:nowrap;
-  ${shapeStyles[shape] || shapeStyles.pill}
-  color:${foreground};font-family:system-ui,sans-serif;
-  font-size:${fontSize}px;font-weight:800;letter-spacing:0.08em;line-height:1;">
-  ${text}
-</div>`;
+        return buildLogoPresetMarkup(
+            ls.activeLogoPresetId || DEFAULT_LOGO_PRESET_ID,
+            getBuilderValues()
+        );
     }
 
-    function syncSimpleBuilderToHtml({ render = true } = {}) {
+    function syncSimpleBuilderToHtml({ render = true, immediate = false } = {}) {
         if (!le.htmlInput) return;
+        updateBuilderFitStatus();
         le.htmlInput.value = buildSimpleLogoMarkup();
         if (render && ls.htmlModeActive) {
-            htmlEditor.scheduleHtmlRender();
+            if (immediate) {
+                void htmlEditor.triggerHtmlRender();
+            } else {
+                htmlEditor.scheduleHtmlRender();
+            }
         }
+    }
+
+    function updatePresetSelection() {
+        le.builderPresetGallery?.querySelectorAll('[data-logo-preset]').forEach((button) => {
+            const selected = button.dataset.logoPreset === ls.activeLogoPresetId;
+            button.classList.toggle('active', selected);
+            button.setAttribute('aria-selected', selected ? 'true' : 'false');
+            button.setAttribute('tabindex', selected ? '0' : '-1');
+        });
+    }
+
+    function setBuilderInputValue(input, value) {
+        if (!input) return;
+        input.value = String(value ?? '');
+    }
+
+    function applyLogoPreset(presetId, { render = true, immediate = true } = {}) {
+        const preset = getLogoPreset(presetId);
+        ls.activeLogoPresetId = preset.id;
+        const defaults = preset.defaults;
+        setBuilderInputValue(le.builderText, defaults.primary);
+        setBuilderInputValue(le.builderSecondary, defaults.secondary);
+        setBuilderInputValue(le.builderFontSize, defaults.fontSize);
+        setBuilderInputValue(le.builderWidth, defaults.width);
+        setBuilderInputValue(le.builderHeight, defaults.height);
+        setBuilderInputValue(le.builderRadius, defaults.radius);
+        setBuilderInputValue(le.builderBorder, defaults.border);
+        setBuilderInputValue(le.builderTracking, defaults.tracking);
+        setBuilderInputValue(le.builderBgColor, defaults.background);
+        setBuilderInputValue(le.builderTextColor, defaults.foreground);
+        if (le.builderActiveName) le.builderActiveName.textContent = preset.name;
+        if (le.builderActiveUse) le.builderActiveUse.textContent = preset.use;
+        updatePresetSelection();
+        syncSimpleBuilderToHtml({ render, immediate });
+    }
+
+    function renderLogoPresetGallery() {
+        if (!le.builderPresetGallery || le.builderPresetGallery.childElementCount) return;
+        LOGO_PRESETS.forEach((preset, index) => {
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.className = 'logo-preset-card';
+            button.dataset.logoPreset = preset.id;
+            button.dataset.layout = preset.layout;
+            button.setAttribute('role', 'option');
+            button.setAttribute('aria-label', `${preset.name}: ${preset.use}`);
+
+            const indexLabel = document.createElement('span');
+            indexLabel.className = 'logo-preset-index';
+            indexLabel.textContent = String(index + 1).padStart(2, '0');
+
+            const preview = document.createElement('span');
+            preview.className = 'logo-preset-preview';
+            preview.dataset.layout = preset.layout;
+            preview.style.setProperty('--preset-bg', preset.defaults.background);
+            preview.style.setProperty('--preset-fg', preset.defaults.foreground);
+            preview.style.setProperty('--preset-radius', `${Math.min(18, preset.defaults.radius * 0.15)}px`);
+
+            const previewPrimary = document.createElement('strong');
+            previewPrimary.textContent = preset.defaults.primary;
+            const previewSecondary = document.createElement('small');
+            previewSecondary.textContent = preset.defaults.secondary;
+            preview.append(previewPrimary, previewSecondary);
+
+            const copy = document.createElement('span');
+            copy.className = 'logo-preset-copy';
+            const name = document.createElement('strong');
+            name.textContent = preset.name;
+            const use = document.createElement('small');
+            use.textContent = preset.use;
+            copy.append(name, use);
+            button.append(indexLabel, preview, copy);
+            button.addEventListener('click', () => {
+                applyLogoPreset(preset.id, { render: true, immediate: true });
+            });
+            le.builderPresetGallery.append(button);
+        });
     }
 
     // Returns the active source image (HTML-rendered or imported)
@@ -995,30 +1095,36 @@ export function createLogoTabController({
             });
         }
 
-        document.querySelectorAll('#tab-logo .logo-html-preset').forEach(btn => {
-            btn.addEventListener('click', () => {
-                const preset = HTML_PRESETS[btn.dataset.preset];
-                if (!preset || !le.htmlInput) return;
-                le.htmlInput.value = preset;
-                if (ls.htmlModeActive) htmlEditor.scheduleHtmlRender();
-            });
-        });
-
         const builderControls = [
             le.builderText,
-            le.builderShape,
+            le.builderSecondary,
             le.builderFontSize,
+            le.builderWidth,
+            le.builderHeight,
+            le.builderRadius,
+            le.builderBorder,
+            le.builderTracking,
             le.builderBgColor,
             le.builderTextColor
         ].filter(Boolean);
         builderControls.forEach((control) => {
-            const eventName = control.tagName === 'SELECT' || control.type === 'color' ? 'change' : 'input';
+            const eventName = control.type === 'color' ? 'change' : 'input';
             control.addEventListener(eventName, () => syncSimpleBuilderToHtml());
         });
 
-        if (le.htmlInput && !le.htmlInput.value.trim()) {
-            syncSimpleBuilderToHtml({ render: false });
+        renderLogoPresetGallery();
+        if (le.builderResetBtn) {
+            le.builderResetBtn.addEventListener('click', () => {
+                applyLogoPreset(ls.activeLogoPresetId || DEFAULT_LOGO_PRESET_ID, {
+                    render: true,
+                    immediate: true
+                });
+            });
         }
+        applyLogoPreset(ls.activeLogoPresetId || DEFAULT_LOGO_PRESET_ID, {
+            render: false,
+            immediate: false
+        });
         htmlEditor.setHtmlMode(ls.htmlModeActive);
     }
 

@@ -4,9 +4,16 @@ const { test, expect } = require('@playwright/test');
 
 const QA_DIR = path.join(process.cwd(), 'test-results', 'manual-logo');
 const PRESETS = [
-    { name: 'pill', resolution: '936×304 px' },
-    { name: 'badge', resolution: '896×896 px' },
-    { name: 'cta', resolution: '1032×312 px' }
+    { id: 'capsule-wordmark', name: 'Capsule Wordmark' },
+    { id: 'studio-sign', name: 'Studio Sign' },
+    { id: 'round-seal', name: 'Round Seal' },
+    { id: 'monogram-coin', name: 'Monogram Coin' },
+    { id: 'address-plate', name: 'Address Plate' },
+    { id: 'maker-stamp', name: 'Maker Stamp' },
+    { id: 'key-tag', name: 'Key Tag' },
+    { id: 'ticket-label', name: 'Ticket Label' },
+    { id: 'split-label', name: 'Split Label' },
+    { id: 'stacked-block', name: 'Stacked Block' }
 ];
 
 function buildStripedSvg() {
@@ -47,9 +54,15 @@ async function openLogoTab(page) {
     await expect(page.locator('#svg-sidebar-controls')).toBeHidden();
 }
 
-async function renderPreset(page, presetName, expectedResolution) {
-    await page.locator(`#tab-logo .logo-html-preset[data-preset="${presetName}"]`).click();
-    await expect(page.locator('#logo-original-resolution')).toHaveText(expectedResolution, { timeout: 30_000 });
+async function renderPreset(page, preset) {
+    const button = page.locator(`#logo-preset-gallery [data-logo-preset="${preset.id}"]`);
+    await button.click();
+    await expect(button).toHaveClass(/active/);
+    await expect(button).toHaveAttribute('aria-selected', 'true');
+    await expect(page.locator('#logo-builder-active-name')).toHaveText(preset.name);
+    await expect(page.locator('#logo-builder-fit-status')).toHaveClass(/is-ready/);
+    await expect(page.locator('#logo-builder-fit-status strong')).toHaveText('Ready');
+    await expect(page.locator('#logo-original-resolution')).toHaveText(/^\d+×\d+ px$/, { timeout: 30_000 });
     await expect(page.locator('#logo-html-status')).toHaveText('Ready', { timeout: 30_000 });
     await expectRenderedImage(page.locator('#logo-svg-source-mirror'));
     await expectRenderedImage(page.locator('#logo-svg-preview'));
@@ -62,6 +75,8 @@ async function renderPreset(page, presetName, expectedResolution) {
     await expect(page.locator('#tab-logo #logo-obj-thickness')).toHaveCount(0);
     await expect(page.locator('#tab-logo #logo-obj-margin')).toHaveCount(0);
     await expect(page.locator('#tab-logo #logo-obj-bed')).toHaveCount(0);
+    await expect(page.locator('#logo-model-size-readout')).toHaveText(/^\d+\.\d × \d+\.\d × \d+\.\d mm$/);
+    await expect(page.locator('#logo-model-size-readout')).toHaveAttribute('data-bed-fit', 'fits');
 }
 
 test('logo sidebar controls stay isolated from SVG controls', async ({ page }) => {
@@ -116,24 +131,31 @@ test('quick logo builder updates the HTML source and completes 3D preflight', as
     await expect(page.locator('#logo-advanced-editor')).not.toHaveAttribute('open', '');
 
     const previousSource = await page.locator('#logo-html-source-img').getAttribute('src');
+    await page.locator('[data-logo-preset="studio-sign"]').click();
     await page.locator('#logo-builder-text').fill('GENESIS');
-    await page.locator('#logo-builder-shape').selectOption('rounded');
+    await page.locator('#logo-builder-secondary').fill('MAKER STUDIO');
+    await page.locator('#logo-builder-font-size').fill('40');
+    await page.locator('#logo-builder-width').fill('460');
 
     await expect.poll(
         () => page.locator('#logo-html-source-img').getAttribute('src'),
         { timeout: 30_000 }
     ).not.toBe(previousSource);
     await expect(page.locator('#logo-html-input')).toHaveValue(/GENESIS/);
+    await expect(page.locator('#logo-html-input')).toHaveValue(/width:460\.0px/);
+    await expect(page.locator('#logo-builder-fit-status')).toHaveClass(/is-ready/);
     await expect(page.locator('#logo-html-status')).toHaveText('Ready', { timeout: 30_000 });
     await expect(page.locator('#logo-preflight-status')).toContainText(/Ready|Check|Auto-fit/);
     await expect(page.locator('#logo-maker-workflow')).toHaveAttribute('data-stage', 'export');
 });
 
-test('pill, badge, and CTA render cleanly in the logo workflow', async ({ page }) => {
+test('all ten printable logo presets render cleanly in the logo workflow', async ({ page }) => {
+    test.setTimeout(180_000);
     await openLogoTab(page);
+    await expect(page.locator('#logo-preset-gallery .logo-preset-card')).toHaveCount(10);
 
     for (const preset of PRESETS) {
-        await renderPreset(page, preset.name, preset.resolution);
+        await renderPreset(page, preset);
         await expect(page.locator('#tab-logo .svg-compare-grid')).toBeVisible();
         await expect(page.locator('#tab-logo .svg-3d-grid')).toBeVisible();
         await expect(page.locator('#logo-use-base-layer')).toBeChecked();
@@ -142,10 +164,32 @@ test('pill, badge, and CTA render cleanly in the logo workflow', async ({ page }
         await expect(page.locator('#logo-image-color-controls')).toBeHidden();
 
         await page.locator('#tab-logo .svg-compare-grid').screenshot({
-            path: outputPath(`logo-${preset.name}-compare.png`)
+            path: outputPath(`logo-${preset.id}-compare.png`)
         });
         await page.locator('#tab-logo .svg-3d-grid').screenshot({
-            path: outputPath(`logo-${preset.name}-3d.png`)
+            path: outputPath(`logo-${preset.id}-3d.png`)
         });
+    }
+});
+
+test('all ten logo presets pass strict validation and export Bambu 3MF packages', async ({ page }, testInfo) => {
+    test.setTimeout(240_000);
+    await openLogoTab(page);
+
+    for (const preset of PRESETS) {
+        await renderPreset(page, preset);
+        const downloadPromise = page.waitForEvent('download');
+        await page.locator('#logo-export-3mf-btn').click();
+        const download = await downloadPromise;
+        await expect(page.locator('#status-text')).toHaveText(
+            'Bambu Studio project downloaded. Open the .3mf in Bambu Studio.',
+            { timeout: 30_000 }
+        );
+
+        const targetPath = testInfo.outputPath(`${preset.id}.3mf`);
+        await download.saveAs(targetPath);
+        const header = fs.readFileSync(targetPath).subarray(0, 4);
+        expect(header).toEqual(Buffer.from([0x50, 0x4b, 0x03, 0x04]));
+        expect(fs.statSync(targetPath).size).toBeGreaterThan(10_000);
     }
 });

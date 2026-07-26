@@ -108,9 +108,36 @@ export function createState() {
         // ── PDF tab state ──────────────────────────────────────────────────────
         pdf: {
             files: [],
-            outputName: 'merged.pdf',
+            outputName: 'finished.pdf',
             isMerging: false,
-            lastMergedPageCount: 0
+            lastMergedPageCount: 0,
+            activeStep: 1,
+            activeFinishTool: 'signature',
+            focusedPage: null,
+            finish: {
+                signature: {
+                    enabled: false,
+                    text: '',
+                    position: 'bottom-left',
+                    applyTo: 'current',
+                    size: 22
+                },
+                stamp: {
+                    enabled: false,
+                    text: 'APPROVED',
+                    position: 'top-right',
+                    applyTo: 'all',
+                    opacity: 72,
+                    size: 28
+                },
+                pageNumbers: {
+                    enabled: false,
+                    format: 'page-total',
+                    position: 'bottom-center',
+                    startAt: 1,
+                    size: 9
+                }
+            }
         },
 
         // ── 3D preview state (SVG tab) ─────────────────────────────────────────
@@ -147,6 +174,7 @@ export function createState() {
             ...workingImageState(),
             traceControls: createDefaultTraceControls('logo'),
             htmlModeActive: true,
+            activeLogoPresetId: 'capsule-wordmark',
             htmlRenderTimer: null,
             htmlDeclaredColors: [],
             showAvailableLayers: true,

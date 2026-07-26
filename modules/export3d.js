@@ -1,4 +1,8 @@
-import { buildObjGeometryBundle, buildObjModelPlan } from './obj-model-plan.js?v=20260725e';
+import {
+    buildObjGeometryBundle,
+    buildObjModelPlan,
+    sanitizeGeometryForPrint
+} from './obj-model-plan.js?v=20260725j';
 import { buildBambuProjectFiles } from './bambu-project.js?v=20260725h';
 import { BAMBU_PROJECT_NOZZLE_DIAMETER } from './config.js';
 import { canvasToBlobAsync, dataUrlToBlob } from './raster-utils.js';
@@ -603,10 +607,29 @@ export function createObjExporter({
         geometryBundle.layers.forEach((layerData) => {
             layerData.geometry.scale(scalePlan.scale, scalePlan.scale, 1);
             layerData.geometry.computeVertexNormals();
-            layerData.geometryParts?.forEach((partGeometry) => {
+            const cleanedGeometry = sanitizeGeometryForPrint(
+                layerData.geometry,
+                THREERef,
+                bufferUtils
+            );
+            if (!cleanedGeometry) {
+                layerData.geometry.dispose();
+                layerData.geometry = null;
+            } else {
+                layerData.geometry.dispose();
+                layerData.geometry = cleanedGeometry;
+            }
+            layerData.geometryParts = (layerData.geometryParts || []).map((partGeometry) => {
                 partGeometry.scale(scalePlan.scale, scalePlan.scale, 1);
                 partGeometry.computeVertexNormals();
-            });
+                const cleanedPart = sanitizeGeometryForPrint(
+                    partGeometry,
+                    THREERef,
+                    bufferUtils
+                );
+                partGeometry.dispose();
+                return cleanedPart;
+            }).filter(Boolean);
         });
 
         const uncenteredBounds = getGeometryBundleBounds(geometryBundle);
