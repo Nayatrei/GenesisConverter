@@ -7,7 +7,7 @@ Launch: https://editor.genesisframeworks.com/
 
 ## Tabs
 
-The app is a static multi-tab site. The main shell is `converter.html` (loaded via `index.html`); each tab is an HTML partial in `modules/tabs/html/` driven by a controller in `modules/tabs/`:
+The frontend is a client-side multi-tab app served by a lightweight Node transfer server. The main shell is `converter.html` (loaded via `index.html`); each tab is an HTML partial in `modules/tabs/html/` driven by a controller in `modules/tabs/`:
 
 - **Logo** — HTML or PNG input → color-layered SVG → Three.js 3D preview → OBJ / 3MF / STL export. Backing-plate and per-layer thickness controls for multi-filament AMS printing.
 - **SVG** — Image tracing via ImageTracer.js with presets for 3D-print, sharp detail, silhouette, multi-color.
@@ -20,19 +20,20 @@ The app is a static multi-tab site. The main shell is `converter.html` (loaded v
 - **OBJ + MTL** — General-purpose 3D model with materials.
 - **STL** — Per-layer binary STL files for manual filament assignment. Named `{image}_{thickness}mm_L{n}_{hex}.stl`.
 
-The Logo tab can optionally open the exported 3MF directly in Bambu Studio (macOS/Windows) via a protocol handler bridge (`modules/bambu-bridge.js`).
+The 3D and Logo tabs can send the generated 3MF directly into the installed Bambu Studio app on macOS/Windows. The server keeps each handoff file in private temporary storage for 10 minutes, then removes it.
 
 ## Running locally
 
-Static site — serve any way you like:
+Run the included Node server so one-click Bambu Studio handoff is available:
 
 ```bash
-npx http-server . -p 8080
-# or
-python -m http.server 8080
+npm install
+npm start
 ```
 
-Tests use Playwright:
+Open `http://127.0.0.1:4173/`. Serving the files as a static site still supports normal 3MF downloads, but direct Bambu Studio handoff will fall back to download-and-open because it needs the temporary transfer endpoint.
+
+Tests use Playwright and start the same server:
 
 ```bash
 npm install

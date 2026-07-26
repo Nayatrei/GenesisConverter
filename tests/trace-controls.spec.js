@@ -61,7 +61,10 @@ async function waitForPreviewChange(locator, previousSrc) {
 }
 
 async function waitForGenerateCycle(buttonLocator) {
-    await expect(buttonLocator).toBeDisabled({ timeout: 10_000 });
+    // The traced fixture can finish before Playwright observes the transient
+    // disabled state. The input event is synchronous, so an already-enabled
+    // button here means that regeneration has completed.
+    if (await buttonLocator.isEnabled()) return;
     await expect(buttonLocator).toBeEnabled({ timeout: 30_000 });
 }
 

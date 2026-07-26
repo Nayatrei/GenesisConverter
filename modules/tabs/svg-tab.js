@@ -1,6 +1,6 @@
 import { SLIDER_TOOLTIPS } from '../config.js';
-import { createObjPreview } from '../preview3d.js?v=20260725a';
-import { createObjExporter } from '../export3d.js?v=20260725a';
+import { createObjPreview } from '../preview3d.js?v=20260725h';
+import { createObjExporter } from '../export3d.js?v=20260725h';
 import { hasTransparentPixels, markTransparentPixels, stripTransparentPalette } from '../shared/image-utils.js';
 import { debounce, layerHasPaths, buildTracedataSubset, createMergedTracedata, assess3DPrintQuality } from '../shared/trace-utils.js?v=20260725a';
 import { buildWeldedSilhouetteSvgString } from '../shared/silhouette-builder.js';
@@ -10,7 +10,7 @@ import { svgToPng } from '../shared/svg-renderer.js';
 import { createPaletteManager } from '../shared/palette-manager.js';
 import { formatObjScalePercent } from '../obj-scale.js';
 import { createAutoWorkingImageFromSource } from '../raster-utils.js';
-import { canAttemptBambuLaunch } from '../bambu-bridge.js';
+import { canAttemptBambuLaunch } from '../bambu-bridge.js?v=20260725f';
 import {
     buildTraceOptions,
     cycleTracePreset,
@@ -451,12 +451,12 @@ export function createSvgTabController({
         const canLaunch = canAttemptBambuLaunch();
         elements.bambuOpenBtn.disabled = !state.tracedata || !canLaunch;
         elements.bambuOpenBtn.title = canLaunch
-            ? 'Downloads 3MF and launches Bambu Studio.'
+            ? 'Sends the 3MF directly to the installed Bambu Studio app.'
             : 'Bambu Studio launch is only available on desktop browsers.';
         const meta = document.getElementById('svg-bambu-open-meta');
         if (meta) {
             meta.textContent = canLaunch
-                ? 'Download 3MF & launch Bambu Studio'
+                ? 'One-click 3MF handoff · Bambu Studio required'
                 : 'Desktop browsers only';
         }
     }

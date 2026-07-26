@@ -2,6 +2,7 @@ import { OBJ_ZOOM_MIN, OBJ_ZOOM_MAX, BED_PRESETS } from './config.js';
 import { formatObjScalePercent } from './obj-scale.js';
 import { buildObjGeometryBundle, buildObjModelPlan } from './obj-model-plan.js?v=20260725e';
 import { resolveMergedLayerGroups } from './shared/trace-utils.js?v=20260725a';
+import { getGeometryBundleBounds } from './shared/print-validation.js?v=20260725h';
 
 const BED_CONTACT_EPSILON = 0.005;
 
@@ -279,16 +280,29 @@ export function createObjPreview({
         if (model.objScaleValue) model.objScaleValue.textContent = formatObjScalePercent(roundedPercent);
     }
 
-    function updateSizeReadout(scalePlan) {
+    function updateSizeReadout(scalePlan, actualBounds = null) {
         const readouts = [model.objSizeReadout, view.modelSizeReadout].filter(Boolean);
         if (!readouts.length) return;
         if (!scalePlan || !scalePlan.footprintWidth || !scalePlan.footprintDepth) {
             readouts.forEach((readout) => {
                 readout.textContent = readout === model.objSizeReadout ? 'Footprint: —' : '—';
                 readout.dataset.bedFit = 'unknown';
+                delete readout.dataset.printWidth;
+                delete readout.dataset.printDepth;
+                delete readout.dataset.printHeight;
             });
             return;
         }
+
+        const printWidth = actualBounds?.isValid
+            ? actualBounds.width
+            : scalePlan.actualFootprintWidth || scalePlan.footprintWidth;
+        const printDepth = actualBounds?.isValid
+            ? actualBounds.depth
+            : scalePlan.actualFootprintDepth || scalePlan.footprintDepth;
+        const printHeight = actualBounds?.isValid
+            ? actualBounds.height
+            : scalePlan.modelHeight || 0;
 
         let suffix = '';
         if (scalePlan.wasAutoFitted) {
@@ -296,14 +310,19 @@ export function createObjPreview({
         } else if (!scalePlan.fitsBed) {
             const ow = scalePlan.overflowWidth > 0.05 ? ` +${scalePlan.overflowWidth.toFixed(1)}W` : '';
             const od = scalePlan.overflowDepth > 0.05 ? ` +${scalePlan.overflowDepth.toFixed(1)}D` : '';
-            suffix = ` · exceeds bed${ow}${od}`;
+            const oh = scalePlan.overflowHeight > 0.05 ? ` +${scalePlan.overflowHeight.toFixed(1)}H` : '';
+            suffix = ` · exceeds bed${ow}${od}${oh}`;
         } else if (scalePlan.bedLabel) {
             suffix = ` · fits ${scalePlan.bedLabel}`;
         }
 
-        const size = `${scalePlan.footprintWidth.toFixed(1)} × ${scalePlan.footprintDepth.toFixed(1)} mm`;
+        const footprint = `${printWidth.toFixed(1)} × ${printDepth.toFixed(1)} mm`;
+        const size = printHeight > 0
+            ? `${printWidth.toFixed(1)} × ${printDepth.toFixed(1)} × ${printHeight.toFixed(1)} mm`
+            : footprint;
         if (model.objSizeReadout) {
-            model.objSizeReadout.textContent = `Footprint: ${size}${suffix}`;
+            const heightText = printHeight > 0 ? ` · Height ${printHeight.toFixed(1)} mm` : '';
+            model.objSizeReadout.textContent = `Footprint: ${footprint}${heightText}${suffix}`;
         }
         if (view.modelSizeReadout) {
             view.modelSizeReadout.textContent = size;
@@ -311,11 +330,14 @@ export function createObjPreview({
         readouts.forEach((readout) => {
             readout.dataset.bedFit = scalePlan.fitsBed ? 'fits' : 'overflow';
             readout.dataset.autoFitted = scalePlan.wasAutoFitted ? 'true' : 'false';
+            readout.dataset.printWidth = printWidth.toFixed(3);
+            readout.dataset.printDepth = printDepth.toFixed(3);
+            readout.dataset.printHeight = printHeight.toFixed(3);
             readout.title = scalePlan.wasAutoFitted
-                ? `Auto-fitted to ${scalePlan.bedLabel}`
+                ? `${size} · Auto-fitted to ${scalePlan.bedLabel}`
                 : scalePlan.fitsBed
-                    ? `Fits ${scalePlan.bedLabel}`
-                    : `Exceeds ${scalePlan.bedLabel}`;
+                    ? `${size} · Fits ${scalePlan.bedLabel}`
+                    : `${size} · Exceeds ${scalePlan.bedLabel}`;
         });
     }
 
@@ -697,6 +719,18 @@ export function createObjPreview({
                 return;
             }
 
+            const actualBounds = getGeometryBundleBounds(geometryBundle, {
+                scaleX: scalePlan.scale,
+                scaleY: scalePlan.scale
+            });
+            if (actualBounds.isValid) {
+                scalePlan.actualFootprintWidth = actualBounds.width;
+                scalePlan.actualFootprintDepth = actualBounds.depth;
+                scalePlan.modelHeight = actualBounds.height;
+                scalePlan.overflowHeight = Math.max(0, actualBounds.maxZ - bed.height);
+                scalePlan.fitsBed = scalePlan.fitsBed && scalePlan.overflowHeight <= 0.05;
+            }
+
             plan.outputLayers.forEach((layer, outputIndex) => {
                 const layerData = geometryBundle.layers.get(layer.outputLayerId);
                 if (!layerData) {
@@ -718,7 +752,11 @@ export function createObjPreview({
             });
 
             preview.group.scale.set(scalePlan.scale, scalePlan.scale, 1);
-            preview.group.position.set(0, 0, BED_CONTACT_EPSILON);
+            preview.group.position.set(
+                actualBounds.isValid ? -actualBounds.centerX : 0,
+                actualBounds.isValid ? -actualBounds.centerY : 0,
+                BED_CONTACT_EPSILON - (actualBounds.isValid ? actualBounds.minZ : 0)
+            );
             preview.viewGroup.position.set(preview.panX || 0, preview.panY || 0, 0);
             preview.viewGroup.rotation.set(preview.rotationX, preview.rotationY, 0);
 
@@ -726,9 +764,9 @@ export function createObjPreview({
 
             const frameState = createFrameState({
                 THREERef,
-                footprintWidth: scalePlan.footprintWidth,
-                footprintDepth: scalePlan.footprintDepth,
-                modelHeight: plan.totalHeight,
+                footprintWidth: actualBounds.isValid ? actualBounds.width : scalePlan.footprintWidth,
+                footprintDepth: actualBounds.isValid ? actualBounds.depth : scalePlan.footprintDepth,
+                modelHeight: actualBounds.isValid ? actualBounds.height : plan.totalHeight,
                 bed,
                 showBuildPlate: preview.showBuildPlate !== false
             });
@@ -745,7 +783,7 @@ export function createObjPreview({
 
             setPlaceholder('', false);
             updateLayerStackPreview(plan, thickness, selectionSet);
-            updateSizeReadout(scalePlan);
+            updateSizeReadout(scalePlan, actualBounds);
             updateStructureWarning(plan.warnings);
             updateTriangleEstimate({
                 triangleCount: getBundleTriangleCount(geometryBundle),

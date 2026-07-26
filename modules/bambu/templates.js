@@ -17,12 +17,16 @@ export const BAMBU_PRINTER_TEMPLATES = {
         printerVariant: '0.4',
         printerExtruderVariant: 'Direct Drive Standard',
         printableArea: ['0x0', '256x0', '256x256', '0x256'],
+        bedExcludeArea: ['0x0', '18x0', '18x28', '0x28'],
         bedType: DEFAULT_BED_TYPE,
         currBedType: DEFAULT_BED_LABEL,
         defaultFilamentProfile: 'Generic PLA @BBL X1C',
+        defaultPrintProfile: '0.20mm Standard @BBL X1C',
         defaultFilamentType: 'PLA',
         defaultNozzleTemperature: '220',
-        defaultBedTemperature: '55'
+        defaultBedTemperature: '55',
+        machineLoadFilamentTime: '29',
+        machineUnloadFilamentTime: '28'
     },
     a1: {
         bedKey: 'a1',
@@ -34,12 +38,16 @@ export const BAMBU_PRINTER_TEMPLATES = {
         printerVariant: '0.4',
         printerExtruderVariant: 'Direct Drive Standard',
         printableArea: ['0x0', '256x0', '256x256', '0x256'],
+        bedExcludeArea: [],
         bedType: DEFAULT_BED_TYPE,
         currBedType: DEFAULT_BED_LABEL,
         defaultFilamentProfile: 'Generic PLA @BBL A1',
+        defaultPrintProfile: '0.20mm Standard @BBL A1',
         defaultFilamentType: 'PLA',
         defaultNozzleTemperature: '220',
-        defaultBedTemperature: '55'
+        defaultBedTemperature: '55',
+        machineLoadFilamentTime: '25',
+        machineUnloadFilamentTime: '34'
     },
     a1mini: {
         bedKey: 'a1mini',
@@ -51,12 +59,16 @@ export const BAMBU_PRINTER_TEMPLATES = {
         printerVariant: '0.4',
         printerExtruderVariant: 'Direct Drive Standard',
         printableArea: ['0x0', '180x0', '180x180', '0x180'],
+        bedExcludeArea: [],
         bedType: DEFAULT_BED_TYPE,
         currBedType: DEFAULT_BED_LABEL,
         defaultFilamentProfile: 'Generic PLA @BBL A1M',
+        defaultPrintProfile: '0.20mm Standard @BBL A1M',
         defaultFilamentType: 'PLA',
         defaultNozzleTemperature: '220',
-        defaultBedTemperature: '55'
+        defaultBedTemperature: '55',
+        machineLoadFilamentTime: '28',
+        machineUnloadFilamentTime: '34'
     },
     h2d: {
         bedKey: 'h2d',
@@ -68,12 +80,16 @@ export const BAMBU_PRINTER_TEMPLATES = {
         printerVariant: '0.4',
         printerExtruderVariant: 'Direct Drive Standard',
         printableArea: ['0x0', '325x0', '325x320', '0x320'],
+        bedExcludeArea: [],
         bedType: DEFAULT_BED_TYPE,
         currBedType: DEFAULT_BED_LABEL,
         defaultFilamentProfile: 'Generic PLA @BBL H2D',
+        defaultPrintProfile: '0.20mm Standard @BBL H2D',
         defaultFilamentType: 'PLA',
         defaultNozzleTemperature: '220',
-        defaultBedTemperature: '55'
+        defaultBedTemperature: '55',
+        machineLoadFilamentTime: '30',
+        machineUnloadFilamentTime: '30'
     }
 };
 
@@ -91,7 +107,7 @@ export function buildBambuProjectSettings({
     const colors = (Array.isArray(filamentColors) ? filamentColors : []).map((color) => String(color || '#FFFFFF').toUpperCase());
     const count = Math.max(1, layerCount || colors.length || 1);
     const normalizedColors = Array.from({ length: count }, (_, index) => colors[index] || colors[colors.length - 1] || '#FFFFFF');
-    const filamentProfiles = normalizedColors.map((_, index) => `Genesis Layer ${index + 1} @ ${template.printerSettingsId}`);
+    const filamentProfiles = normalizedColors.map(() => template.defaultFilamentProfile);
     const filamentIds = normalizedColors.map((_, index) => `GENESIS_${String(index + 1).padStart(2, '0')}`);
     const filamentMap = normalizedColors.map((_, index) => String(index + 1));
     const nozzleList = normalizedColors.map(() => String(nozzleDiameter.toFixed(1)));
@@ -104,6 +120,7 @@ export function buildBambuProjectSettings({
         printer_model: template.printerModel,
         printer_settings_id: template.printerSettingsId,
         print_compatible_printers: template.printCompatiblePrinters,
+        print_settings_id: template.defaultPrintProfile,
         printer_variant: template.printerVariant,
         printer_structure: template.printerStructure,
         printer_technology: template.printerTechnology,
@@ -112,7 +129,7 @@ export function buildBambuProjectSettings({
         extruder_max_nozzle_count: ['1'],
         extruder_nozzle_stats: [`Standard#${count}`],
         curr_bed_type: template.currBedType,
-        bed_exclude_area: [],
+        bed_exclude_area: template.bedExcludeArea,
         bed_custom_model: '',
         bed_custom_texture: '',
         bed_temperature_formula: 'by_first_filament',
@@ -135,7 +152,7 @@ export function buildBambuProjectSettings({
         filament_multi_colour: normalizedColors,
         filament_colour_type: normalizedColors.map(() => '1'),
         filament_type: normalizedColors.map(() => template.defaultFilamentType),
-        filament_vendor: normalizedColors.map(() => 'Genesis Image Tools'),
+        filament_vendor: normalizedColors.map(() => 'Generic'),
         filament_ids: filamentIds,
         filament_map: filamentMap,
         filament_map_mode: 'Auto For Flush',
@@ -158,15 +175,15 @@ export function buildBambuProjectSettings({
         print_sequence: 'by layer',
         machine_gcode_flavor: 'bambu',
         machine_max_acceleration_e: Array.from({ length: Math.max(2, count) }, () => '5000'),
-        machine_load_filament_time: 28,
-        machine_unload_filament_time: 34,
+        machine_load_filament_time: template.machineLoadFilamentTime,
+        machine_unload_filament_time: template.machineUnloadFilamentTime,
         change_filament_gcode: '',
         template_custom_gcode: '',
-        wall_filament: 0,
-        sparse_infill_filament: 0,
-        solid_infill_filament: 0,
-        support_filament: 0,
-        support_interface_filament: 0,
+        wall_filament: '0',
+        sparse_infill_filament: '0',
+        solid_infill_filament: '0',
+        support_filament: '0',
+        support_interface_filament: '0',
         first_layer_print_sequence: 'by layer',
         layer_height: String(DEFAULT_LAYER_HEIGHT),
         initial_layer_print_height: String(DEFAULT_LAYER_HEIGHT),

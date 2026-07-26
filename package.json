@@ -2,6 +2,7 @@
   "name": "genesis-image-converter",
   "private": true,
   "scripts": {
+    "start": "node server.js",
     "test": "playwright test",
     "test:smoke": "playwright test"
   },

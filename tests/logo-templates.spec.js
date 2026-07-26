@@ -67,7 +67,7 @@ async function renderPreset(page, presetName, expectedResolution) {
 test('logo sidebar controls stay isolated from SVG controls', async ({ page }) => {
     await openLogoTab(page);
 
-    await expect(page.locator('#logo-bambu-open-btn')).toBeDisabled();
+    await expect(page.locator('#logo-bambu-open-btn')).toBeEnabled({ timeout: 30_000 });
 
     await expect(page.locator('#sidebar-adjust-section #obj-scale')).toBeVisible();
     await expect(page.locator('#sidebar-adjust-section #obj-thickness')).toBeVisible();

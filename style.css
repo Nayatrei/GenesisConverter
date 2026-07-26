@@ -7501,7 +7501,7 @@ body.app-shell-v2 .sidebar-sub-icon {
 
 .model-preflight-grid {
     display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 0.55rem;
 }
 
@@ -7514,6 +7514,10 @@ body.app-shell-v2 .sidebar-sub-icon {
     background: rgba(255, 255, 255, 0.02);
 }
 
+.model-preflight-metric:first-child {
+    grid-column: 1 / -1;
+}
+
 .model-preflight-metric span {
     color: var(--bulk-text-muted);
     font-size: 0.57rem;
@@ -7523,12 +7527,10 @@ body.app-shell-v2 .sidebar-sub-icon {
 }
 
 .model-preflight-metric strong {
-    overflow: hidden;
     color: var(--bulk-text-primary);
     font-family: var(--bulk-mono-font, ui-monospace, monospace);
     font-size: 0.74rem;
     font-variant-numeric: tabular-nums;
-    text-overflow: ellipsis;
     white-space: nowrap;
 }
 

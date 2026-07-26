@@ -1,6 +1,6 @@
 import { SLIDER_TOOLTIPS } from '../config.js';
-import { createObjPreview } from '../preview3d.js?v=20260725a';
-import { createObjExporter } from '../export3d.js?v=20260725a';
+import { createObjPreview } from '../preview3d.js?v=20260725h';
+import { createObjExporter } from '../export3d.js?v=20260725h';
 import {
     hasTransparentPixels,
     markTransparentPixels,
@@ -17,7 +17,7 @@ import { buildWeldedSilhouetteSvgString } from '../shared/silhouette-builder.js'
 import { formatObjScalePercent } from '../obj-scale.js';
 import { HTML_PRESETS, createHtmlEditor, extractDeclaredHtmlColors } from './logo/html-editor.js?v=20260725a';
 import { createAutoWorkingImageFromSource } from '../raster-utils.js';
-import { canAttemptBambuLaunch } from '../bambu-bridge.js';
+import { canAttemptBambuLaunch } from '../bambu-bridge.js?v=20260725f';
 import {
     buildTraceOptions,
     cycleTracePreset,
@@ -605,12 +605,12 @@ export function createLogoTabController({
         const canLaunch = canAttemptBambuLaunch();
         le.bambuOpenBtn.disabled = !ls.tracedata || !canLaunch;
         le.bambuOpenBtn.title = canLaunch
-            ? 'Downloads 3MF and launches Bambu Studio.'
+            ? 'Sends the 3MF directly to the installed Bambu Studio app.'
             : 'Bambu Studio launch is only available on desktop browsers.';
         const meta = document.getElementById('logo-bambu-open-meta');
         if (meta) {
             meta.textContent = canLaunch
-                ? 'Download 3MF & launch Bambu Studio'
+                ? 'One-click 3MF handoff · Bambu Studio required'
                 : 'Desktop browsers only';
         }
     }

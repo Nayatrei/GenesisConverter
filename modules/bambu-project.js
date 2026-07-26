@@ -3,7 +3,7 @@ import {
     BAMBU_PROJECT_3MF_VERSION,
     BAMBU_PROJECT_NOZZLE_DIAMETER
 } from './config.js';
-import { getBambuPrinterTemplate, buildBambuProjectSettings } from './bambu/templates.js';
+import { getBambuPrinterTemplate, buildBambuProjectSettings } from './bambu/templates.js?v=20260725h';
 
 function hash32(seed) {
     const input = String(seed || '');
@@ -137,7 +137,7 @@ function buildObjectModelXml({ objectFileId, meshData, uuid }) {
 <model unit="millimeter" xml:lang="en-US" xmlns="http://schemas.microsoft.com/3dmanufacturing/core/2015/02" xmlns:BambuStudio="http://schemas.bambulab.com/package/2021" xmlns:p="http://schemas.microsoft.com/3dmanufacturing/production/2015/06" requiredextensions="p">
  <metadata name="BambuStudio:3mfVersion">${escapeXml(BAMBU_PROJECT_3MF_VERSION)}</metadata>
  <resources>
-  <object id="1" p:UUID="${escapeXml(uuid)}" type="model">
+  <object id="${objectFileId}" p:UUID="${escapeXml(uuid)}" type="model">
    <mesh>
     <vertices>
 ${verticesXml}
@@ -149,14 +149,21 @@ ${trianglesXml}
   </object>
  </resources>
  <build>
-  <item objectid="1"/>
+  <item objectid="${objectFileId}"/>
  </build>
 </model>`;
 }
 
-function buildRootModelXml({ title, dateStamp, assemblyUuid, buildUuid, parts }) {
+function buildRootModelXml({
+    title,
+    dateStamp,
+    assemblyObjectId,
+    assemblyUuid,
+    buildUuid,
+    parts
+}) {
     const componentsXml = parts.map((part, index) => (
-        `    <component p:path="/3D/Objects/object_${index + 1}.model" objectid="1" p:UUID="${escapeXml(part.componentUuid)}" transform="1 0 0 0 1 0 0 0 1 0 0 0"/>`
+        `    <component p:path="/3D/Objects/object_${index + 1}.model" objectid="${index + 1}" p:UUID="${escapeXml(part.componentUuid)}" transform="1 0 0 0 1 0 0 0 1 0 0 0"/>`
     )).join('\n');
 
     return `<?xml version="1.0" encoding="UTF-8"?>
@@ -170,14 +177,14 @@ function buildRootModelXml({ title, dateStamp, assemblyUuid, buildUuid, parts })
  <metadata name="Thumbnail_Small">/Metadata/plate_1_small.png</metadata>
  <metadata name="Title">${escapeXml(title)}</metadata>
  <resources>
-  <object id="1" p:UUID="${escapeXml(assemblyUuid)}" type="model">
+  <object id="${assemblyObjectId}" p:UUID="${escapeXml(assemblyUuid)}" type="model">
    <components>
 ${componentsXml}
    </components>
   </object>
  </resources>
  <build p:UUID="${escapeXml(buildUuid)}">
-  <item objectid="1" p:UUID="${escapeXml(stableUuid(`${title}|build-item`))}" transform="1 0 0 0 1 0 0 0 1 0 0 0" printable="1"/>
+  <item objectid="${assemblyObjectId}" p:UUID="${escapeXml(stableUuid(`${title}|build-item`))}" transform="1 0 0 0 1 0 0 0 1 0 0 0" printable="1"/>
  </build>
 </model>`;
 }
@@ -212,7 +219,12 @@ function buildContentTypesXml() {
 </Types>`;
 }
 
-function buildModelSettingsXml({ title, parts }) {
+function buildModelSettingsXml({
+    title,
+    parts,
+    filamentCount,
+    assemblyObjectId
+}) {
     const totalFaceCount = parts.reduce((sum, part) => sum + part.meshData.triangles.length, 0);
     const partsXml = parts.map((part, index) => (
         `    <part id="${index + 1}" subtype="normal_part">
@@ -224,14 +236,14 @@ function buildModelSettingsXml({ title, parts }) {
       <metadata key="source_offset_x" value="${formatNumber(part.meshData.bounds.minX)}"/>
       <metadata key="source_offset_y" value="${formatNumber(part.meshData.bounds.minY)}"/>
       <metadata key="source_offset_z" value="${formatNumber(part.meshData.bounds.minZ)}"/>
-      <metadata key="extruder" value="${index + 1}"/>
+      <metadata key="extruder" value="${part.materialIndex + 1}"/>
       <mesh_stat face_count="${part.meshData.triangles.length}" edges_fixed="0" degenerate_facets="0" facets_removed="0" facets_reversed="0" backwards_edges="0"/>
     </part>`
     )).join('\n');
 
     return `<?xml version="1.0" encoding="UTF-8"?>
 <config>
-  <object id="1">
+  <object id="${assemblyObjectId}">
     <metadata key="name" value="${escapeXml(title)}"/>
     <metadata key="extruder" value="1"/>
     <metadata face_count="${totalFaceCount}"/>
@@ -242,13 +254,13 @@ ${partsXml}
     <metadata key="plater_name" value="genesis"/>
     <metadata key="locked" value="false"/>
     <metadata key="filament_map_mode" value="Auto For Flush"/>
-    <metadata key="filament_maps" value="${parts.length}"/>
+    <metadata key="filament_maps" value="${filamentCount}"/>
     <metadata key="thumbnail_file" value="Metadata/plate_1.png"/>
     <metadata key="thumbnail_no_light_file" value="Metadata/plate_no_light_1.png"/>
     <metadata key="top_file" value="Metadata/top_1.png"/>
     <metadata key="pick_file" value="Metadata/pick_1.png"/>
     <model_instance>
-      <metadata key="object_id" value="1"/>
+      <metadata key="object_id" value="${assemblyObjectId}"/>
       <metadata key="instance_id" value="0"/>
       <metadata key="identify_id" value="1"/>
     </model_instance>
@@ -266,10 +278,10 @@ function buildSliceInfoXml() {
 </config>`;
 }
 
-function buildCutInformationXml() {
+function buildCutInformationXml(assemblyObjectId) {
     return `<?xml version="1.0" encoding="utf-8"?>
 <objects>
- <object id="1">
+ <object id="${assemblyObjectId}">
   <cut_id id="0" check_sum="1" connectors_cnt="0"/>
  </object>
 </objects>`;
@@ -293,7 +305,12 @@ function getAssemblyBounds(parts) {
     });
 }
 
-function buildPlateJson({ template, parts }) {
+function buildPlateJson({
+    template,
+    parts,
+    filamentColors,
+    assemblyObjectId
+}) {
     const bounds = getAssemblyBounds(parts);
     return JSON.stringify({
         bbox_all: [
@@ -310,13 +327,13 @@ function buildPlateJson({ template, parts }) {
                 Number(formatNumber(bounds.maxX)),
                 Number(formatNumber(bounds.maxY))
             ],
-            id: 1,
+            id: assemblyObjectId,
             layer_height: 0.2,
             name: 'Genesis Assembly'
         }],
         bed_type: template.bedType,
-        filament_colors: parts.map((part) => part.hexColor),
-        filament_ids: parts.map((_, index) => index),
+        filament_colors: filamentColors,
+        filament_ids: filamentColors.map((_, index) => index),
         first_extruder: 0,
         is_seq_print: false,
         nozzle_diameter: BAMBU_PROJECT_NOZZLE_DIAMETER,
@@ -324,10 +341,10 @@ function buildPlateJson({ template, parts }) {
     }, null, 2);
 }
 
-function buildFilamentSequenceJson(parts) {
+function buildFilamentSequenceJson(filamentCount) {
     return JSON.stringify({
         plate_1: {
-            sequence: parts.map((_, index) => index)
+            sequence: Array.from({ length: filamentCount }, (_, index) => index)
         }
     }, null, 2);
 }
@@ -355,6 +372,9 @@ export function buildBambuProjectFiles({
             name: layerData.displayLabel || `Layer ${index + 1}`,
             meshData,
             hexColor: colorToHex(layerData.color),
+            materialIndex: Number.isInteger(layerData.materialIndex)
+                ? Math.max(0, layerData.materialIndex)
+                : index,
             componentUuid: stableUuid(`${title}|component|${index}`),
             objectUuid: stableUuid(`${title}|object-model|${index}`)
         });
@@ -362,11 +382,22 @@ export function buildBambuProjectFiles({
 
     if (!parts.length) return null;
 
+    const filamentColorsByIndex = new Map();
+    parts.forEach((part) => {
+        if (!filamentColorsByIndex.has(part.materialIndex)) {
+            filamentColorsByIndex.set(part.materialIndex, part.hexColor);
+        }
+    });
+    const filamentColors = [...filamentColorsByIndex.entries()]
+        .sort(([leftIndex], [rightIndex]) => leftIndex - rightIndex)
+        .map(([, color]) => color);
+    const assemblyObjectId = parts.length + 1;
+
     const projectSettings = buildBambuProjectSettings({
         template,
         title,
-        layerCount: parts.length,
-        filamentColors: parts.map((part) => part.hexColor),
+        layerCount: filamentColors.length,
+        filamentColors,
         nozzleDiameter
     });
 
@@ -376,17 +407,28 @@ export function buildBambuProjectFiles({
         '3D/3dmodel.model': buildRootModelXml({
             title,
             dateStamp,
+            assemblyObjectId,
             assemblyUuid: stableUuid(`${title}|assembly`),
             buildUuid: stableUuid(`${title}|build`),
             parts
         }),
         '3D/_rels/3dmodel.model.rels': buildModelRelsXml(parts),
         'Metadata/project_settings.config': JSON.stringify(projectSettings, null, 2),
-        'Metadata/model_settings.config': buildModelSettingsXml({ title, parts }),
+        'Metadata/model_settings.config': buildModelSettingsXml({
+            title,
+            parts,
+            filamentCount: filamentColors.length,
+            assemblyObjectId
+        }),
         'Metadata/slice_info.config': buildSliceInfoXml(),
-        'Metadata/plate_1.json': buildPlateJson({ template, parts }),
-        'Metadata/filament_sequence.json': buildFilamentSequenceJson(parts),
-        'Metadata/cut_information.xml': buildCutInformationXml()
+        'Metadata/plate_1.json': buildPlateJson({
+            template,
+            parts,
+            filamentColors,
+            assemblyObjectId
+        }),
+        'Metadata/filament_sequence.json': buildFilamentSequenceJson(filamentColors.length),
+        'Metadata/cut_information.xml': buildCutInformationXml(assemblyObjectId)
     };
 
     parts.forEach((part, index) => {

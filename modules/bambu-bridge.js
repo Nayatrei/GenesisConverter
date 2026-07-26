@@ -13,12 +13,64 @@ function getPlatformKey() {
     return 'windows';
 }
 
-export function buildProtocolUrl(filePath) {
+export function buildProtocolUrl(fileUrl) {
     const platform = getPlatformKey();
     if (platform === 'mac' || platform === 'linux') {
-        return `bambustudioopen://${filePath}`;
+        return `bambustudioopen://${fileUrl}`;
     }
-    return `bambustudio://open?file=${encodeURIComponent(filePath)}`;
+    return `bambustudio://open?file=${encodeURIComponent(fileUrl)}`;
+}
+
+export function canPublishBambuProject() {
+    if (typeof window === 'undefined') return false;
+    return window.location.protocol === 'http:' || window.location.protocol === 'https:';
+}
+
+export async function publishBambuProject(blob, filename) {
+    if (!canPublishBambuProject()) {
+        throw new Error('Direct Bambu transfer requires the hosted Genesis app.');
+    }
+    if (!(blob instanceof Blob) || blob.size === 0) {
+        throw new Error('The generated 3MF project is empty.');
+    }
+
+    const controller = new AbortController();
+    const timeout = window.setTimeout(() => controller.abort(), 25_000);
+
+    try {
+        const endpoint = new URL('/api/bambu-transfer', window.location.origin);
+        endpoint.searchParams.set('filename', filename || 'genesis-model.3mf');
+        const response = await fetch(endpoint, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'model/3mf'
+            },
+            body: blob,
+            signal: controller.signal
+        });
+        const payload = await response.json().catch(() => ({}));
+        if (!response.ok) {
+            throw new Error(payload.error || `Bambu transfer failed (${response.status}).`);
+        }
+
+        const transferUrl = new URL(payload.url);
+        if (transferUrl.protocol !== 'http:' && transferUrl.protocol !== 'https:') {
+            throw new Error('The Bambu transfer URL is invalid.');
+        }
+
+        return {
+            expiresAt: payload.expiresAt || null,
+            filename: payload.filename || filename,
+            url: transferUrl.toString()
+        };
+    } catch (error) {
+        if (error?.name === 'AbortError') {
+            throw new Error('Bambu transfer timed out.');
+        }
+        throw error;
+    } finally {
+        window.clearTimeout(timeout);
+    }
 }
 
 export function canAttemptBambuLaunch() {
@@ -35,15 +87,17 @@ export function canAttemptBambuLaunch() {
  * Triggers the Bambu Studio protocol handler to launch the app.
  * Uses blur/visibility heuristic to detect whether it opened.
  */
-export async function launchBambuStudio() {
+export async function launchBambuStudio(fileUrl = '') {
     if (!canAttemptBambuLaunch()) {
         return { attempted: false, opened: false };
     }
 
     const platform = getPlatformKey();
-    const protocolUrl = platform === 'mac'
-        ? 'bambustudioopen://'
-        : 'bambustudio://open';
+    const protocolUrl = fileUrl
+        ? buildProtocolUrl(fileUrl)
+        : platform === 'mac'
+            ? 'bambustudioopen://'
+            : 'bambustudio://open';
 
     const protocolHook = getProtocolHook();
     if (protocolHook) {

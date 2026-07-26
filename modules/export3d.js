@@ -1,13 +1,32 @@
 import { buildObjGeometryBundle, buildObjModelPlan } from './obj-model-plan.js?v=20260725e';
-import { buildBambuProjectFiles } from './bambu-project.js';
+import { buildBambuProjectFiles } from './bambu-project.js?v=20260725h';
 import { BAMBU_PROJECT_NOZZLE_DIAMETER } from './config.js';
 import { canvasToBlobAsync, dataUrlToBlob } from './raster-utils.js';
 import { layerHasPaths } from './shared/trace-utils.js';
 import { svgToPng } from './shared/svg-renderer.js';
 import { getCanonicalBedCenter } from './shared/canonical-3d.js';
-import { launchBambuStudio } from './bambu-bridge.js';
+import {
+    getGeometryBundleBounds,
+    validateGeometryBundleForPrint
+} from './shared/print-validation.js?v=20260725h';
+import { launchBambuStudio, publishBambuProject } from './bambu-bridge.js?v=20260725f';
 
 const THREE_MF_BLOB_TYPE = 'model/3mf';
+
+function cloneLayerGeometryData(layerData) {
+    return {
+        ...layerData,
+        geometry: layerData.geometry.clone(),
+        geometryParts: Array.isArray(layerData.geometryParts)
+            ? layerData.geometryParts.map((geometry) => geometry.clone())
+            : []
+    };
+}
+
+function disposeLayerGeometryData(layerData) {
+    layerData?.geometry?.dispose?.();
+    layerData?.geometryParts?.forEach((geometry) => geometry?.dispose?.());
+}
 
 function buildMtl(materials, name) {
     if (!materials || materials.size === 0) return '';
@@ -242,15 +261,27 @@ async function buildBambuPreviewAssets({ tracer, state, getDataToExport, bedKey,
 function buildBambuProjectGeometryLayers(geometryBundle, bedKey = 'x1') {
     const placement = getCanonicalBedCenter(bedKey);
     const layers = [];
+    let materialIndex = 0;
 
     geometryBundle.layers.forEach((layerData) => {
-        const geometry = layerData.geometry.clone();
-        geometry.translate(placement.x, placement.y, placement.z);
-        geometry.computeVertexNormals();
-        layers.push({
-            ...layerData,
-            geometry
+        const sourceParts = Array.isArray(layerData.geometryParts) && layerData.geometryParts.length
+            ? layerData.geometryParts
+            : [layerData.geometry];
+        sourceParts.forEach((sourceGeometry, partIndex) => {
+            const geometry = sourceGeometry.clone();
+            geometry.translate(placement.x, placement.y, placement.z);
+            geometry.computeVertexNormals();
+            layers.push({
+                ...layerData,
+                displayLabel: sourceParts.length > 1
+                    ? `${layerData.displayLabel || `Layer ${materialIndex + 1}`} · Part ${partIndex + 1}`
+                    : layerData.displayLabel,
+                geometry,
+                geometryParts: [],
+                materialIndex
+            });
         });
+        materialIndex += 1;
     });
 
     return layers;
@@ -284,7 +315,7 @@ async function generateBambuProject3MF({
         const blob = await createZipFile(project.files);
         return { blob, project };
     } finally {
-        placedLayers.forEach((layerData) => layerData.geometry?.dispose?.());
+        placedLayers.forEach(disposeLayerGeometryData);
     }
 }
 
@@ -531,10 +562,7 @@ export function createObjExporter({
                 layers: new Map()
             };
             cachedGeometry.layers.forEach((layerData, layerKey) => {
-                cloned.layers.set(layerKey, {
-                    ...layerData,
-                    geometry: layerData.geometry.clone()
-                });
+                cloned.layers.set(layerKey, cloneLayerGeometryData(layerData));
             });
             return cloned;
         }
@@ -547,6 +575,10 @@ export function createObjExporter({
         const visibleSourceLayerIds = getVisibleLayerIndices();
         if (!visibleSourceLayerIds.length) return null;
 
+        const marginValue = model.objMarginInput ? Number.parseFloat(model.objMarginInput.value) : 5;
+        const margin = Number.isFinite(marginValue) ? Math.max(0, marginValue) : 5;
+        const bedKey = model.objBedSelect?.value || 'x1';
+
         const plan = buildObjModelPlan({
             state,
             tracer,
@@ -555,8 +587,8 @@ export function createObjExporter({
             defaultThickness,
             visibleSourceLayerIds,
             decimatePercent: model.objDecimateSlider ? Number.parseFloat(model.objDecimateSlider.value) : 0,
-            bedKey: model.objBedSelect?.value || 'x1',
-            margin: model.objMarginInput ? Number.parseFloat(model.objMarginInput.value) : 5,
+            bedKey,
+            margin,
             scalePercent: model.objScaleSlider ? Number.parseFloat(model.objScaleSlider.value) : 100,
             sourceScale: state.sourceRenderScale || 1,
             bezelPreset: model.objBezelSelect?.value || state.objParams?.bezelPreset || 'off'
@@ -571,11 +603,47 @@ export function createObjExporter({
         geometryBundle.layers.forEach((layerData) => {
             layerData.geometry.scale(scalePlan.scale, scalePlan.scale, 1);
             layerData.geometry.computeVertexNormals();
+            layerData.geometryParts?.forEach((partGeometry) => {
+                partGeometry.scale(scalePlan.scale, scalePlan.scale, 1);
+                partGeometry.computeVertexNormals();
+            });
         });
+
+        const uncenteredBounds = getGeometryBundleBounds(geometryBundle);
+        if (uncenteredBounds.isValid) {
+            geometryBundle.layers.forEach((layerData) => {
+                layerData.geometry.translate(
+                    -uncenteredBounds.centerX,
+                    -uncenteredBounds.centerY,
+                    -uncenteredBounds.minZ
+                );
+                layerData.geometryParts?.forEach((partGeometry) => {
+                    partGeometry.translate(
+                        -uncenteredBounds.centerX,
+                        -uncenteredBounds.centerY,
+                        -uncenteredBounds.minZ
+                    );
+                });
+            });
+        }
+
+        const validation = validateGeometryBundleForPrint(geometryBundle, {
+            bedKey,
+            margin
+        });
+        if (!validation.ok) {
+            geometryBundle.layers.forEach(disposeLayerGeometryData);
+            throw new Error(`3D print validation failed: ${validation.errors[0]}`);
+        }
+        geometryBundle.validation = validation;
+        geometryBundle.plan.printValidation = validation;
+        geometryBundle.plan.scalePlan.actualFootprintWidth = validation.bounds.width;
+        geometryBundle.plan.scalePlan.actualFootprintDepth = validation.bounds.depth;
+        geometryBundle.plan.scalePlan.modelHeight = validation.bounds.height;
 
         // Dispose previous cache
         if (cachedGeometry) {
-            cachedGeometry.layers.forEach((ld) => ld.geometry?.dispose?.());
+            cachedGeometry.layers.forEach(disposeLayerGeometryData);
         }
         cachedGeometry = geometryBundle;
         cachedGeometryKey = key;
@@ -583,10 +651,7 @@ export function createObjExporter({
         // Return cloned geometries so callers can dispose freely
         const result = { ...geometryBundle, layers: new Map() };
         geometryBundle.layers.forEach((layerData, layerKey) => {
-            result.layers.set(layerKey, {
-                ...layerData,
-                geometry: layerData.geometry.clone()
-            });
+            result.layers.set(layerKey, cloneLayerGeometryData(layerData));
         });
         return result;
     }
@@ -651,7 +716,7 @@ export function createObjExporter({
             if (statusText) statusText.textContent = 'OBJ export complete.';
 
             // Cleanup
-            result.layers.forEach((layerData) => layerData.geometry.dispose());
+            result.layers.forEach(disposeLayerGeometryData);
         } catch (error) {
             console.error('OBJ export failed:', error);
             if (statusText) statusText.textContent = 'Failed to export OBJ.';
@@ -701,7 +766,7 @@ export function createObjExporter({
             if (statusText) statusText.textContent = 'Bambu Studio project downloaded. Open the .3mf in Bambu Studio.';
 
             // Cleanup
-            result.layers.forEach((layerData) => layerData.geometry.dispose());
+            result.layers.forEach(disposeLayerGeometryData);
         } catch (error) {
             console.error('3MF export failed:', error);
             if (statusText) statusText.textContent = error.message || 'Failed to export 3MF.';
@@ -751,7 +816,7 @@ export function createObjExporter({
             if (statusText) statusText.textContent = `Exported ${exportedCount} STL files.`;
 
             // Cleanup
-            result.layers.forEach((layerData) => layerData.geometry.dispose());
+            result.layers.forEach(disposeLayerGeometryData);
         } catch (error) {
             console.error('STL export failed:', error);
             if (statusText) statusText.textContent = 'Failed to export STL.';
@@ -775,11 +840,16 @@ export function createObjExporter({
         const thicknessValue = model.objThicknessSlider ? parseFloat(model.objThicknessSlider.value) : 4;
         const defaultThickness = Number.isFinite(thicknessValue) ? thicknessValue : 4;
 
+        let result = null;
+
         try {
-            showLoader(true);
+            showLoader(true, {
+                title: 'Sending to Bambu Studio',
+                subtitle: 'Preparing the 3MF project…'
+            });
             if (statusText) statusText.textContent = 'Generating 3MF…';
 
-            const result = buildExportGeometry(defaultThickness);
+            result = buildExportGeometry(defaultThickness);
             if (!result || result.layers.size === 0) {
                 throw new Error('No geometry generated');
             }
@@ -798,25 +868,59 @@ export function createObjExporter({
             }
 
             const filename = `${baseName}.3mf`;
-            downloadBlob(new Blob([exportResult.blob], { type: THREE_MF_BLOB_TYPE }), filename);
+            const projectBlob = exportResult.blob instanceof Blob
+                ? exportResult.blob
+                : new Blob([exportResult.blob], { type: THREE_MF_BLOB_TYPE });
 
-            if (statusText) statusText.textContent = `\u2713 Downloaded ${filename} \u2192 Launching Bambu Studio\u2026`;
-
-            const launchResult = await launchBambuStudio();
-            if (launchResult.opened) {
-                if (statusText) statusText.textContent = `\u2713 ${filename} \u2192 \u2713 Bambu Studio opened. Drag the file in to import.`;
-            } else if (launchResult.attempted) {
-                if (statusText) statusText.textContent = `\u2713 ${filename} saved to Downloads. Open it in Bambu Studio.`;
-            } else {
-                if (statusText) statusText.textContent = `\u2713 ${filename} saved to Downloads. Bambu Studio not available on this platform.`;
+            let transfer;
+            try {
+                showLoader(true, {
+                    title: 'Sending to Bambu Studio',
+                    subtitle: 'Creating a private 10-minute transfer link…'
+                });
+                if (statusText) statusText.textContent = 'Preparing one-click Bambu Studio transfer…';
+                transfer = await publishBambuProject(projectBlob, filename);
+            } catch (transferError) {
+                downloadBlob(projectBlob, filename);
+                if (statusText) {
+                    statusText.textContent = `Direct handoff unavailable. Downloaded ${filename}; opening Bambu Studio…`;
+                }
+                const fallbackLaunch = await launchBambuStudio();
+                if (statusText) {
+                    statusText.textContent = fallbackLaunch.opened
+                        ? `${filename} downloaded. Bambu Studio opened—import the file to continue.`
+                        : `${filename} downloaded. Open it manually in Bambu Studio.`;
+                }
+                return;
             }
 
-            // Cleanup
-            result.layers.forEach((layerData) => layerData.geometry.dispose());
+            showLoader(true, {
+                title: 'Opening Bambu Studio',
+                subtitle: 'The model will appear in the slicing workspace.'
+            });
+            if (statusText) statusText.textContent = `Opening ${filename} in Bambu Studio…`;
+
+            const launchResult = await launchBambuStudio(transfer.url);
+            if (launchResult.opened) {
+                if (statusText) {
+                    statusText.textContent = `\u2713 Sent ${filename} to Bambu Studio. Review settings, then slice and print.`;
+                }
+            } else if (launchResult.attempted) {
+                downloadBlob(projectBlob, filename);
+                if (statusText) {
+                    statusText.textContent = `Bambu Studio did not confirm opening. ${filename} was downloaded as a backup.`;
+                }
+            } else {
+                downloadBlob(projectBlob, filename);
+                if (statusText) {
+                    statusText.textContent = `${filename} downloaded. Bambu Studio launch is unavailable on this platform.`;
+                }
+            }
         } catch (error) {
             console.error('Export & open in Bambu failed:', error);
             if (statusText) statusText.textContent = error.message || 'Failed to export 3MF.';
         } finally {
+            result?.layers?.forEach(disposeLayerGeometryData);
             showLoader(false);
         }
     }

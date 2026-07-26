@@ -1737,6 +1737,13 @@ export function buildObjGeometryBundle(plan, { THREERef, bufferUtils }) {
             return;
         }
         const hasMultipleSegments = Array.isArray(layer.geometrySegments) && layer.geometrySegments.length > 1;
+        const geometryParts = hasMultipleSegments
+            ? geometries
+                .map((sourceGeometry) => sanitizeGeometry(sourceGeometry.clone(), THREERef, bufferUtils, {
+                    mergeVerticesEnabled: true
+                }))
+                .filter(Boolean)
+            : [];
 
         let geometry = null;
         if (geometries.length === 1) {
@@ -1753,7 +1760,8 @@ export function buildObjGeometryBundle(plan, { THREERef, bufferUtils }) {
             mergeVerticesEnabled: true
         });
         if (!sanitizedGeometry) {
-            geometry.dispose();
+            geometry?.dispose?.();
+            geometryParts.forEach((partGeometry) => partGeometry.dispose());
             return;
         }
         if (sanitizedGeometry !== geometry) geometry.dispose();
@@ -1778,7 +1786,8 @@ export function buildObjGeometryBundle(plan, { THREERef, bufferUtils }) {
             isBase: layer.isBase,
             displayLabel: layer.displayLabel,
             repairActions: Array.isArray(layer.repairActions) ? layer.repairActions.slice() : [],
-            componentStats: { ...(layer.componentStats || {}) }
+            componentStats: { ...(layer.componentStats || {}) },
+            geometryParts
         });
     });
 
