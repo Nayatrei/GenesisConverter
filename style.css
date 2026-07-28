@@ -1824,6 +1824,40 @@
             margin-bottom: 0.5rem;
         }
 
+        .layer-stack-header-actions {
+            display: flex;
+            align-items: center;
+            gap: 0.55rem;
+        }
+
+        .layer-background-action {
+            border: 1px solid rgba(96, 165, 250, 0.42);
+            border-radius: 999px;
+            padding: 0.2rem 0.55rem;
+            color: #bfdbfe;
+            background: rgba(30, 64, 175, 0.16);
+            font-size: 0.65rem;
+            font-weight: 650;
+            line-height: 1.25;
+            transition: transform 180ms cubic-bezier(0.16, 1, 0.3, 1),
+                        border-color 180ms cubic-bezier(0.16, 1, 0.3, 1),
+                        background-color 180ms cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .layer-background-action:hover:not(:disabled) {
+            border-color: rgba(147, 197, 253, 0.72);
+            background: rgba(30, 64, 175, 0.26);
+        }
+
+        .layer-background-action:active:not(:disabled) {
+            transform: translateY(1px) scale(0.98);
+        }
+
+        .layer-background-action:disabled {
+            cursor: not-allowed;
+            opacity: 0.42;
+        }
+
         .layer-stack-list {
             display: flex;
             flex-direction: column;
@@ -1832,7 +1866,7 @@
 
         .layer-stack-item {
             display: grid;
-            grid-template-columns: auto minmax(0, 1fr) auto auto;
+            grid-template-columns: 1.65rem auto minmax(0, 1fr) auto auto;
             align-items: center;
             gap: 0.5rem;
             font-size: 0.75rem;
@@ -1841,6 +1875,59 @@
             border: 1px solid #374151;
             border-radius: 0.5rem;
             padding: 0.35rem 0.5rem;
+        }
+
+        .layer-stack-item.is-hidden {
+            color: #9ca3af;
+            background: rgba(17, 24, 39, 0.38);
+            border-style: dashed;
+        }
+
+        .layer-stack-item.is-hidden .layer-stack-swatch {
+            opacity: 0.46;
+        }
+
+        .layer-visibility-toggle {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 1.65rem;
+            height: 1.65rem;
+            border: 1px solid transparent;
+            border-radius: 0.4rem;
+            color: #9ca3af;
+            transition: transform 180ms cubic-bezier(0.16, 1, 0.3, 1),
+                        color 180ms cubic-bezier(0.16, 1, 0.3, 1),
+                        background-color 180ms cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .layer-visibility-toggle:hover:not(:disabled) {
+            color: #e5e7eb;
+            background: rgba(75, 85, 99, 0.55);
+        }
+
+        .layer-visibility-toggle:active:not(:disabled) {
+            transform: translateY(1px) scale(0.96);
+        }
+
+        .layer-visibility-toggle:focus-visible {
+            outline: 2px solid #60a5fa;
+            outline-offset: 1px;
+        }
+
+        .layer-visibility-toggle:disabled {
+            cursor: not-allowed;
+            opacity: 0.28;
+        }
+
+        .layer-visibility-toggle svg {
+            width: 1rem;
+            height: 1rem;
+            fill: none;
+            stroke: currentColor;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+            stroke-width: 1.7;
         }
 
         .layer-stack-item.selected {
@@ -1860,10 +1947,36 @@
         }
 
         .layer-stack-label {
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
             min-width: 0;
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;
+        }
+
+        .layer-stack-label > span:first-child {
+            min-width: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .layer-background-badge {
+            flex: 0 0 auto;
+            border: 1px solid rgba(148, 163, 184, 0.35);
+            border-radius: 999px;
+            padding: 0.08rem 0.35rem;
+            color: #cbd5e1;
+            background: rgba(51, 65, 85, 0.45);
+            font-size: 0.58rem;
+            letter-spacing: 0.01em;
+        }
+
+        .layer-stack-thickness-placeholder {
+            width: 54px;
+            color: #6b7280;
+            text-align: center;
         }
 
         .layer-stack-range {

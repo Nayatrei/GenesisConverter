@@ -1,23 +1,16 @@
 <claude-mem-context>
 # Memory Context
 
-# [GenesisImageConverter] recent context, 2026-07-25 11:21pm EDT
+# [GenesisImageConverter] recent context, 2026-07-26 6:56am EDT
 
 Legend: 🎯session 🔴bugfix 🟣feature 🔄refactor ✅change 🔵discovery ⚖️decision 🚨security_alert 🔐security_note
 Format: ID TIME TYPE TITLE
 Fetch details: get_observations([IDs]) | Search: mem-search skill
 
-Stats: 50 obs (15,347t read) | 841,940t work | 98% savings
+Stats: 50 obs (15,607t read) | 878,390t work | 98% savings
 
 ### Jun 16, 2026
-529 11:40a 🔵 GenesisImageConverter vendor libs: only pdf-lib and three.js; no pdf.js for rendering
-531 11:41a 🔵 app-elements.js: PDF elements map and architecture pattern for adding new PDF edit elements
-533 " ⚖️ PDF Tab Upgrade: Architecture Plan — Two-mode tool with pdf-lib + PDF.js
-532 11:42a 🔵 app-state.js: PDF state is minimal merge-only; edit mode will require state expansion
-534 11:44a 🟣 tab-pdf.html rewritten with two-mode layout: Combine and Edit/Fix
-535 11:45a 🟣 app-state.js: state.pdf expanded with edit mode fields
-536 11:46a ✅ tab-cases.js: PDF and Bulk entries get hideResolutionNotice flag and PDF gets growth roadmap comments
-537 " 🔄 applyTabCase() absorbs tab chrome toggling: active button, export panel, footer visibility
+537 11:46a 🔄 applyTabCase() absorbs tab chrome toggling: active button, export panel, footer visibility
 538 " 🔄 applyTabCase() consolidates resolution notice hiding via hideResolutionNotice registry flag
 539 " 🟣 app-elements.js: elements.pdf expanded with all edit mode and mode switcher element refs
 540 11:47a 🔄 converter.js: setOriginalPanelMode() and syncImportPanel() fully removed; replaced with applyCurrentTabCase()
@@ -70,6 +63,14 @@ S126 Add ZIP download for image tab convert button + fix PDF thumbnail cache-bus
 5507 12:23p 🟣 UI Menu Redesign Request - Top-Right Navigation Expansion
 5525 12:27p ⚖️ Top-Right Menu Design Refinement - Icons Removed for Simplicity
 5526 12:36p 🔵 Codex imagegen Skill Documentation Loaded for GenesisImageConverter Project
+### Jul 26, 2026
+5610 4:48a ⚖️ 3D Tab Layer Toggle Feature Planning for Background Removal
+5611 4:49a 🔵 GenesisImageConverter 3D Tab Architecture: Layer System Codebase Map
+5612 " 🔵 Layer Visibility System Already Partially Built: visibleSourceLayerIds and getVisibleLayerIndices
+5613 " 🔵 getVisibleLayerIndices Defined Locally in Each Tab; Layer Stack UI Built Dynamically in preview3d.js
+5614 4:50a 🔵 getVisibleLayerIndices Implementation: Only Filters Empty Layers, Not Hidden State
+5615 " 🔵 Layer Stack HTML and CSS Structure for Toggle Feature Implementation
+5616 " 🔵 Full Layer Toggle Implementation Map: updateFilteredPreview is the Central Re-render Trigger
 
-Access 842k tokens of past work via get_observations([IDs]) or mem-search skill.
+Access 878k tokens of past work via get_observations([IDs]) or mem-search skill.
 </claude-mem-context>

@@ -1,6 +1,6 @@
 import { SLIDER_TOOLTIPS } from '../config.js';
-import { createObjPreview } from '../preview3d.js?v=20260725j';
-import { createObjExporter } from '../export3d.js?v=20260725j';
+import { createObjPreview } from '../preview3d.js?v=20260726a';
+import { createObjExporter } from '../export3d.js?v=20260726a';
 import {
     hasTransparentPixels,
     markTransparentPixels,
@@ -8,7 +8,7 @@ import {
     remapQuantizedPaletteToColors,
     stripTransparentPalette
 } from '../shared/image-utils.js';
-import { debounce, layerHasPaths, buildTracedataSubset, createMergedTracedata, assess3DPrintQuality } from '../shared/trace-utils.js?v=20260725a';
+import { debounce, layerHasPaths, buildTracedataSubset, createMergedTracedata, assess3DPrintQuality } from '../shared/trace-utils.js?v=20260726a';
 import { saveInitialSliderValues, updateAllSliderDisplays, resetSlidersToInitial } from '../shared/slider-manager.js';
 import { createZoomPanController } from '../shared/zoom-pan.js';
 import { svgToPng } from '../shared/svg-renderer.js';

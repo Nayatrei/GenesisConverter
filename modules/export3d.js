@@ -6,7 +6,7 @@ import {
 import { buildBambuProjectFiles } from './bambu-project.js?v=20260725h';
 import { BAMBU_PROJECT_NOZZLE_DIAMETER } from './config.js';
 import { canvasToBlobAsync, dataUrlToBlob } from './raster-utils.js';
-import { layerHasPaths } from './shared/trace-utils.js';
+import { layerHasPaths } from './shared/trace-utils.js?v=20260726a';
 import { svgToPng } from './shared/svg-renderer.js';
 import { getCanonicalBedCenter } from './shared/canonical-3d.js';
 import {
@@ -544,15 +544,17 @@ export function createObjExporter({
             model.objScaleSlider?.value ?? 100,
             model.objBezelSelect?.value ?? state.objParams?.bezelPreset ?? 'off',
             state.tracedata?.layers?.length ?? 0,
-            state.tracedata?.palette?.map(c => `${c.r},${c.g},${c.b}`).join(';') ?? ''
+            state.tracedata?.palette?.map(c => `${c.r},${c.g},${c.b}`).join(';') ?? '',
+            Array.from(state.hiddenSourceLayerIds || []).sort((a, b) => a - b).join(',')
         ].join('|');
     }
 
     function getVisibleLayerIndices() {
         if (!state.tracedata) return [];
+        const hidden = state.hiddenSourceLayerIds || new Set();
         const indices = [];
         for (let i = 0; i < state.tracedata.layers.length; i++) {
-            if (layerHasPaths(state.tracedata.layers[i])) indices.push(i);
+            if (layerHasPaths(state.tracedata.layers[i]) && !hidden.has(i)) indices.push(i);
         }
         return indices;
     }

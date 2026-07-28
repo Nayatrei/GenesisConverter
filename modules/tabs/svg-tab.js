@@ -1,8 +1,15 @@
 import { SLIDER_TOOLTIPS } from '../config.js';
-import { createObjPreview } from '../preview3d.js?v=20260725j';
-import { createObjExporter } from '../export3d.js?v=20260725j';
+import { createObjPreview } from '../preview3d.js?v=20260726a';
+import { createObjExporter } from '../export3d.js?v=20260726a';
 import { hasTransparentPixels, markTransparentPixels, stripTransparentPalette } from '../shared/image-utils.js';
-import { debounce, layerHasPaths, buildTracedataSubset, createMergedTracedata, assess3DPrintQuality } from '../shared/trace-utils.js?v=20260725a';
+import {
+    debounce,
+    layerHasPaths,
+    detectBackgroundLayerIndex,
+    buildTracedataSubset,
+    createMergedTracedata,
+    assess3DPrintQuality
+} from '../shared/trace-utils.js?v=20260726a';
 import { buildWeldedSilhouetteSvgString } from '../shared/silhouette-builder.js';
 import { saveInitialSliderValues, updateAllSliderDisplays, resetSlidersToInitial } from '../shared/slider-manager.js';
 import { createZoomPanController } from '../shared/zoom-pan.js';
@@ -234,9 +241,10 @@ export function createSvgTabController({
 
     function getVisibleLayerIndices() {
         if (!state.tracedata) return [];
+        const hidden = state.hiddenSourceLayerIds || new Set();
         const indices = [];
         for (let i = 0; i < state.tracedata.layers.length; i++) {
-            if (layerHasPaths(state.tracedata.layers[i])) indices.push(i);
+            if (layerHasPaths(state.tracedata.layers[i]) && !hidden.has(i)) indices.push(i);
         }
         return indices;
     }
@@ -268,6 +276,25 @@ export function createSvgTabController({
         viewControls,
         getDataToExport,
         getVisibleLayerIndices,
+        onLayerVisibilityChange: async () => {
+            state.mergeRules = [];
+            state.selectedLayerIndices.clear();
+            state.selectedFinalLayerIndices.clear();
+            state.autoBaseLayerSelectionPending = true;
+            state.baseSourceLayerId = null;
+            state.silhouetteSvgString = buildWeldedSilhouetteSvgString({
+                tracedata: state.tracedata,
+                layerIndices: getVisibleLayerIndices(),
+                tracer,
+                options: state.lastOptions,
+                SVGLoader: window.SVGLoader,
+                THREERef: window.THREE
+            });
+            palette.displayPalette();
+            palette.prepareMergeUIAfterGeneration();
+            await renderPreviews();
+            await updateFilteredPreview();
+        },
         ImageTracer: tracer
     });
 
@@ -316,6 +343,8 @@ export function createSvgTabController({
                     }
 
                     state.tracedata = tracedata;
+                    state.hiddenSourceLayerIds.clear();
+                    state.backgroundCandidateSourceLayerId = detectBackgroundLayerIndex(tracedata);
                     state.silhouetteSvgString = buildWeldedSilhouetteSvgString({
                         tracedata: state.tracedata,
                         layerIndices: getVisibleLayerIndices(),

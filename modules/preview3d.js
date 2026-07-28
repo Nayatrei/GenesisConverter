@@ -1,7 +1,7 @@
 import { OBJ_ZOOM_MIN, OBJ_ZOOM_MAX, BED_PRESETS } from './config.js';
 import { formatObjScalePercent } from './obj-scale.js';
 import { buildObjGeometryBundle, buildObjModelPlan } from './obj-model-plan.js?v=20260725j';
-import { resolveMergedLayerGroups } from './shared/trace-utils.js?v=20260725a';
+import { resolveMergedLayerGroups } from './shared/trace-utils.js?v=20260726a';
 import { getGeometryBundleBounds } from './shared/print-validation.js?v=20260725h';
 
 const BED_CONTACT_EPSILON = 0.005;
@@ -51,6 +51,7 @@ export function createObjPreview({
     viewControls,
     getDataToExport,
     getVisibleLayerIndices,
+    onLayerVisibilityChange,
     ImageTracer
 }) {
     const tracer = ImageTracer || window.ImageTracer;
@@ -543,9 +544,116 @@ export function createObjPreview({
         return selected;
     }
 
+    function getHiddenSourceLayerIds() {
+        if (!(state.hiddenSourceLayerIds instanceof Set)) {
+            state.hiddenSourceLayerIds = new Set(state.hiddenSourceLayerIds || []);
+        }
+        return state.hiddenSourceLayerIds;
+    }
+
+    function getPrintableSourceLayerIds() {
+        if (!state.tracedata?.layers) return [];
+        return state.tracedata.layers
+            .map((layer, sourceLayerId) => ({ layer, sourceLayerId }))
+            .filter(({ layer }) => Array.isArray(layer) && layer.length > 0)
+            .map(({ sourceLayerId }) => sourceLayerId);
+    }
+
+    function runLayerVisibilityUpdate() {
+        if (typeof onLayerVisibilityChange === 'function') {
+            Promise.resolve(onLayerVisibilityChange()).catch((error) => {
+                console.error('Layer visibility update failed:', error);
+                render();
+            });
+            return;
+        }
+        render();
+    }
+
+    function setSourceLayersHidden(sourceLayerIds, shouldHide) {
+        const ids = Array.from(new Set(sourceLayerIds)).filter(Number.isInteger);
+        if (!ids.length) return;
+
+        const hidden = getHiddenSourceLayerIds();
+        const visible = getVisibleLayerIndices();
+        if (shouldHide && visible.filter((sourceLayerId) => !ids.includes(sourceLayerId)).length === 0) {
+            return;
+        }
+
+        ids.forEach((sourceLayerId) => {
+            if (shouldHide) {
+                hidden.add(sourceLayerId);
+                state.selectedLayerIndices?.delete(sourceLayerId);
+            } else {
+                hidden.delete(sourceLayerId);
+            }
+        });
+        state.selectedFinalLayerIndices?.clear();
+        runLayerVisibilityUpdate();
+    }
+
+    function createVisibilityButton(sourceLayerIds, isHidden, disabled = false) {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'layer-visibility-toggle';
+        button.disabled = disabled;
+        button.setAttribute('aria-pressed', String(!isHidden));
+        button.setAttribute('aria-label', isHidden ? 'Show layer' : 'Hide layer');
+        button.title = disabled
+            ? 'At least one printable layer must remain visible.'
+            : isHidden ? 'Show this layer in previews and exports.' : 'Hide this layer from previews and exports.';
+        button.innerHTML = isHidden
+            ? '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3l18 18M10.6 10.7a2 2 0 002.7 2.7M9.9 4.2A10.7 10.7 0 0112 4c5.5 0 9 5.5 9 5.5a16.6 16.6 0 01-2.2 2.7M6.6 6.6C4.3 8.1 3 10 3 10s3.5 5.5 9 5.5c1 0 2-.2 2.9-.5"/></svg>'
+            : '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 10s3.5-5.5 9-5.5S21 10 21 10s-3.5 5.5-9 5.5S3 10 3 10z"/><circle cx="12" cy="10" r="2.4"/></svg>';
+        button.addEventListener('click', () => setSourceLayersHidden(sourceLayerIds, !isHidden));
+        return button;
+    }
+
+    function appendLayerLabel(row, text, isBackgroundCandidate) {
+        const label = document.createElement('span');
+        label.className = 'layer-stack-label';
+
+        const name = document.createElement('span');
+        name.textContent = text;
+        label.appendChild(name);
+
+        if (isBackgroundCandidate) {
+            const badge = document.createElement('span');
+            badge.className = 'layer-background-badge';
+            badge.textContent = 'Background?';
+            label.appendChild(badge);
+        }
+
+        row.appendChild(label);
+    }
+
+    function updateBackgroundLayerAction() {
+        const button = view.backgroundLayerToggle;
+        if (!button) return;
+
+        const candidate = state.backgroundCandidateSourceLayerId;
+        const printableIds = getPrintableSourceLayerIds();
+        const hasCandidate = Number.isInteger(candidate) && printableIds.includes(candidate);
+        button.hidden = !hasCandidate;
+        if (!hasCandidate) return;
+
+        const isHidden = getHiddenSourceLayerIds().has(candidate);
+        const visibleCount = getVisibleLayerIndices().length;
+        button.textContent = isHidden ? 'Restore background' : 'Hide background';
+        button.disabled = !isHidden && visibleCount <= 1;
+        button.setAttribute('aria-pressed', String(isHidden));
+        button.title = isHidden
+            ? 'Restore the detected background layer.'
+            : button.disabled
+                ? 'At least one printable layer must remain visible.'
+                : 'Hide the detected background from previews and exports.';
+        button.onclick = () => setSourceLayersHidden([candidate], !isHidden);
+    }
+
     function updateLayerStackPreview(plan, defaultThickness, selectionSet) {
         if (!view.layerStackList || !view.layerStackMeta) return;
         view.layerStackList.innerHTML = '';
+        updateBackgroundLayerAction();
 
         if (!plan || !Array.isArray(plan.outputLayers) || plan.outputLayers.length === 0) {
             view.layerStackMeta.textContent = 'No layers yet';
@@ -558,6 +666,10 @@ export function createObjPreview({
             }
             return;
         }
+
+        const hiddenIds = getHiddenSourceLayerIds();
+        const visibleCount = getVisibleLayerIndices().length;
+        const candidateId = state.backgroundCandidateSourceLayerId;
 
         if (view.useBaseLayerCheckbox) {
             view.useBaseLayerCheckbox.checked = !!plan.useBaseLayer;
@@ -582,13 +694,15 @@ export function createObjPreview({
             const row = document.createElement('div');
             row.className = 'layer-stack-item';
 
+            const visibilityButton = createVisibilityButton(
+                layer.sourceLayerIds,
+                false,
+                visibleCount <= layer.sourceLayerIds.length
+            );
+
             const swatch = document.createElement('span');
             swatch.className = 'layer-stack-swatch';
             swatch.style.backgroundColor = `rgb(${layer.color.r},${layer.color.g},${layer.color.b})`;
-
-            const label = document.createElement('span');
-            label.className = 'layer-stack-label';
-            label.textContent = layer.isBase ? `${layer.displayLabel} (Support Base)` : layer.displayLabel;
 
             const thicknessInput = document.createElement('input');
             thicknessInput.type = 'number';
@@ -611,8 +725,13 @@ export function createObjPreview({
             range.className = 'layer-stack-range';
             range.textContent = `${layer.zStart.toFixed(1)}-${layer.zEnd.toFixed(1)}mm`;
 
+            row.appendChild(visibilityButton);
             row.appendChild(swatch);
-            row.appendChild(label);
+            appendLayerLabel(
+                row,
+                layer.isBase ? `${layer.displayLabel} (Support Base)` : layer.displayLabel,
+                layer.sourceLayerIds.includes(candidateId)
+            );
             row.appendChild(thicknessInput);
             row.appendChild(range);
 
@@ -625,6 +744,35 @@ export function createObjPreview({
 
             view.layerStackList.appendChild(row);
         });
+
+        getPrintableSourceLayerIds()
+            .filter((sourceLayerId) => hiddenIds.has(sourceLayerId))
+            .forEach((sourceLayerId) => {
+                const color = state.tracedata.palette[sourceLayerId];
+                const row = document.createElement('div');
+                row.className = 'layer-stack-item is-hidden';
+
+                row.appendChild(createVisibilityButton([sourceLayerId], true));
+
+                const swatch = document.createElement('span');
+                swatch.className = 'layer-stack-swatch';
+                swatch.style.backgroundColor = `rgb(${color.r},${color.g},${color.b})`;
+                row.appendChild(swatch);
+
+                appendLayerLabel(row, `Layer ${sourceLayerId}`, sourceLayerId === candidateId);
+
+                const thicknessPlaceholder = document.createElement('span');
+                thicknessPlaceholder.className = 'layer-stack-thickness-placeholder';
+                thicknessPlaceholder.textContent = '—';
+                row.appendChild(thicknessPlaceholder);
+
+                const hiddenLabel = document.createElement('span');
+                hiddenLabel.className = 'layer-stack-range';
+                hiddenLabel.textContent = 'Hidden';
+                row.appendChild(hiddenLabel);
+
+                view.layerStackList.appendChild(row);
+            });
     }
 
     function render() {

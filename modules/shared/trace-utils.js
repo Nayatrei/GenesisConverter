@@ -17,6 +17,52 @@ export function layerHasPaths(layer) {
 }
 
 /**
+ * Finds a likely flat image background by looking for a large non-hole path
+ * that reaches at least three canvas edges. The result is only a suggestion;
+ * callers should require an explicit user action before hiding it.
+ */
+export function detectBackgroundLayerIndex(tracedata) {
+    const width = Number(tracedata?.width);
+    const height = Number(tracedata?.height);
+    if (!Array.isArray(tracedata?.layers) || width <= 0 || height <= 0) return -1;
+
+    const toleranceX = Math.max(2, width * 0.02);
+    const toleranceY = Math.max(2, height * 0.02);
+    const canvasArea = width * height;
+    let bestIndex = -1;
+    let bestScore = -Infinity;
+
+    tracedata.layers.forEach((layer, layerIndex) => {
+        if (!Array.isArray(layer)) return;
+
+        layer.forEach((path) => {
+            if (path?.isholepath || !Array.isArray(path?.boundingbox)) return;
+            const [minX, minY, maxX, maxY] = path.boundingbox.map(Number);
+            if (![minX, minY, maxX, maxY].every(Number.isFinite)) return;
+
+            const boxWidth = Math.max(0, maxX - minX);
+            const boxHeight = Math.max(0, maxY - minY);
+            const coverage = (boxWidth * boxHeight) / canvasArea;
+            const edges = [
+                minX <= toleranceX,
+                minY <= toleranceY,
+                maxX >= width - toleranceX,
+                maxY >= height - toleranceY
+            ].filter(Boolean).length;
+
+            if (edges < 3 || coverage < 0.6) return;
+            const score = edges * 2 + coverage;
+            if (score > bestScore) {
+                bestScore = score;
+                bestIndex = layerIndex;
+            }
+        });
+    });
+
+    return bestIndex;
+}
+
+/**
  * Resolves visible layer indices into merged output groups.
  * Merge rules operate on the ordinal positions within visibleIndices.
  * Returned groups preserve the target layer's original source-layer id

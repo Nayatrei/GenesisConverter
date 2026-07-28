@@ -249,6 +249,7 @@ export function createElements() {
                 objModeSolo: document.getElementById('obj-mode-solo'),
                 layerStackList: document.getElementById('layer-stack-list'),
                 layerStackMeta: document.getElementById('layer-stack-meta'),
+                backgroundLayerToggle: document.getElementById('background-layer-toggle'),
                 modelSizeReadout: document.getElementById('svg-model-size-readout'),
                 triangleEstimate: document.getElementById('svg-triangle-estimate'),
                 preflightStatus: document.getElementById('svg-preflight-status'),

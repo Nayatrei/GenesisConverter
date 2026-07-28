@@ -55,6 +55,8 @@ export function createState() {
         isDirty: false,
         selectedLayerIndices: new Set(),
         selectedFinalLayerIndices: new Set(),
+        hiddenSourceLayerIds: new Set(),
+        backgroundCandidateSourceLayerId: null,
         tooltipTimeout: null,
         colorsAnalyzed: false,
         estimatedColorCount: null,
