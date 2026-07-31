@@ -1,7 +1,7 @@
 import { createBulkTabController } from './modules/tabs/bulk-tab.js';
 import { createRasterTabController } from './modules/tabs/raster-tab.js';
-import { createSvgTabController } from './modules/tabs/svg-tab.js?v=20260726a';
-import { createLogoTabController } from './modules/tabs/logo-tab.js?v=20260726a';
+import { createSvgTabController } from './modules/tabs/svg-tab.js?v=20260730a';
+import { createLogoTabController } from './modules/tabs/logo-tab.js?v=20260730a';
 import { createPdfTabController } from './modules/tabs/pdf-tab.js?v=20260725p';
 import {
     getDataUrlSize,
@@ -10,9 +10,10 @@ import {
     isImportableImageFile,
     normalizeImageBlob
 } from './modules/raster-utils.js';
-import { createElements } from './modules/app-elements.js?v=20260726a';
-import { createState } from './modules/app-state.js?v=20260726a';
+import { createElements } from './modules/app-elements.js?v=20260730a';
+import { createState } from './modules/app-state.js?v=20260730a';
 import { applyTabCase, TAB_CASES } from './modules/tab-cases.js?v=20260725a';
+import { bindMagnetPocketControls } from './modules/shared/magnet-pocket-controls.js?v=20260730a';
 
 async function loadTabPartials() {
     const tabs = ['svg', 'logo', 'raster', 'bulk', 'pdf'];
@@ -249,7 +250,21 @@ document.addEventListener('DOMContentLoaded', async () => {
         downloadBlob
     });
 
-    const svgTab = createSvgTabController({
+    let svgTab = null;
+    let logoTab = null;
+    bindMagnetPocketControls({
+        state,
+        controls: elements.shared3d,
+        onChange: () => {
+            if (state.activeTab === 'logo') {
+                logoTab?.updateFilteredPreview();
+            } else if (state.activeTab === 'svg') {
+                svgTab?.updateFilteredPreview();
+            }
+        }
+    });
+
+    svgTab = createSvgTabController({
         state,
         sharedElements: {
             sourceImage: elements.sourceImage,
@@ -274,7 +289,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         onRasterExportStateChanged: rasterTab.updateExportScaleDisplay
     });
 
-    const logoTab = createLogoTabController({
+    logoTab = createLogoTabController({
         state,
         ls: state.logo,
         sharedElements: {

@@ -349,12 +349,33 @@ function buildFilamentSequenceJson(filamentCount) {
     }, null, 2);
 }
 
+function buildCustomGcodePerLayerXml(pauseEvents) {
+    const events = (Array.isArray(pauseEvents) ? pauseEvents : [])
+        .filter((event) => event?.type === 'pause' && Number.isFinite(event.z))
+        .sort((left, right) => left.z - right.z);
+    if (!events.length) return '';
+
+    const layers = events.map((event) => (
+        `  <layer top_z="${formatNumber(event.z)}" type="1" extruder="0" color="#FFFFFF" extra="${escapeXml(event.message || 'Insert magnets, then resume.')}" gcode="${escapeXml(event.gcode || 'M400 U1')}"/>`
+    )).join('\n');
+
+    return `<?xml version="1.0" encoding="utf-8"?>
+<custom_gcodes_per_layer>
+ <plate>
+  <plate_info id="1"/>
+${layers}
+  <mode value="SingleExtruder"/>
+ </plate>
+</custom_gcodes_per_layer>`;
+}
+
 export function buildBambuProjectFiles({
     layers,
     baseName,
     bedKey = 'x1',
     nozzleDiameter = BAMBU_PROJECT_NOZZLE_DIAMETER,
-    previewAssets = {}
+    previewAssets = {},
+    pauseEvents = []
 }) {
     const template = getBambuPrinterTemplate(bedKey);
     const title = String(baseName || 'genesis_project');
@@ -430,6 +451,10 @@ export function buildBambuProjectFiles({
         'Metadata/filament_sequence.json': buildFilamentSequenceJson(filamentColors.length),
         'Metadata/cut_information.xml': buildCutInformationXml(assemblyObjectId)
     };
+    const customGcodeXml = buildCustomGcodePerLayerXml(pauseEvents);
+    if (customGcodeXml) {
+        files['Metadata/custom_gcode_per_layer.xml'] = customGcodeXml;
+    }
 
     parts.forEach((part, index) => {
         files[`3D/Objects/object_${index + 1}.model`] = buildObjectModelXml({

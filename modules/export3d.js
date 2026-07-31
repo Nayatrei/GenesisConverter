@@ -2,8 +2,8 @@ import {
     buildObjGeometryBundle,
     buildObjModelPlan,
     sanitizeGeometryForPrint
-} from './obj-model-plan.js?v=20260725j';
-import { buildBambuProjectFiles } from './bambu-project.js?v=20260725h';
+} from './obj-model-plan.js?v=20260730a';
+import { buildBambuProjectFiles } from './bambu-project.js?v=20260730a';
 import { BAMBU_PROJECT_NOZZLE_DIAMETER } from './config.js';
 import { canvasToBlobAsync, dataUrlToBlob } from './raster-utils.js';
 import { layerHasPaths } from './shared/trace-utils.js?v=20260726a';
@@ -14,6 +14,7 @@ import {
     validateGeometryBundleForPrint
 } from './shared/print-validation.js?v=20260725h';
 import { launchBambuStudio, publishBambuProject } from './bambu-bridge.js?v=20260725f';
+import { serializeMagnetPocketConfig } from './shared/magnet-pockets.js?v=20260730a';
 
 const THREE_MF_BLOB_TYPE = 'model/3mf';
 
@@ -313,7 +314,8 @@ async function generateBambuProject3MF({
             baseName,
             bedKey,
             nozzleDiameter: BAMBU_PROJECT_NOZZLE_DIAMETER,
-            previewAssets
+            previewAssets,
+            pauseEvents: geometryBundle?.plan?.pauseEvents || []
         });
         if (!project) return null;
         const blob = await createZipFile(project.files);
@@ -543,6 +545,7 @@ export function createObjExporter({
             model.objMarginInput?.value ?? 5,
             model.objScaleSlider?.value ?? 100,
             model.objBezelSelect?.value ?? state.objParams?.bezelPreset ?? 'off',
+            serializeMagnetPocketConfig(state.objParams?.magnetPocket),
             state.tracedata?.layers?.length ?? 0,
             state.tracedata?.palette?.map(c => `${c.r},${c.g},${c.b}`).join(';') ?? '',
             Array.from(state.hiddenSourceLayerIds || []).sort((a, b) => a - b).join(',')
@@ -600,6 +603,9 @@ export function createObjExporter({
             bezelPreset: model.objBezelSelect?.value || state.objParams?.bezelPreset || 'off'
         });
         if (!plan || plan.outputLayers.length === 0) return null;
+        if (plan.magnetPocketResult?.enabled && !plan.magnetPocketResult.valid) {
+            throw new Error(plan.magnetPocketResult.errors?.[0] || 'Magnet pocket placement is invalid.');
+        }
 
         const geometryBundle = buildObjGeometryBundle(plan, { THREERef, bufferUtils });
         if (!geometryBundle || geometryBundle.layers.size === 0) return null;
@@ -744,7 +750,7 @@ export function createObjExporter({
             result.layers.forEach(disposeLayerGeometryData);
         } catch (error) {
             console.error('OBJ export failed:', error);
-            if (statusText) statusText.textContent = 'Failed to export OBJ.';
+            if (statusText) statusText.textContent = error.message || 'Failed to export OBJ.';
         } finally {
             showLoader(false);
         }
@@ -844,7 +850,7 @@ export function createObjExporter({
             result.layers.forEach(disposeLayerGeometryData);
         } catch (error) {
             console.error('STL export failed:', error);
-            if (statusText) statusText.textContent = 'Failed to export STL.';
+            if (statusText) statusText.textContent = error.message || 'Failed to export STL.';
         } finally {
             showLoader(false);
         }

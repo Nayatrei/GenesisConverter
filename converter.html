@@ -18,8 +18,8 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet">
     <script src="imagetracer_v1.2.6.js?v=20260324d"></script>
     <script type="module" src="three-setup.js?v=20260324d"></script>
-    <script type="module" src="converter.js?v=20260726a"></script>
-    <link rel="stylesheet" href="style.css?v=20260726a">
+    <script type="module" src="converter.js?v=20260730a"></script>
+    <link rel="stylesheet" href="style.css?v=20260730a">
 </head>
 <body class="app-body antialiased app-shell-v2">
 
@@ -393,6 +393,107 @@
                                             <p id="obj-bezel-helper" class="text-xs text-gray-400 mt-1">No raised rim is added to the support base.</p>
                                             <p id="obj-bezel-tooltip" class="slider-tooltip text-xs text-gray-400 mt-1 h-4 opacity-0"></p>
                                         </div>
+                                        <section id="obj-magnet-panel" class="magnet-pocket-panel mt-4" data-state="disabled">
+                                            <div class="magnet-pocket-heading">
+                                                <div>
+                                                    <span class="magnet-pocket-eyebrow">Embedded hardware</span>
+                                                    <strong>Magnet pockets</strong>
+                                                </div>
+                                                <label class="magnet-pocket-switch">
+                                                    <input id="obj-magnet-enabled" type="checkbox">
+                                                    <span aria-hidden="true"></span>
+                                                    <span class="sr-only">Enable magnet pockets</span>
+                                                </label>
+                                            </div>
+                                            <p class="magnet-pocket-intro">Carve measured recesses into the generated support base.</p>
+
+                                            <div id="obj-magnet-body" class="magnet-pocket-body hidden">
+                                                <div class="magnet-pocket-grid">
+                                                    <label class="magnet-pocket-field">
+                                                        <span>Magnet shape</span>
+                                                        <select id="obj-magnet-shape">
+                                                            <option value="disc">Round / disc</option>
+                                                            <option value="block">Rectangular / block</option>
+                                                        </select>
+                                                    </label>
+                                                    <label class="magnet-pocket-field">
+                                                        <span>Market size</span>
+                                                        <select id="obj-magnet-preset"></select>
+                                                    </label>
+                                                </div>
+
+                                                <div id="obj-magnet-custom-fields" class="magnet-pocket-custom hidden">
+                                                    <label id="obj-magnet-diameter-field" class="magnet-pocket-field">
+                                                        <span>Diameter (mm)</span>
+                                                        <input id="obj-magnet-diameter" type="number" min="1" max="100" step="0.1" value="10">
+                                                    </label>
+                                                    <label id="obj-magnet-length-field" class="magnet-pocket-field hidden">
+                                                        <span>Length (mm)</span>
+                                                        <input id="obj-magnet-length" type="number" min="1" max="100" step="0.1" value="20">
+                                                    </label>
+                                                    <label id="obj-magnet-width-field" class="magnet-pocket-field hidden">
+                                                        <span>Width (mm)</span>
+                                                        <input id="obj-magnet-width" type="number" min="1" max="100" step="0.1" value="5">
+                                                    </label>
+                                                    <label class="magnet-pocket-field">
+                                                        <span>Height (mm)</span>
+                                                        <input id="obj-magnet-height" type="number" min="0.5" max="20" step="0.1" value="3">
+                                                    </label>
+                                                </div>
+
+                                                <label class="magnet-pocket-range">
+                                                    <span>
+                                                        <span>Number of magnets</span>
+                                                        <output id="obj-magnet-count-value">4</output>
+                                                    </span>
+                                                    <input id="obj-magnet-count" type="range" min="1" max="4" step="1" value="4">
+                                                </label>
+
+                                                <div class="magnet-pocket-field">
+                                                    <span>Pocket position</span>
+                                                    <div class="magnet-pocket-modes" role="group" aria-label="Magnet pocket position">
+                                                        <button type="button" class="active" data-magnet-mode="hidden" aria-pressed="true">Hidden insert</button>
+                                                        <button type="button" data-magnet-mode="bottom" aria-pressed="false">Bottom recess</button>
+                                                    </div>
+                                                </div>
+
+                                                <label class="magnet-pocket-range">
+                                                    <span>
+                                                        <span>XY fit clearance / side</span>
+                                                        <output id="obj-magnet-clearance-value">0.25 mm</output>
+                                                    </span>
+                                                    <input id="obj-magnet-clearance" type="range" min="0" max="1" step="0.05" value="0.25">
+                                                </label>
+
+                                                <details id="obj-magnet-advanced" class="magnet-pocket-advanced">
+                                                    <summary>Advanced print allowances</summary>
+                                                    <div class="magnet-pocket-advanced-grid">
+                                                        <label class="magnet-pocket-field">
+                                                            <span>Z clearance (mm)</span>
+                                                            <input id="obj-magnet-clearance-z" type="number" min="0" max="1" step="0.05" value="0.2">
+                                                        </label>
+                                                        <label class="magnet-pocket-field">
+                                                            <span>Minimum wall (mm)</span>
+                                                            <input id="obj-magnet-wall" type="number" min="0.4" max="10" step="0.1" value="1.2">
+                                                        </label>
+                                                        <label id="obj-magnet-floor-field" class="magnet-pocket-field">
+                                                            <span>Floor (mm)</span>
+                                                            <input id="obj-magnet-floor" type="number" min="0.4" max="10" step="0.1" value="0.8">
+                                                        </label>
+                                                        <label class="magnet-pocket-field">
+                                                            <span>Roof (mm)</span>
+                                                            <input id="obj-magnet-roof" type="number" min="0.4" max="10" step="0.1" value="0.8">
+                                                        </label>
+                                                    </div>
+                                                </details>
+
+                                                <div id="obj-magnet-status" class="magnet-pocket-status" role="status" aria-live="polite">
+                                                    <span class="magnet-pocket-status-dot" aria-hidden="true"></span>
+                                                    <span id="obj-magnet-status-text">Generate a model to place pockets.</span>
+                                                </div>
+                                                <p id="obj-magnet-pause" class="magnet-pocket-pause hidden"></p>
+                                            </div>
+                                        </section>
                                     </fieldset>
                                     </div>
                                 </div>

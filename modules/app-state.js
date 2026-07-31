@@ -1,5 +1,6 @@
 import { createDefaultTraceControls } from './shared/trace-controls.js';
 import { OBJ_DEFAULT_ROTATION } from './config.js';
+import { createDefaultMagnetPocketConfig } from './shared/magnet-pockets.js';
 
 /**
  * Returns the initial application state object.
@@ -7,6 +8,20 @@ import { OBJ_DEFAULT_ROTATION } from './config.js';
  * @returns {object}
  */
 export function createState() {
+    const sharedMagnetPocket = createDefaultMagnetPocketConfig();
+    const createObjParams = () => ({
+        scale: 100,
+        thickness: 4,
+        decimate: 0,
+        bedKey: 'x1',
+        margin: 5,
+        bezelPreset: 'off',
+        showBuildPlate: true,
+        layerDisplayMode: 'ghost',
+        targetLocked: true,
+        magnetPocket: sharedMagnetPocket
+    });
+
     const obj3dPreview = () => ({
         renderer: null,
         scene: null,
@@ -71,17 +86,7 @@ export function createState() {
         traceControls: createDefaultTraceControls('logo'),
 
         // ── Shared 3D Parameters ──────────────────────────────────────────────
-        objParams: {
-            scale: 100,
-            thickness: 4,
-            decimate: 0,
-            bedKey: 'x1',
-            margin: 5,
-            bezelPreset: 'off',
-            showBuildPlate: true,
-            layerDisplayMode: 'ghost',
-            targetLocked: true
-        },
+        objParams: createObjParams(),
 
         // ── Bulk tab state ─────────────────────────────────────────────────────
         bulk: {
@@ -181,6 +186,7 @@ export function createState() {
             htmlDeclaredColors: [],
             showAvailableLayers: true,
             showFinalPalette: true,
+            objParams: createObjParams(),
             objPreview: obj3dPreview(),
             zoom: {
                 all: { scale: 1, x: 0, y: 0, isDragging: false }

@@ -17,6 +17,10 @@ import {
     splitMaskByPrintability,
     traceMaskDataToShapeSet
 } from './shared/print-geometry.js';
+import {
+    normalizeMagnetPocketConfig,
+    resolveMagnetPocketPlan
+} from './shared/magnet-pockets.js';
 
 const DEFAULT_CURVE_SEGMENTS = 6;
 const BOUNDS_POINT_DIVISIONS = 16;
@@ -808,7 +812,8 @@ export function buildObjModelPlan({
     scalePercent = state?.objParams?.scale ?? 100,
     sourceScale = state?.sourceRenderScale || 1,
     printProfile = DEFAULT_PRINT_PROFILE,
-    bezelPreset = state?.objParams?.bezelPreset ?? 'off'
+    bezelPreset = state?.objParams?.bezelPreset ?? 'off',
+    magnetPocket = state?.objParams?.magnetPocket
 }) {
     if (!state?.tracedata || !tracer || !SVGLoader || !THREERef) return null;
     if (!Array.isArray(visibleSourceLayerIds) || visibleSourceLayerIds.length === 0) return null;
@@ -819,6 +824,7 @@ export function buildObjModelPlan({
     const shapeCache = new Map();
     const rawBounds = createEmptyBounds();
     const normalizedDecimatePercent = clampDecimatePercent(decimatePercent);
+    const normalizedMagnetPocket = normalizeMagnetPocketConfig(magnetPocket);
 
     sourceLayerIds.forEach((sourceLayerId) => {
         const cached = buildShapesForSourceLayer({
@@ -888,7 +894,7 @@ export function buildObjModelPlan({
     migrateLegacyBaseSourceLayerId(state, outputLayers, detectedBaseOutputLayer);
 
     let resolvedBaseOutputLayer = null;
-    if (state.useBaseLayer && outputLayers.length > 0) {
+    if ((state.useBaseLayer || normalizedMagnetPocket.enabled) && outputLayers.length > 0) {
         resolvedBaseOutputLayer = outputLayers.find((layer) => layer.sourceLayerIds.includes(state.baseSourceLayerId));
         if (!resolvedBaseOutputLayer) {
             resolvedBaseOutputLayer = detectedBaseOutputLayer || outputLayers[0];
@@ -913,6 +919,15 @@ export function buildObjModelPlan({
     let innerMask = null;
     let bezelMaskData = null;
     let bezelShapeSet = null;
+    let magnetPocketResult = {
+        enabled: false,
+        valid: true,
+        config: normalizedMagnetPocket,
+        placements: [],
+        errors: [],
+        warnings: [],
+        pauseZ: null
+    };
     let bezelSpec = {
         enabled: false,
         widthMm: 0,
@@ -971,6 +986,22 @@ export function buildObjModelPlan({
             absorbedCount: 0
         };
 
+        magnetPocketResult = resolveMagnetPocketPlan({
+            config: normalizedMagnetPocket,
+            supportMask: supportBaseMask,
+            maskSpace,
+            requestedBaseThickness: resolvedBaseOutputLayer.thickness
+        });
+        if (magnetPocketResult.enabled && magnetPocketResult.valid) {
+            resolvedBaseOutputLayer.thickness = magnetPocketResult.effectiveBaseThickness;
+            resolvedBaseOutputLayer.repairActions.push({
+                type: 'applied-magnet-pockets',
+                count: magnetPocketResult.placements.length,
+                mode: magnetPocketResult.config.mode,
+                shape: magnetPocketResult.config.shape
+            });
+        }
+
         const bezelMaskSet = resolveBezelMaskSet({
             maskSpace,
             baseMask: supportBaseMask,
@@ -1022,17 +1053,56 @@ export function buildObjModelPlan({
     outputLayers.forEach((layer) => {
         if (resolvedBaseOutputLayer && layer.outputLayerId === resolvedBaseOutputLayer.outputLayerId) {
             layer.isBase = true;
-            layer.geometrySegments = [{
-                maskData: layer.printMask,
-                maskSpace: layer.printMaskSpace,
-                zStart: 0,
-                depth: layer.thickness,
-                simplifyTolerance: getMaskLoopSimplifyTolerance(normalizedDecimatePercent, maskSpace.pixelsPerUnit, {
+            const baseSimplifyTolerance = getMaskLoopSimplifyTolerance(
+                normalizedDecimatePercent,
+                maskSpace.pixelsPerUnit,
+                {
                     baseTolerancePx: 0,
                     maxExtraTolerancePx: 3,
                     minimumTolerancePx: 1.5
-                })
-            }];
+                }
+            );
+            const pocketIsApplied = magnetPocketResult.enabled
+                && magnetPocketResult.valid
+                && magnetPocketResult.carvedBaseMask;
+
+            if (pocketIsApplied) {
+                layer.geometrySegments = [];
+                if (magnetPocketResult.cavityZStart > 0) {
+                    layer.geometrySegments.push({
+                        maskData: layer.printMask,
+                        maskSpace: layer.printMaskSpace,
+                        zStart: 0,
+                        depth: magnetPocketResult.cavityZStart,
+                        simplifyTolerance: baseSimplifyTolerance
+                    });
+                }
+                layer.geometrySegments.push({
+                    maskData: magnetPocketResult.carvedBaseMask,
+                    maskSpace: layer.printMaskSpace,
+                    zStart: magnetPocketResult.cavityZStart,
+                    depth: magnetPocketResult.cavityHeight,
+                    simplifyTolerance: null
+                });
+                const roofDepth = layer.thickness - magnetPocketResult.cavityZEnd;
+                if (roofDepth > 0.001) {
+                    layer.geometrySegments.push({
+                        maskData: layer.printMask,
+                        maskSpace: layer.printMaskSpace,
+                        zStart: magnetPocketResult.cavityZEnd,
+                        depth: roofDepth,
+                        simplifyTolerance: baseSimplifyTolerance
+                    });
+                }
+            } else {
+                layer.geometrySegments = [{
+                    maskData: layer.printMask,
+                    maskSpace: layer.printMaskSpace,
+                    zStart: 0,
+                    depth: layer.thickness,
+                    simplifyTolerance: baseSimplifyTolerance
+                }];
+            }
 
             if (bezelSpec.enabled && bezelMaskData && bezelShapeSet?.shapes?.length) {
                 layer.geometrySegments.push({
@@ -1241,11 +1311,25 @@ export function buildObjModelPlan({
         absorbedCount: 0
     });
 
+    const pauseEvents = magnetPocketResult.enabled
+        && magnetPocketResult.valid
+        && magnetPocketResult.config.mode === 'hidden'
+        ? [{
+            type: 'pause',
+            z: magnetPocketResult.pauseZ,
+            message: magnetPocketResult.message,
+            gcode: 'M400 U1'
+        }]
+        : [];
+    const magnetWarnings = magnetPocketResult.enabled
+        ? magnetPocketResult.errors.map((message) => ({ type: 'magnet-pocket', message }))
+        : [];
+
     return {
         outputLayers: finalizedOutputLayers,
         visibleSourceLayerIds: sourceLayerIds,
         thicknessById,
-        useBaseLayer: !!state.useBaseLayer,
+        useBaseLayer: !!(state.useBaseLayer || normalizedMagnetPocket.enabled),
         baseSourceLayerId: state.baseSourceLayerId,
         detectedBaseSourceLayerId: detectedBaseOutputLayer?.primarySourceLayerId ?? null,
         resolvedBaseOutputLayerId: resolvedBaseOutputLayer?.outputLayerId ?? null,
@@ -1266,7 +1350,9 @@ export function buildObjModelPlan({
         repairSummary,
         componentStats: aggregateComponentStats,
         layerManifest,
-        warnings: []
+        magnetPocketResult,
+        pauseEvents,
+        warnings: magnetWarnings
     };
 }
 
