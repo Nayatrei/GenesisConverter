@@ -9775,3 +9775,126 @@ body.app-shell-v2 .sidebar-sub-icon {
         grid-template-columns: 1fr;
     }
 }
+
+/* Mobile layout integrity
+   Keep navigation, working content, actions, and the brand footer in one
+   predictable document flow. These scoped rules intentionally supersede the
+   older fixed-height and fixed-footer mobile treatments above. */
+@media (max-width: 1023px) {
+    body.app-shell-v2 .app-shell,
+    body.app-shell-v2 .app-workspace {
+        height: auto;
+        min-height: 100dvh;
+        overflow: visible;
+    }
+
+    body.app-shell-v2 .workspace-topbar {
+        isolation: isolate;
+        background: rgba(8, 10, 16, 0.97);
+    }
+
+    body.app-shell-v2 .workspace-toolbar-group {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 2.5rem;
+        gap: 0.625rem;
+        align-items: start;
+    }
+
+    body.app-shell-v2 .workspace-topbar .segmented-control-container {
+        min-width: 0;
+    }
+
+    body.app-shell-v2 .workspace-topbar .segmented-control {
+        width: 100%;
+        max-width: 100%;
+        height: auto;
+        max-height: none;
+        min-height: 0;
+        min-width: 0;
+    }
+
+    body.app-shell-v2 .workspace-topbar .segmented-control-tab {
+        height: auto;
+        white-space: normal;
+    }
+
+    body.app-shell-v2 .mobile-controls-toggle {
+        position: static;
+        z-index: 1;
+    }
+
+    body.app-shell-v2 #main-content,
+    body.app-shell-v2 #output-section.card {
+        flex: 0 0 auto;
+        height: auto;
+        min-height: 0;
+        overflow: visible;
+    }
+
+    body.app-shell-v2 #output-section.card {
+        padding-bottom: 1rem !important;
+    }
+
+    body.app-shell-v2 #footer-svg-slot,
+    body.app-shell-v2 #footer-logo-slot,
+    body.app-shell-v2 #footer-raster-slot,
+    body.app-shell-v2 #footer-bulk-slot,
+    body.app-shell-v2 #footer-pdf-slot {
+        flex: 0 0 auto;
+        min-width: 0;
+        position: relative;
+    }
+
+    body.app-shell-v2 #svg-export-footer,
+    body.app-shell-v2 #logo-export-footer,
+    body.app-shell-v2 #download-footer,
+    body.app-shell-v2 #bulk-download-footer {
+        position: relative;
+        inset: auto;
+        z-index: auto;
+        width: auto;
+        max-height: none;
+        overflow: visible;
+        box-shadow: none;
+    }
+
+    body.app-shell-v2 .brand-footer {
+        isolation: isolate;
+        position: relative;
+        z-index: 1;
+    }
+
+    body.app-shell-v2.mobile-controls-open {
+        overflow: hidden;
+    }
+}
+
+@media (max-width: 900px) {
+    body.app-shell-v2 .workspace-topbar .segmented-control {
+        display: flex;
+        gap: 0.5rem;
+        overflow-x: auto;
+        overflow-y: hidden;
+        overscroll-behavior-x: contain;
+        scroll-snap-type: x proximity;
+        scrollbar-width: none;
+    }
+
+    body.app-shell-v2 .workspace-topbar .segmented-control::-webkit-scrollbar {
+        display: none;
+    }
+
+    body.app-shell-v2 .workspace-topbar .segmented-control-tab {
+        flex: 0 0 clamp(7.25rem, 39vw, 8.75rem);
+        min-height: 3.65rem;
+        scroll-snap-align: start;
+    }
+
+    body.app-shell-v2 .brand-footer {
+        padding: 2.25rem 0;
+    }
+
+    body.app-shell-v2 .brand-footer-inner {
+        padding-inline: 1rem;
+    }
+}
