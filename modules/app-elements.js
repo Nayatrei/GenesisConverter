@@ -120,7 +120,6 @@ export function createElements() {
 
         // PDF tab
         pdf: {
-            addBtn: document.getElementById('pdf-add-btn'),
             fileInput: document.getElementById('pdf-file-input'),
             dropzone: document.getElementById('pdf-dropzone'),
             fileCount: document.getElementById('pdf-file-count'),

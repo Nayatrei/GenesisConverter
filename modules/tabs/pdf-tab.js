@@ -1329,7 +1329,6 @@ export function createPdfTabController({
     }
 
     function bindEvents() {
-        elements.pdf.addBtn?.addEventListener('click', () => elements.pdf.fileInput?.click());
         elements.pdf.dropzone?.addEventListener('click', () => elements.pdf.fileInput?.click());
         elements.pdf.dropzone?.addEventListener('keydown', (event) => {
             if (event.key === 'Enter' || event.key === ' ') {
