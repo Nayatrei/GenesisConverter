@@ -269,6 +269,53 @@
                         </div>
                     </aside>
                 </div>
+
+                <section class="pdf-image-export" aria-label="Export pages as images">
+                    <div class="pdf-review-section-head">
+                        <strong>Export pages as images</strong>
+                        <span>Each output page becomes one image file</span>
+                    </div>
+                    <div class="pdf-image-export-grid">
+                        <div class="pdf-image-export-col">
+                            <span class="pdf-eyebrow">Image width</span>
+                            <div class="pdf-size-chips" role="group" aria-label="Image width presets">
+                                <button type="button" class="pdf-size-chip" data-pdf-image-width="800">800px</button>
+                                <button type="button" class="pdf-size-chip" data-pdf-image-width="1200">1200px</button>
+                                <button type="button" class="pdf-size-chip active" data-pdf-image-width="1600">1600px</button>
+                                <button type="button" class="pdf-size-chip" data-pdf-image-width="2400">2400px</button>
+                            </div>
+                            <div class="pdf-size-custom-row">
+                                <span>Custom</span>
+                                <input id="pdf-image-width-input" type="number" min="16" max="8192" placeholder="1600" aria-label="Custom image width in pixels">
+                                <span>px</span>
+                                <button id="pdf-image-width-apply" type="button">Apply</button>
+                            </div>
+                            <div class="pdf-image-export-dims">Exporting at <strong id="pdf-image-export-dims">—</strong></div>
+                        </div>
+                        <div class="pdf-image-export-col">
+                            <span class="pdf-eyebrow">Format</span>
+                            <div class="pdf-fmt-cards" role="group" aria-label="Image format">
+                                <button type="button" class="pdf-fmt-card" data-pdf-image-format="jpg" aria-pressed="false">
+                                    <strong>JPG</strong>
+                                    <span>Smallest</span>
+                                    <em id="pdf-image-est-jpg">—</em>
+                                </button>
+                                <button type="button" class="pdf-fmt-card active" data-pdf-image-format="png" aria-pressed="true">
+                                    <strong>PNG</strong>
+                                    <span>Lossless</span>
+                                    <em id="pdf-image-est-png">—</em>
+                                </button>
+                                <button type="button" class="pdf-fmt-card" data-pdf-image-format="tga" aria-pressed="false">
+                                    <strong>TGA</strong>
+                                    <span>Raw</span>
+                                    <em id="pdf-image-est-tga">—</em>
+                                </button>
+                            </div>
+                            <button id="pdf-export-images-btn" type="button" class="pdf-footer-primary pdf-image-export-btn" disabled>Download Page Images</button>
+                            <p class="pdf-tool-note">Pages export exactly as reviewed, including rotation and finishing. Multiple pages download as one ZIP.</p>
+                        </div>
+                    </div>
+                </section>
             </section>
         </div>
     </section>

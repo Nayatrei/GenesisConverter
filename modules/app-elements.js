@@ -180,7 +180,16 @@ export function createElements() {
             outputName: document.getElementById('pdf-output-name'),
             footerStatus: document.getElementById('pdf-footer-status'),
             mergeBtn: document.getElementById('pdf-merge-btn'),
-            mergeFooter: document.getElementById('pdf-merge-footer')
+            mergeFooter: document.getElementById('pdf-merge-footer'),
+            imageWidthChips: document.querySelectorAll('[data-pdf-image-width]'),
+            imageWidthInput: document.getElementById('pdf-image-width-input'),
+            imageWidthApply: document.getElementById('pdf-image-width-apply'),
+            imageExportDims: document.getElementById('pdf-image-export-dims'),
+            imageFormatCards: document.querySelectorAll('[data-pdf-image-format]'),
+            imageEstJpg: document.getElementById('pdf-image-est-jpg'),
+            imageEstPng: document.getElementById('pdf-image-est-png'),
+            imageEstTga: document.getElementById('pdf-image-est-tga'),
+            imageExportBtn: document.getElementById('pdf-export-images-btn')
         },
 
         // SVG tab

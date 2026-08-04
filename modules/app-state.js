@@ -116,6 +116,10 @@ export function createState() {
             activeStep: 1,
             activeFinishTool: 'signature',
             focusedPage: null,
+            imageExport: {
+                format: 'png',
+                targetWidth: 1600
+            },
             finish: {
                 signature: {
                     enabled: false,

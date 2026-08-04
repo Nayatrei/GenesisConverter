@@ -3,6 +3,14 @@ import {
     parsePdfPageRange,
     sanitizePdfFilename
 } from './pdf-utils.js';
+import {
+    estimateSizeBytes,
+    exportCanvasToRasterBlob,
+    formatBytes,
+    getRasterExtension,
+    sanitizeFileComponent
+} from '../raster-utils.js';
+import { createZipFile } from '../export3d.js';
 
 let pdfLibPromise = null;
 let pdfJsPromise = null;
@@ -11,6 +19,10 @@ const MAX_THUMBS = 60;
 const THUMB_WIDTH = 160;
 const MAX_REVIEW_THUMBS = 12;
 const STEP_COUNT = 3;
+const IMAGE_EXPORT_FORMATS = ['png', 'jpg', 'tga'];
+const IMAGE_WIDTH_MIN = 16;
+const IMAGE_WIDTH_MAX = 8192;
+const IMAGE_MAX_EDGE = 8192;
 
 async function getPdfLib() {
     if (!pdfLibPromise) {
@@ -130,6 +142,7 @@ export function createPdfTabController({
         if (elements.pdf.pageCount) elements.pdf.pageCount.textContent = String(totalPages);
         if (elements.pdf.errorCount) elements.pdf.errorCount.textContent = String(errorCount);
         if (elements.pdf.mergeBtn) elements.pdf.mergeBtn.disabled = !canExport;
+        if (elements.pdf.imageExportBtn) elements.pdf.imageExportBtn.disabled = !canExport;
         if (elements.pdf.nextBtn) elements.pdf.nextBtn.disabled = !canExport;
         if (elements.pdf.selectAllBtn) elements.pdf.selectAllBtn.disabled = readyFiles === 0 || isBusy;
         if (elements.pdf.clearBtn) elements.pdf.clearBtn.disabled = totalPages === 0 || isBusy;
@@ -330,12 +343,16 @@ export function createPdfTabController({
             if (!Array.isArray(item.thumbs)) {
                 item.thumbs = new Array(item.pageCount).fill(null);
             }
+            if (!Array.isArray(item.pageSizes)) {
+                item.pageSizes = new Array(item.pageCount).fill(null);
+            }
 
             for (let pageNumber = 1; pageNumber <= count; pageNumber += 1) {
                 if (!state.pdf.files.includes(item)) break;
 
                 const page = await doc.getPage(pageNumber);
                 const base = page.getViewport({ scale: 1 });
+                item.pageSizes[pageNumber - 1] = { width: base.width, height: base.height };
                 const scale = THUMB_WIDTH / Math.max(base.width, 1);
                 const viewport = page.getViewport({ scale });
                 const canvas = document.createElement('canvas');
@@ -345,7 +362,9 @@ export function createPdfTabController({
                 if (!context) throw new Error('Canvas preview is unavailable.');
                 context.fillStyle = '#ffffff';
                 context.fillRect(0, 0, canvas.width, canvas.height);
-                await page.render({ canvasContext: context, viewport }).promise;
+                // 'print' intent skips requestAnimationFrame scheduling, so
+                // thumbnails keep rendering while this tab is in the background.
+                await page.render({ canvasContext: context, viewport, intent: 'print' }).promise;
                 item.thumbs[pageNumber - 1] = canvas.toDataURL('image/jpeg', 0.86);
                 page.cleanup();
                 patchThumbCell(item, pageNumber - 1);
@@ -587,6 +606,7 @@ export function createPdfTabController({
                 status: 'loading',
                 error: '',
                 thumbs: null,
+                pageSizes: null,
                 thumbStatus: 'idle'
             };
             state.pdf.files.push(item);
@@ -943,6 +963,78 @@ export function createPdfTabController({
                 elements.pdf.reviewSummary.appendChild(row);
             });
         }
+
+        renderImageExportUi(entries);
+    }
+
+    function getEntryPixelDims(entry, targetWidth) {
+        const size = entry.item.pageSizes?.[entry.sourceIndex];
+        if (!size?.width || !size?.height) return null;
+        const swap = entry.rotation === 90 || entry.rotation === 270;
+        const baseWidth = swap ? size.height : size.width;
+        const baseHeight = swap ? size.width : size.height;
+        const scale = clampImageScale(targetWidth, baseWidth, baseHeight);
+        return {
+            width: Math.max(1, Math.round(baseWidth * scale)),
+            height: Math.max(1, Math.round(baseHeight * scale))
+        };
+    }
+
+    function setImageExportWidth(value) {
+        const width = Math.round(readBoundedNumber(
+            value,
+            IMAGE_WIDTH_MIN,
+            IMAGE_WIDTH_MAX,
+            state.pdf.imageExport.targetWidth
+        ));
+        state.pdf.imageExport.targetWidth = width;
+        if (elements.pdf.imageWidthInput) {
+            elements.pdf.imageWidthInput.value = String(width);
+        }
+        renderImageExportUi();
+    }
+
+    function setImageExportFormat(format) {
+        if (!IMAGE_EXPORT_FORMATS.includes(format)) return;
+        state.pdf.imageExport.format = format;
+        renderImageExportUi();
+    }
+
+    function renderImageExportUi(entries = getOutputEntries()) {
+        const settings = state.pdf.imageExport;
+
+        elements.pdf.imageWidthChips?.forEach((chip) => {
+            const chipWidth = Number.parseInt(chip.dataset.pdfImageWidth, 10);
+            chip.classList.toggle('active', chipWidth === settings.targetWidth);
+        });
+        if (elements.pdf.imageWidthInput && document.activeElement !== elements.pdf.imageWidthInput) {
+            elements.pdf.imageWidthInput.value = String(settings.targetWidth);
+        }
+        elements.pdf.imageFormatCards?.forEach((card) => {
+            const active = card.dataset.pdfImageFormat === settings.format;
+            card.classList.toggle('active', active);
+            card.setAttribute('aria-pressed', String(active));
+        });
+
+        const firstEntry = entries[0] || null;
+        const dims = firstEntry ? getEntryPixelDims(firstEntry, settings.targetWidth) : null;
+        if (elements.pdf.imageExportDims) {
+            elements.pdf.imageExportDims.textContent = dims
+                ? `${dims.width} × ${dims.height} px${entries.length > 1 ? ' · first page' : ''}`
+                : '—';
+        }
+
+        const estimateTargets = {
+            jpg: elements.pdf.imageEstJpg,
+            png: elements.pdf.imageEstPng,
+            tga: elements.pdf.imageEstTga
+        };
+        Object.entries(estimateTargets).forEach(([format, element]) => {
+            if (!element) return;
+            element.textContent = dims && entries.length
+                ? `≈ ${formatBytes(estimateSizeBytes(dims.width, dims.height, format, false) * entries.length)}`
+                : '—';
+        });
     }
 
     function buildReviewSummary(entries) {
@@ -989,6 +1081,69 @@ export function createPdfTabController({
         ].filter(Boolean).length;
     }
 
+    async function buildFinishedPdf({ items, outputEntries, onProgress }) {
+        const {
+            PDFDocument,
+            StandardFonts,
+            degrees,
+            rgb
+        } = await getPdfLib();
+        const finishedDoc = await PDFDocument.create();
+        const totalGroups = items.length;
+
+        for (let itemIndex = 0; itemIndex < items.length; itemIndex += 1) {
+            const item = items[itemIndex];
+            onProgress?.({ stage: 'pages', item, itemIndex, totalGroups });
+
+            const sourceDoc = await PDFDocument.load(item.bytes);
+            const copiedPages = await finishedDoc.copyPages(sourceDoc, item.selectedIndices);
+            copiedPages.forEach((page, copiedIndex) => {
+                const sourceIndex = item.selectedIndices[copiedIndex];
+                const editRotation = normalizeRotation(item.pageRotations?.[sourceIndex] || 0);
+                if (editRotation) {
+                    const sourceRotation = normalizeRotation(page.getRotation().angle || 0);
+                    page.setRotation(degrees(normalizeRotation(sourceRotation + editRotation)));
+                }
+                finishedDoc.addPage(page);
+            });
+        }
+
+        onProgress?.({ stage: 'finishing' });
+
+        const fonts = {
+            regular: await finishedDoc.embedFont(StandardFonts.Helvetica),
+            bold: await finishedDoc.embedFont(StandardFonts.HelveticaBold)
+        };
+        const signatureAsset = state.pdf.finish.signature.enabled
+            && state.pdf.finish.signature.text
+            ? await createSignatureAsset(
+                finishedDoc,
+                state.pdf.finish.signature.text,
+                state.pdf.finish.signature.size
+            )
+            : null;
+        applyFinishingToDocument({
+            document: finishedDoc,
+            entries: outputEntries,
+            finish: state.pdf.finish,
+            focusedPage: state.pdf.focusedPage,
+            fonts,
+            signatureAsset,
+            degrees,
+            rgb
+        });
+
+        finishedDoc.setProducer('Genesis Image Tools');
+        finishedDoc.setCreator('Genesis Image Tools PDF Guided Finish');
+        finishedDoc.setModificationDate(new Date());
+
+        onProgress?.({ stage: 'saving' });
+        return {
+            bytes: await finishedDoc.save(),
+            pageCount: finishedDoc.getPageCount()
+        };
+    }
+
     async function exportFinishedPdf() {
         const items = getValidMergeItems();
         const outputEntries = getOutputEntries();
@@ -1004,80 +1159,36 @@ export function createPdfTabController({
 
         let finalStatus = null;
         try {
-            const {
-                PDFDocument,
-                StandardFonts,
-                degrees,
-                rgb
-            } = await getPdfLib();
-            const finishedDoc = await PDFDocument.create();
-            const totalGroups = items.length;
-
-            for (let itemIndex = 0; itemIndex < items.length; itemIndex += 1) {
-                const item = items[itemIndex];
-                showLoader(true, {
-                    title: 'Finishing PDF...',
-                    subtitle: `${item.name} · ${item.selectedIndices.length} pages`,
-                    progress: 0.08 + (itemIndex / Math.max(totalGroups, 1)) * 0.55
-                });
-
-                const sourceDoc = await PDFDocument.load(item.bytes);
-                const copiedPages = await finishedDoc.copyPages(sourceDoc, item.selectedIndices);
-                copiedPages.forEach((page, copiedIndex) => {
-                    const sourceIndex = item.selectedIndices[copiedIndex];
-                    const editRotation = normalizeRotation(item.pageRotations?.[sourceIndex] || 0);
-                    if (editRotation) {
-                        const sourceRotation = normalizeRotation(page.getRotation().angle || 0);
-                        page.setRotation(degrees(normalizeRotation(sourceRotation + editRotation)));
+            const finished = await buildFinishedPdf({
+                items,
+                outputEntries,
+                onProgress: ({ stage, item, itemIndex, totalGroups }) => {
+                    if (stage === 'pages') {
+                        showLoader(true, {
+                            title: 'Finishing PDF...',
+                            subtitle: `${item.name} · ${item.selectedIndices.length} pages`,
+                            progress: 0.08 + (itemIndex / Math.max(totalGroups, 1)) * 0.55
+                        });
+                    } else if (stage === 'finishing') {
+                        showLoader(true, {
+                            title: 'Finishing PDF...',
+                            subtitle: 'Applying signature, stamps, and page numbers',
+                            progress: 0.7
+                        });
+                    } else if (stage === 'saving') {
+                        showLoader(true, {
+                            title: 'Finishing PDF...',
+                            subtitle: 'Saving the finished document',
+                            progress: 0.94
+                        });
                     }
-                    finishedDoc.addPage(page);
-                });
-            }
-
-            showLoader(true, {
-                title: 'Finishing PDF...',
-                subtitle: 'Applying signature, stamps, and page numbers',
-                progress: 0.7
+                }
             });
 
-            const fonts = {
-                regular: await finishedDoc.embedFont(StandardFonts.Helvetica),
-                bold: await finishedDoc.embedFont(StandardFonts.HelveticaBold)
-            };
-            const signatureAsset = state.pdf.finish.signature.enabled
-                && state.pdf.finish.signature.text
-                ? await createSignatureAsset(
-                    finishedDoc,
-                    state.pdf.finish.signature.text,
-                    state.pdf.finish.signature.size
-                )
-                : null;
-            applyFinishingToDocument({
-                document: finishedDoc,
-                entries: outputEntries,
-                finish: state.pdf.finish,
-                focusedPage: state.pdf.focusedPage,
-                fonts,
-                signatureAsset,
-                degrees,
-                rgb
-            });
-
-            finishedDoc.setProducer('Genesis Image Tools');
-            finishedDoc.setCreator('Genesis Image Tools PDF Guided Finish');
-            finishedDoc.setModificationDate(new Date());
-
-            showLoader(true, {
-                title: 'Finishing PDF...',
-                subtitle: 'Saving the finished document',
-                progress: 0.94
-            });
-
-            const finishedBytes = await finishedDoc.save();
             const filename = sanitizePdfFilename(state.pdf.outputName);
-            downloadBlob(new Blob([finishedBytes], { type: 'application/pdf' }), filename);
+            downloadBlob(new Blob([finished.bytes], { type: 'application/pdf' }), filename);
 
-            state.pdf.lastMergedPageCount = finishedDoc.getPageCount();
+            state.pdf.lastMergedPageCount = finished.pageCount;
             finalStatus = {
                 message: `Downloaded ${filename} with ${state.pdf.lastMergedPageCount} page${state.pdf.lastMergedPageCount === 1 ? '' : 's'}.`,
                 tone: 'ready'
@@ -1089,6 +1200,134 @@ export function createPdfTabController({
                 tone: 'error'
             };
         } finally {
+            state.pdf.isMerging = false;
+            showLoader(false);
+            renderSummary();
+            if (finalStatus) setStatus(finalStatus.message, finalStatus.tone);
+        }
+    }
+
+    async function exportPagesAsImages() {
+        const items = getValidMergeItems();
+        const outputEntries = getOutputEntries();
+        if (!items.length || !outputEntries.length || elements.pdf.imageExportBtn?.disabled) return;
+
+        const { format, targetWidth } = state.pdf.imageExport;
+        const extension = getRasterExtension(format);
+        const formatLabel = extension.toUpperCase();
+        const loaderTitle = `Exporting ${formatLabel} Pages...`;
+
+        state.pdf.isMerging = true;
+        renderSummary();
+        showLoader(true, {
+            title: loaderTitle,
+            subtitle: 'Preparing output pages',
+            progress: 0.04
+        });
+
+        let doc = null;
+        let finalStatus = null;
+        try {
+            const finished = await buildFinishedPdf({
+                items,
+                outputEntries,
+                onProgress: ({ stage, item, itemIndex, totalGroups }) => {
+                    if (stage === 'pages') {
+                        showLoader(true, {
+                            title: loaderTitle,
+                            subtitle: `${item.name} · ${item.selectedIndices.length} pages`,
+                            progress: 0.06 + (itemIndex / Math.max(totalGroups, 1)) * 0.2
+                        });
+                    } else if (stage === 'finishing') {
+                        showLoader(true, {
+                            title: loaderTitle,
+                            subtitle: 'Applying signature, stamps, and page numbers',
+                            progress: 0.28
+                        });
+                    }
+                }
+            });
+
+            const pdfjs = await getPdfJs();
+            doc = await pdfjs.getDocument({
+                data: finished.bytes,
+                isEvalSupported: false,
+                disableAutoFetch: true,
+                disableStream: true
+            }).promise;
+
+            const stem = sanitizeFileComponent(
+                String(state.pdf.outputName || '').replace(/\.pdf$/i, ''),
+                'pages'
+            );
+            const pageTotal = doc.numPages;
+            const digits = Math.max(2, String(pageTotal).length);
+            const files = {};
+
+            for (let pageNumber = 1; pageNumber <= pageTotal; pageNumber += 1) {
+                showLoader(true, {
+                    title: loaderTitle,
+                    subtitle: `Rendering page ${pageNumber} of ${pageTotal}`,
+                    progress: 0.32 + ((pageNumber - 1) / Math.max(pageTotal, 1)) * 0.58
+                });
+
+                const page = await doc.getPage(pageNumber);
+                const base = page.getViewport({ scale: 1 });
+                const scale = clampImageScale(targetWidth, base.width, base.height);
+                const viewport = page.getViewport({ scale });
+                const canvas = document.createElement('canvas');
+                canvas.width = Math.max(1, Math.round(viewport.width));
+                canvas.height = Math.max(1, Math.round(viewport.height));
+                const context = canvas.getContext('2d', { alpha: false });
+                if (!context) throw new Error('Canvas rendering is unavailable in this browser.');
+                context.fillStyle = '#ffffff';
+                context.fillRect(0, 0, canvas.width, canvas.height);
+                // 'print' intent renders without requestAnimationFrame scheduling,
+                // so the export keeps running while this tab is hidden.
+                await page.render({ canvasContext: context, viewport, intent: 'print' }).promise;
+                page.cleanup();
+
+                const blob = await exportCanvasToRasterBlob(canvas, format, false);
+                files[`${stem}_page_${String(pageNumber).padStart(digits, '0')}.${extension}`] = blob;
+                canvas.width = 0;
+                canvas.height = 0;
+            }
+
+            const fileNames = Object.keys(files);
+            if (!fileNames.length) {
+                throw new Error('No pages were rendered for image export.');
+            }
+
+            if (fileNames.length === 1) {
+                downloadBlob(files[fileNames[0]], fileNames[0]);
+                finalStatus = {
+                    message: `Downloaded ${fileNames[0]}.`,
+                    tone: 'ready'
+                };
+            } else {
+                showLoader(true, {
+                    title: loaderTitle,
+                    subtitle: 'Packaging ZIP archive',
+                    progress: 0.94
+                });
+                const zipBlob = await createZipFile(files);
+                const archiveName = `${stem}_${extension}_pages.zip`;
+                downloadBlob(zipBlob, archiveName);
+                finalStatus = {
+                    message: `Downloaded ${fileNames.length} ${formatLabel} page images in ${archiveName}.`,
+                    tone: 'ready'
+                };
+            }
+        } catch (error) {
+            console.error('PDF image export error:', error);
+            finalStatus = {
+                message: error?.message || 'Could not export pages as images.',
+                tone: 'error'
+            };
+        } finally {
+            if (doc) {
+                try { await doc.destroy(); } catch { /* no-op */ }
+            }
             state.pdf.isMerging = false;
             showLoader(false);
             renderSummary();
@@ -1216,8 +1455,26 @@ export function createPdfTabController({
         });
         elements.pdf.mergeBtn?.addEventListener('click', exportFinishedPdf);
 
+        elements.pdf.imageWidthChips?.forEach((chip) => {
+            chip.addEventListener('click', () => setImageExportWidth(chip.dataset.pdfImageWidth));
+        });
+        elements.pdf.imageWidthApply?.addEventListener('click', () => {
+            setImageExportWidth(elements.pdf.imageWidthInput?.value);
+        });
+        elements.pdf.imageWidthInput?.addEventListener('keydown', (event) => {
+            if (event.key === 'Enter') {
+                event.preventDefault();
+                setImageExportWidth(event.target.value);
+            }
+        });
+        elements.pdf.imageFormatCards?.forEach((card) => {
+            card.addEventListener('click', () => setImageExportFormat(card.dataset.pdfImageFormat));
+        });
+        elements.pdf.imageExportBtn?.addEventListener('click', exportPagesAsImages);
+
         syncFinishControlsFromState();
         syncStepUi();
+        renderImageExportUi();
     }
 
     function onTabActivated() {
@@ -1488,6 +1745,16 @@ function readBoundedNumber(value, min, max, fallback) {
     const parsed = Number(value);
     if (!Number.isFinite(parsed)) return fallback;
     return Math.max(min, Math.min(max, parsed));
+}
+
+function clampImageScale(targetWidth, baseWidth, baseHeight) {
+    const width = readBoundedNumber(targetWidth, IMAGE_WIDTH_MIN, IMAGE_WIDTH_MAX, IMAGE_WIDTH_MIN);
+    let scale = width / Math.max(baseWidth, 1);
+    const longestEdge = Math.max(baseWidth, baseHeight, 1) * scale;
+    if (longestEdge > IMAGE_MAX_EDGE) {
+        scale *= IMAGE_MAX_EDGE / longestEdge;
+    }
+    return Math.max(scale, 1 / Math.max(baseWidth, baseHeight, 1));
 }
 
 function isPdfFile(file) {

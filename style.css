@@ -8322,6 +8322,159 @@ body.app-shell-v2 .pdf-review-privacy span {
     line-height: 1.45;
 }
 
+/* ── PDF step 3: export pages as images ─────────────────────────────── */
+body.app-shell-v2 .pdf-image-export {
+    margin: 0 0.8rem 0.8rem;
+    padding: 0.85rem;
+    border: 1px solid var(--pdf-line);
+    border-radius: 15px;
+    background: var(--pdf-surface);
+}
+
+body.app-shell-v2 .pdf-image-export-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 1.1rem;
+}
+
+body.app-shell-v2 .pdf-image-export-col {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.55rem;
+}
+
+body.app-shell-v2 .pdf-size-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+}
+
+body.app-shell-v2 .pdf-size-chip {
+    padding: 0.42rem 0.72rem;
+    border: 1px solid var(--pdf-line-strong);
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.025);
+    color: var(--pdf-muted);
+    font-size: 0.58rem;
+    font-weight: 700;
+    transition: background 160ms ease, border-color 160ms ease, color 160ms ease;
+}
+
+body.app-shell-v2 .pdf-size-chip:hover:not(.active) {
+    border-color: rgba(var(--pdf-accent-rgb), 0.4);
+    color: var(--pdf-text);
+}
+
+body.app-shell-v2 .pdf-size-chip.active {
+    border-color: rgba(var(--pdf-accent-rgb), 0.6);
+    background: rgba(var(--pdf-accent-rgb), 0.14);
+    color: color-mix(in srgb, var(--pdf-accent) 62%, white);
+}
+
+body.app-shell-v2 .pdf-size-custom-row {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    color: var(--pdf-faint);
+    font-size: 0.56rem;
+}
+
+body.app-shell-v2 .pdf-size-custom-row input {
+    width: 5.4rem;
+    min-height: 1.95rem;
+    padding: 0.3rem 0.5rem;
+    border: 1px solid var(--pdf-line-strong);
+    border-radius: 8px;
+    background: #090c12;
+    color: var(--pdf-text);
+    font-size: 0.6rem;
+}
+
+body.app-shell-v2 .pdf-size-custom-row input:focus {
+    outline: none;
+    border-color: rgba(var(--pdf-accent-rgb), 0.55);
+}
+
+body.app-shell-v2 .pdf-size-custom-row button {
+    min-height: 1.95rem;
+    padding: 0 0.7rem;
+    border: 1px solid var(--pdf-line-strong);
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.025);
+    color: var(--pdf-muted);
+    font-size: 0.56rem;
+    font-weight: 700;
+    transition: border-color 160ms ease, color 160ms ease;
+}
+
+body.app-shell-v2 .pdf-size-custom-row button:hover {
+    border-color: rgba(var(--pdf-accent-rgb), 0.4);
+    color: var(--pdf-text);
+}
+
+body.app-shell-v2 .pdf-image-export-dims {
+    color: var(--pdf-faint);
+    font-size: 0.56rem;
+}
+
+body.app-shell-v2 .pdf-image-export-dims strong {
+    color: var(--pdf-text);
+    font-family: var(--bulk-mono-font, ui-monospace, monospace);
+    font-size: 0.6rem;
+}
+
+body.app-shell-v2 .pdf-fmt-cards {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.45rem;
+}
+
+body.app-shell-v2 .pdf-fmt-card {
+    display: grid;
+    gap: 0.16rem;
+    padding: 0.55rem 0.45rem;
+    border: 1px solid var(--pdf-line-strong);
+    border-radius: 9px;
+    background: rgba(255, 255, 255, 0.02);
+    text-align: center;
+    transition: background 160ms ease, border-color 160ms ease;
+}
+
+body.app-shell-v2 .pdf-fmt-card strong {
+    color: var(--pdf-text);
+    font-size: 0.62rem;
+}
+
+body.app-shell-v2 .pdf-fmt-card span {
+    color: var(--pdf-faint);
+    font-size: 0.5rem;
+}
+
+body.app-shell-v2 .pdf-fmt-card em {
+    color: var(--pdf-muted);
+    font-family: var(--bulk-mono-font, ui-monospace, monospace);
+    font-size: 0.5rem;
+    font-style: normal;
+}
+
+body.app-shell-v2 .pdf-fmt-card:hover:not(.active) {
+    border-color: rgba(var(--pdf-accent-rgb), 0.4);
+}
+
+body.app-shell-v2 .pdf-fmt-card.active {
+    border-color: rgba(var(--pdf-accent-rgb), 0.6);
+    background: rgba(var(--pdf-accent-rgb), 0.1);
+}
+
+body.app-shell-v2 .pdf-fmt-card.active strong {
+    color: color-mix(in srgb, var(--pdf-accent) 62%, white);
+}
+
+body.app-shell-v2 .pdf-image-export-btn {
+    width: 100%;
+}
+
 body.app-shell-v2 .pdf-guided-footer-shell {
     padding: 0.65rem 1rem !important;
 }
@@ -8415,6 +8568,10 @@ body.app-shell-v2 .pdf-footer-primary:disabled {
 
     body.app-shell-v2 .pdf-finish-layout,
     body.app-shell-v2 .pdf-review-body {
+        grid-template-columns: 1fr;
+    }
+
+    body.app-shell-v2 .pdf-image-export-grid {
         grid-template-columns: 1fr;
     }
 
