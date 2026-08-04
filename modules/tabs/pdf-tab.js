@@ -694,9 +694,6 @@ export function createPdfTabController({
             );
         });
 
-        if (elements.pdf.stepStatus) {
-            elements.pdf.stepStatus.textContent = `Step ${activeStep} of ${STEP_COUNT}`;
-        }
         if (elements.pdf.backBtn) {
             elements.pdf.backBtn.classList.toggle('hidden', activeStep === 1);
         }

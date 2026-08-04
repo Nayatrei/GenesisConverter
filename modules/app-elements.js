@@ -132,7 +132,6 @@ export function createElements() {
             guidedShell: document.getElementById('pdf-guided-shell'),
             stepButtons: document.querySelectorAll('[data-pdf-step]'),
             stepPanels: document.querySelectorAll('[data-pdf-step-panel]'),
-            stepStatus: document.getElementById('pdf-step-status'),
             backBtn: document.getElementById('pdf-back-btn'),
             nextBtn: document.getElementById('pdf-next-btn'),
             previewEmpty: document.getElementById('pdf-preview-empty'),
