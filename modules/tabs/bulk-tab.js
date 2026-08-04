@@ -17,7 +17,7 @@ import {
     loadImageMetricsFromFile,
     renderRasterBlobFromSource,
     sanitizeFileComponent
-} from '../raster-utils.js';
+} from '../raster-utils.js?v=20260804d';
 
 export function createBulkTabController({
     state,
@@ -59,14 +59,10 @@ export function createBulkTabController({
         return pathParts[pathParts.length - 1] || 'image';
     }
 
-    function getBulkSourceBaseName(entry) {
-        return getBulkSourceFileName(entry).replace(/\.[^.]+$/, '');
-    }
-
     function buildBulkExportFileName(entry, index) {
         const ext = getRasterExtension(state.bulk.exportFormat);
         if (state.bulk.keepOriginalNames) {
-            const baseName = sanitizeFileComponent(getBulkSourceBaseName(entry), 'image');
+            const baseName = sanitizeFileComponent(getBulkSourceFileName(entry), 'image');
             return `${baseName}.${ext}`;
         }
         const rawName = state.bulk.outputName.trim() || state.bulk.folderName || entry.name;
@@ -625,7 +621,7 @@ export function createBulkTabController({
             });
             const zipBlob = await createZipFile(zipEntries);
             const preservedSingleFileName = state.bulk.keepOriginalNames && state.bulk.files.length === 1
-                ? getBulkSourceBaseName(state.bulk.files[0])
+                ? getBulkSourceFileName(state.bulk.files[0])
                 : '';
             const rawArchiveName = state.bulk.outputName.trim()
                 || preservedSingleFileName

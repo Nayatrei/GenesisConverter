@@ -137,9 +137,12 @@ export function getPreserveAlphaForFormat(format, preserveAlpha) {
 
 export function sanitizeFileComponent(value, fallback = 'image') {
     const cleaned = String(value || '')
+        .normalize('NFC')
         .replace(/\.[^/.]+$/, '')
-        .replace(/[^a-z0-9._-]+/gi, '_')
-        .replace(/^_+|_+$/g, '');
+        .replace(/[\u0000-\u001f\u007f<>:"/\\|?*]+/g, '_')
+        .replace(/\s+/g, ' ')
+        .trim()
+        .replace(/^[. ]+|[. ]+$/g, '');
     return cleaned || fallback;
 }
 

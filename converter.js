@@ -1,4 +1,4 @@
-import { createBulkTabController } from './modules/tabs/bulk-tab.js?v=20260804c';
+import { createBulkTabController } from './modules/tabs/bulk-tab.js?v=20260804d';
 import { createRasterTabController } from './modules/tabs/raster-tab.js';
 import { createSvgTabController } from './modules/tabs/svg-tab.js?v=20260804b';
 import { createLogoTabController } from './modules/tabs/logo-tab.js?v=20260804b';

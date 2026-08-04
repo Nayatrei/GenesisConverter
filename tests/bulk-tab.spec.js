@@ -1,4 +1,5 @@
 const fs = require('fs');
+const path = require('path');
 const { test, expect } = require('@playwright/test');
 
 function getZipEntryNames(buffer) {
@@ -81,4 +82,26 @@ test('single-file Bulk ZIP uses the original filename instead of the folder name
 
     const downloadPath = await download.path();
     expect(getZipEntryNames(fs.readFileSync(downloadPath))).toEqual(['original-photo.png']);
+});
+
+test('25% resize preserves a Korean source filename', async ({ page }, testInfo) => {
+    const inputDirectory = testInfo.outputPath('20260802 ODPC Headshot');
+    fs.mkdirSync(inputDirectory, { recursive: true });
+    fs.copyFileSync(path.join(__dirname, '..', 'favicon.jpg'), `${inputDirectory}/김경환 장로.JPG`);
+
+    await page.goto('/converter.html');
+    await page.locator('.segmented-control-tab[data-tab="bulk"]').click();
+    await page.locator('#bulk-folder-input').setInputFiles(inputDirectory);
+    await page.locator('.bulk-resize-chip[data-scale="25"]').click();
+
+    await expect(page.locator('#bulk-preview-scale')).toHaveText('25%');
+    await expect(page.locator('#bulk-preview-list')).toContainText('김경환 장로.png');
+
+    const downloadPromise = page.waitForEvent('download');
+    await page.locator('#bulk-download-btn').click();
+    const download = await downloadPromise;
+    expect(download.suggestedFilename()).toBe('김경환 장로.zip');
+
+    const downloadPath = await download.path();
+    expect(getZipEntryNames(fs.readFileSync(downloadPath))).toEqual(['김경환 장로.png']);
 });
