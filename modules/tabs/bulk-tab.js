@@ -49,11 +49,24 @@ export function createBulkTabController({
         return cell;
     }
 
+    function getBulkSourceFileName(entry) {
+        const sourcePath = entry.relativePath
+            || entry.file?.webkitRelativePath
+            || entry.file?.name
+            || entry.name
+            || 'image';
+        const pathParts = String(sourcePath).split(/[\\/]/).filter(Boolean);
+        return pathParts[pathParts.length - 1] || 'image';
+    }
+
+    function getBulkSourceBaseName(entry) {
+        return getBulkSourceFileName(entry).replace(/\.[^.]+$/, '');
+    }
+
     function buildBulkExportFileName(entry, index) {
         const ext = getRasterExtension(state.bulk.exportFormat);
         if (state.bulk.keepOriginalNames) {
-            const originalBase = entry.name.replace(/\.[^.]+$/, '');
-            const baseName = sanitizeFileComponent(originalBase, 'image');
+            const baseName = sanitizeFileComponent(getBulkSourceBaseName(entry), 'image');
             return `${baseName}.${ext}`;
         }
         const rawName = state.bulk.outputName.trim() || state.bulk.folderName || entry.name;
@@ -554,6 +567,8 @@ export function createBulkTabController({
             return;
         }
 
+        state.bulk.keepOriginalNames = elements.bulkKeepNamesCheckbox?.checked
+            ?? state.bulk.keepOriginalNames;
         const preserveAlpha = getPreserveAlphaForFormat(state.bulk.exportFormat, state.bulk.preserveAlpha);
         const exportNames = buildBulkExportFileNames(state.bulk.files);
         const zipEntries = Object.create(null);
@@ -609,7 +624,13 @@ export function createBulkTabController({
                 progress: 1
             });
             const zipBlob = await createZipFile(zipEntries);
-            const rawArchiveName = state.bulk.outputName.trim() || state.bulk.folderName || 'bulk_export';
+            const preservedSingleFileName = state.bulk.keepOriginalNames && state.bulk.files.length === 1
+                ? getBulkSourceBaseName(state.bulk.files[0])
+                : '';
+            const rawArchiveName = state.bulk.outputName.trim()
+                || preservedSingleFileName
+                || state.bulk.folderName
+                || 'bulk_export';
             const archiveName = `${sanitizeFileComponent(rawArchiveName, 'bulk_export')}.zip`;
             downloadBlob(zipBlob, archiveName);
             elements.statusText.textContent = `Exported ${processedCount} image(s) to ${archiveName}.${failedCount ? ` Skipped ${failedCount} unreadable file(s).` : ''}`;

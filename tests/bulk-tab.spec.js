@@ -58,3 +58,27 @@ test('Bulk ZIP keeps every file and preserves filenames by default', async ({ pa
     expect(zipEntries).toEqual(['shared.png', 'shared_2.png', 'unique.png']);
     await expect(page.locator('#status-text')).toContainText('Exported 3 image(s)');
 });
+
+test('single-file Bulk ZIP uses the original filename instead of the folder name', async ({ page }, testInfo) => {
+    const inputDirectory = testInfo.outputPath('folder-name-must-not-win');
+    fs.mkdirSync(inputDirectory, { recursive: true });
+    fs.writeFileSync(
+        `${inputDirectory}/original-photo.svg`,
+        '<svg xmlns="http://www.w3.org/2000/svg" width="4" height="4"><rect width="4" height="4" fill="#ff00ff"/></svg>'
+    );
+
+    await page.goto('/converter.html');
+    await page.locator('.segmented-control-tab[data-tab="bulk"]').click();
+    await page.locator('#bulk-folder-input').setInputFiles(inputDirectory);
+
+    await expect(page.locator('#bulk-keep-names')).toBeChecked();
+    await expect(page.locator('#bulk-preview-list')).toContainText('original-photo.png');
+
+    const downloadPromise = page.waitForEvent('download');
+    await page.locator('#bulk-download-btn').click();
+    const download = await downloadPromise;
+    expect(download.suggestedFilename()).toBe('original-photo.zip');
+
+    const downloadPath = await download.path();
+    expect(getZipEntryNames(fs.readFileSync(downloadPath))).toEqual(['original-photo.png']);
+});
