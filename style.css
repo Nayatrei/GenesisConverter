@@ -8263,27 +8263,6 @@ body.app-shell-v2 .pdf-review-summary-row.active strong {
     color: var(--pdf-text);
 }
 
-body.app-shell-v2 .pdf-review-privacy {
-    display: grid;
-    gap: 0.28rem;
-    margin-top: 0.85rem;
-    padding: 0.7rem;
-    border: 1px solid rgba(var(--pdf-accent-rgb), 0.28);
-    border-radius: 9px;
-    background: rgba(var(--pdf-accent-rgb), 0.06);
-}
-
-body.app-shell-v2 .pdf-review-privacy strong {
-    color: color-mix(in srgb, var(--pdf-accent) 56%, white);
-    font-size: 0.62rem;
-}
-
-body.app-shell-v2 .pdf-review-privacy span {
-    color: var(--pdf-muted);
-    font-size: 0.55rem;
-    line-height: 1.45;
-}
-
 /* ── PDF step 3: export pages as images ─────────────────────────────── */
 body.app-shell-v2 .pdf-image-export {
     margin: 0 0.8rem 0.8rem;
