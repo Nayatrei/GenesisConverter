@@ -61,6 +61,27 @@ export function createBulkTabController({
         return `${baseName}_${index}.${ext}`;
     }
 
+    function buildBulkExportFileNames(entries) {
+        const usedNames = new Set();
+
+        return entries.map((entry, index) => {
+            const preferredName = buildBulkExportFileName(entry, index + 1);
+            const extensionIndex = preferredName.lastIndexOf('.');
+            const stem = extensionIndex > 0 ? preferredName.slice(0, extensionIndex) : preferredName;
+            const extension = extensionIndex > 0 ? preferredName.slice(extensionIndex) : '';
+            let exportName = preferredName;
+            let duplicateNumber = 2;
+
+            while (usedNames.has(exportName.toLocaleLowerCase())) {
+                exportName = `${stem}_${duplicateNumber}${extension}`;
+                duplicateNumber += 1;
+            }
+
+            usedNames.add(exportName.toLocaleLowerCase());
+            return exportName;
+        });
+    }
+
     function computeBulkTarget(entry) {
         if (state.bulk.resizeMode === 'fixed') {
             return {
@@ -381,6 +402,7 @@ export function createBulkTabController({
 
     function updatePreview() {
         const preserveAlpha = getPreserveAlphaForFormat(state.bulk.exportFormat, state.bulk.preserveAlpha);
+        const exportNames = buildBulkExportFileNames(state.bulk.files);
         const previewItems = state.bulk.files.map((entry, index) => {
             const target = computeBulkTarget(entry);
             const estimateCacheKey = getBulkEstimateCacheKey(entry, target, state.bulk.exportFormat, preserveAlpha);
@@ -392,7 +414,7 @@ export function createBulkTabController({
                 target,
                 estimatedBytes,
                 estimateCacheKey,
-                exportName: buildBulkExportFileName(entry, index + 1)
+                exportName: exportNames[index]
             };
         });
 
@@ -533,7 +555,8 @@ export function createBulkTabController({
         }
 
         const preserveAlpha = getPreserveAlphaForFormat(state.bulk.exportFormat, state.bulk.preserveAlpha);
-        const zipEntries = {};
+        const exportNames = buildBulkExportFileNames(state.bulk.files);
+        const zipEntries = Object.create(null);
         let processedCount = 0;
         let failedCount = 0;
 
@@ -558,7 +581,7 @@ export function createBulkTabController({
                     try {
                         const target = computeBulkTarget(entry);
                         const blob = await renderRasterBlobFromSource(img, target, state.bulk.exportFormat, preserveAlpha);
-                        zipEntries[buildBulkExportFileName(entry, index + 1)] = blob;
+                        zipEntries[exportNames[index]] = blob;
                         processedCount++;
                     } finally {
                         cleanup();

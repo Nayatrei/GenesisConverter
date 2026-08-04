@@ -1,4 +1,4 @@
-import { createBulkTabController } from './modules/tabs/bulk-tab.js';
+import { createBulkTabController } from './modules/tabs/bulk-tab.js?v=20260804a';
 import { createRasterTabController } from './modules/tabs/raster-tab.js';
 import { createSvgTabController } from './modules/tabs/svg-tab.js?v=20260726a';
 import { createLogoTabController } from './modules/tabs/logo-tab.js?v=20260726a';
@@ -11,13 +11,13 @@ import {
     normalizeImageBlob
 } from './modules/raster-utils.js';
 import { createElements } from './modules/app-elements.js?v=20260803b';
-import { createState } from './modules/app-state.js?v=20260803b';
+import { createState } from './modules/app-state.js?v=20260804a';
 import { applyTabCase, TAB_CASES } from './modules/tab-cases.js?v=20260725a';
 
 async function loadTabPartials() {
     const tabs = ['svg', 'logo', 'raster', 'bulk', 'pdf'];
     await Promise.all(tabs.map(async (name) => {
-        const res = await fetch(`modules/tabs/html/tab-${name}.html?v=20260803b`);
+        const res = await fetch(`modules/tabs/html/tab-${name}.html?v=20260804a`);
         const html = await res.text();
         const tmp = document.createElement('div');
         tmp.innerHTML = html;

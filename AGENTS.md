@@ -1,20 +1,15 @@
 <claude-mem-context>
 # Memory Context
 
-# [GenesisImageConverter] recent context, 2026-07-26 6:56am EDT
+# [GenesisImageConverter] recent context, 2026-08-04 9:59am EDT
 
 Legend: 🎯session 🔴bugfix 🟣feature 🔄refactor ✅change 🔵discovery ⚖️decision 🚨security_alert 🔐security_note
 Format: ID TIME TYPE TITLE
 Fetch details: get_observations([IDs]) | Search: mem-search skill
 
-Stats: 50 obs (15,607t read) | 878,390t work | 98% savings
+Stats: 50 obs (18,443t read) | 1,214,554t work | 98% savings
 
 ### Jun 16, 2026
-537 11:46a 🔄 applyTabCase() absorbs tab chrome toggling: active button, export panel, footer visibility
-538 " 🔄 applyTabCase() consolidates resolution notice hiding via hideResolutionNotice registry flag
-539 " 🟣 app-elements.js: elements.pdf expanded with all edit mode and mode switcher element refs
-540 11:47a 🔄 converter.js: setOriginalPanelMode() and syncImportPanel() fully removed; replaced with applyCurrentTabCase()
-541 " 🔄 switchExportTab() reduced from 37 to 18 lines; all layout logic delegated to applyCurrentTabCase()
 S120 PDF tab column-split implementation (Tasks 7-11): move file controls to left sidebar, add merge preview surface to right workspace (Jun 16 at 11:48 AM)
 S118 Frontend architecture refactor: replace scattered classList toggle "bandage method" with declarative TAB_CASES registry system — completed and verified in browser (Jun 16 at 11:48 AM)
 S121 PDF tab column-split feature — Tasks 7–11 completed; awaiting user direction on next step (pdf.js thumbnails vs layout adjustments) (Jun 16 at 11:51 AM)
@@ -23,25 +18,7 @@ S122 User approved PDF tab column-split and requested adding pdf.js thumbnail pr
 S124 User approved PDF tab column-split; requested pdf.js thumbnail previews; Task 12 created to vendor pdf.js (Jun 16 at 11:56 AM)
 S123 User approved PDF tab column-split result and requested pdf.js thumbnail previews in workspace preview cards (Jun 16 at 11:56 AM)
 S125 Add ZIP download for image tab convert button — currently downloads each converted file individually (Jun 16 at 12:05 PM)
-553 1:12p 🔵 Environment check before pdf.js vendoring
-561 " 🟣 pdfjs-dist 4.7.76 installed to node_modules
-562 " 🟣 pdf.js ESM files vendored to /vendor/pdfjs/
-564 " 🔵 server.js read to verify /vendor/ static serving
-563 1:23p 🟣 pdf.js vendor updated: pdf.worker.min.mjs used instead of pdf.worker.mjs
-565 1:25p 🔵 pdf-tab.js lazy-load pattern for vendor dependencies
-566 " ⚖️ pdf.js loader design: getPdfJs() with isEvalSupported:false
-567 " ⚖️ Thumbnail rendering architecture: progressive, capped at 60 pages, cached on item.thumbs
-568 3:10p 🔵 pdf-tab.js renderPreview() full implementation read — chip structure confirmed
-570 " 🟣 pdf-tab.js: renderPreview() upgraded to thumbnail grid with buildThumbGrid(), renderThumbnails(), patchThumbCell(), togglePageSelection()
-569 3:11p 🟣 getPdfJs() lazy loader added to pdf-tab.js with worker URL and thumbnail constants
-571 3:12p 🔵 pdf-tab.js now 615 lines after thumbnail additions; loadPdfItem() still missing renderThumbnails() call
-572 " 🟣 Item state shape updated with thumbs and thumbStatus fields
-573 " 🟣 loadPdfItem() now fires renderThumbnails() non-blocking after file is ready
-574 3:13p 🟣 Thumbnail click handler wired in bindEvents() via event delegation on previewList
-628 " 🔴 PDF Thumbnail Grid Not Rendering / Pages Not Selectable - Bug Report
-629 3:33p 🔵 Image Tab Convert Logic: Individual File Downloads, No ZIP
-630 " ✅ fflate installed as ZIP dependency for image convert feature
-631 " 🔵 fflate ESM build location confirmed
+631 3:33p 🔵 fflate ESM build location confirmed
 632 " 🔵 Git Status: vendor/pdfjs Untracked, Other Files Modified
 633 3:34p ✅ fflate ESM vendored to vendor/fflate/browser.js
 634 " 🔵 Cache-busting version token pattern in GenesisImageConverter
@@ -71,6 +48,29 @@ S126 Add ZIP download for image tab convert button + fix PDF thumbnail cache-bus
 5614 4:50a 🔵 getVisibleLayerIndices Implementation: Only Filters Empty Layers, Not Hidden State
 5615 " 🔵 Layer Stack HTML and CSS Structure for Toggle Feature Implementation
 5616 " 🔵 Full Layer Toggle Implementation Map: updateFilteredPreview is the Central Re-render Trigger
+5617 6:56a ⚖️ Layer Toggle Feature Implementation Plan Finalized in 4 Steps
+5618 6:57a 🔵 Module Version String is 20260725j; Playwright is the Test Framework; No CSS Framework Build Step
+5619 " 🔵 State Reset Pattern: No hiddenSourceLayerIds Reset Found; Must Be Added to traceVectorPaths Flow
+5620 " 🔵 Geometry Cache Key Missing Hidden Layer State; getDataToExport Also Needs Hidden Layer Filtering
+5621 " 🔵 SVG Layer Export and Silhouette Also Use getVisibleLayerIndices; All Export Paths Flow Through Same Closure
+5622 6:58a 🟣 Layer Visibility Toggle Core Infrastructure Implemented Across 5 Files
+5623 6:59a 🟣 Eye Toggle Buttons and Background Quick-Action Added to Layer Stack UI in preview3d.js
+5624 7:00a 🟣 Layer Visibility Toggle UI Fully Implemented: Buttons, Hidden Rows, CSS, and Background Badge
+5625 7:01a 🔵 Logo Tab Missing background-layer-toggle Button and logo-background-layer-toggle Element
+5626 7:02a 🔵 Layer Toggle Implementation Diff: 369 Insertions Across 9 Files; Version Strings Not Yet Bumped
+5627 " 🔵 Logo-tab.js Patch Did Not Apply: Still Imports Old trace-utils Version and Missing detectBackgroundLayerIndex
+5628 " 🔴 logo-tab.js Patch Re-Applied: detectBackgroundLayerIndex Import and hiddenSourceLayerIds Wiring Fixed
+5629 " 🔵 Playwright layer-visibility test #2 failing: expects 3 layer rows but gets 2
+5630 " 🔵 Playwright test failure screenshot shows 2-layer image in layer stack
+5631 7:14a 🔵 GenesisImageConverter Playwright Test Suite Running 38 Tests
+5632 7:15a 🔵 Playwright Session ID Collision: GenesisImageConverter Tests Receiving Wrong Project Output
+5633 " 🔵 PDF Tab Uses standardFontDataUrl API — Missing Parameter Warning
+5634 " 🔵 3D Printing/Logo Tool: All 38 Playwright Tests Passed in 34.9 Seconds
+5635 7:18a 🔵 GenesisImageConverter QA Session Completed — 38/38 Tests Passed, UI Verified
+5636 7:19a 🔵 3D Logo Tool: Oversized Model Auto-Fit Test Takes 1 Minute to Run
+5637 " 🔵 GenesisImageConverter Has Its Own converter.js and modules/app-state.js Files
+5638 " 🔵 GenesisImageConverter layer-visibility.spec.js Tests Confirmed — Different from 3D Tool's
+5639 7:20a 🟣 GenesisImageConverter: Layer Visibility Toggle and Background Detection Feature Complete
 
-Access 878k tokens of past work via get_observations([IDs]) or mem-search skill.
+Access 1215k tokens of past work via get_observations([IDs]) or mem-search skill.
 </claude-mem-context>

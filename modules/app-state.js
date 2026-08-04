@@ -95,7 +95,7 @@ export function createState() {
             targetWidth: 1024,
             targetHeight: 1024,
             fitMode: 'contain',
-            keepOriginalNames: false,
+            keepOriginalNames: true,
             outputName: '',
             selectedPreviewIndex: -1,
             previewItems: [],
