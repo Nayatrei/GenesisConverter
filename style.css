@@ -6995,9 +6995,27 @@ body.app-shell-v2 .pdf-v2 {
 .pdf-dropzone--compact .pdf-dropzone-title { font-size: 0.82rem; }
 .pdf-dropzone--compact .pdf-dropzone-copy { font-size: 0.7rem; }
 
-.pdf-summary-grid--sidebar { margin: 0.85rem 0 0; gap: 0.4rem; }
-.pdf-summary-grid--sidebar .pdf-summary-stat { padding: 0.5rem 0.45rem; }
-.pdf-summary-grid--sidebar .pdf-summary-stat strong { font-size: 1rem; }
+/* Sidebar stats: one slim inline row, no card chrome — the file rows
+   below carry the detail, this is just a glanceable count. */
+.pdf-summary-grid--sidebar {
+    display: flex;
+    gap: 1.1rem;
+    margin: 0.7rem 0.15rem 0;
+}
+.pdf-summary-grid--sidebar .pdf-summary-stat {
+    display: flex;
+    align-items: baseline;
+    gap: 0.35rem;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: none;
+}
+.pdf-summary-grid--sidebar .pdf-summary-stat span {
+    margin-bottom: 0;
+    font-size: 9px;
+}
+.pdf-summary-grid--sidebar .pdf-summary-stat strong { font-size: 0.85rem; }
 
 .pdf-sidebar .pdf-status { margin-top: 0.7rem; }
 .pdf-sidebar-queue { margin-top: 0.7rem; }
