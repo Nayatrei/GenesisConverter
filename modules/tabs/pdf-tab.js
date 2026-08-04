@@ -907,6 +907,8 @@ export function createPdfTabController({
         }
 
         if (elements.pdf.reviewList) {
+            elements.pdf.reviewOverflowNote?.classList.toggle('hidden', entries.length <= MAX_REVIEW_THUMBS);
+            const multipleFiles = new Set(entries.map((entry) => entry.fileId)).size > 1;
             elements.pdf.reviewList.textContent = '';
             entries.slice(0, MAX_REVIEW_THUMBS).forEach((entry) => {
                 const card = document.createElement('article');
@@ -926,7 +928,9 @@ export function createPdfTabController({
                 const order = document.createElement('strong');
                 order.textContent = String(entry.outputIndex + 1).padStart(2, '0');
                 const source = document.createElement('span');
-                source.textContent = `${entry.fileName} · ${entry.sourceIndex + 1}`;
+                source.textContent = multipleFiles
+                    ? `${entry.fileName} · ${entry.sourceIndex + 1}`
+                    : `page ${entry.sourceIndex + 1}`;
                 meta.append(order, source);
 
                 card.append(frame, meta);

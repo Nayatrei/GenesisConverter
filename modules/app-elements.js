@@ -170,6 +170,7 @@ export function createElements() {
             pageNumberStart: document.getElementById('pdf-page-number-start'),
             pageNumberSize: document.getElementById('pdf-page-number-size'),
             reviewList: document.getElementById('pdf-review-list'),
+            reviewOverflowNote: document.getElementById('pdf-review-overflow-note'),
             reviewPageCount: document.getElementById('pdf-review-page-count'),
             reviewEditCount: document.getElementById('pdf-review-edit-count'),
             reviewFileCount: document.getElementById('pdf-review-file-count'),

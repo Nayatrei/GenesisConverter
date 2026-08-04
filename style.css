@@ -7773,20 +7773,28 @@ body.app-shell-v2 .pdf-thumb-num {
     font-size: 0.52rem;
 }
 
+/* Included is the default state — keep it quiet. Removed is the
+   exception, so it carries the warning tint. */
 body.app-shell-v2 .pdf-thumb-toggle {
     min-height: 1.35rem;
     padding: 0 0.38rem;
-    border: 1px solid var(--pdf-line);
+    border: 1px solid rgba(216, 139, 134, 0.45);
     border-radius: 6px;
-    background: rgba(255, 255, 255, 0.025);
-    color: var(--pdf-faint);
+    background: rgba(216, 139, 134, 0.08);
+    color: #d88b86;
     font-size: 0.48rem;
     font-weight: 750;
 }
 
 body.app-shell-v2 .pdf-thumb.is-included .pdf-thumb-toggle {
-    border-color: rgba(var(--pdf-accent-rgb), 0.35);
-    color: color-mix(in srgb, var(--pdf-accent) 60%, white);
+    border-color: transparent;
+    background: transparent;
+    color: var(--pdf-faint);
+}
+
+body.app-shell-v2 .pdf-thumb.is-included .pdf-thumb-toggle:hover {
+    border-color: var(--pdf-line);
+    color: var(--pdf-muted);
 }
 
 body.app-shell-v2 .pdf-thumb-preview:focus-visible,
