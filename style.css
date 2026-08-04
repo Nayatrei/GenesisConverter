@@ -6270,6 +6270,10 @@ body.app-shell-v2 .workspace-topbar .segmented-control {
     grid-template-columns: repeat(5, minmax(0, 1fr));
     gap: 0.65rem;
     width: 100%;
+    /* Release the legacy 48px pill height so wrapped tab rows occupy real
+       layout space — otherwise content flows under them on narrow screens. */
+    height: auto;
+    max-height: none;
     padding: 0;
     overflow: visible;
     border: 0;
