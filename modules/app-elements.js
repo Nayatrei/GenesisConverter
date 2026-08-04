@@ -123,7 +123,6 @@ export function createElements() {
             addBtn: document.getElementById('pdf-add-btn'),
             fileInput: document.getElementById('pdf-file-input'),
             dropzone: document.getElementById('pdf-dropzone'),
-            status: document.getElementById('pdf-status'),
             fileCount: document.getElementById('pdf-file-count'),
             pageCount: document.getElementById('pdf-page-count'),
             errorCount: document.getElementById('pdf-error-count'),

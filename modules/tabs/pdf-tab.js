@@ -113,10 +113,6 @@ export function createPdfTabController({
     }
 
     function setStatus(message, tone = 'muted') {
-        if (elements.pdf.status) {
-            elements.pdf.status.textContent = message;
-            elements.pdf.status.dataset.tone = tone;
-        }
         if (elements.pdf.footerStatus) {
             elements.pdf.footerStatus.textContent = message;
             elements.pdf.footerStatus.dataset.tone = tone;
