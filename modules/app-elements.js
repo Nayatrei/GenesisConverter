@@ -125,7 +125,6 @@ export function createElements() {
             fileCount: document.getElementById('pdf-file-count'),
             pageCount: document.getElementById('pdf-page-count'),
             errorCount: document.getElementById('pdf-error-count'),
-            emptyState: document.getElementById('pdf-empty-state'),
             fileList: document.getElementById('pdf-file-list'),
             guidedShell: document.getElementById('pdf-guided-shell'),
             stepButtons: document.querySelectorAll('[data-pdf-step]'),

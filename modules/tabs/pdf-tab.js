@@ -170,7 +170,6 @@ export function createPdfTabController({
         if (!list) return;
 
         list.textContent = '';
-        elements.pdf.emptyState?.classList.toggle('hidden', state.pdf.files.length > 0);
 
         state.pdf.files.forEach((item, index) => {
             list.appendChild(createFileRow(item, index));
