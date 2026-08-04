@@ -1,4 +1,6 @@
 const { defineConfig } = require('@playwright/test');
+const port = process.env.PLAYWRIGHT_PORT || '4173';
+const baseURL = `http://127.0.0.1:${port}`;
 
 module.exports = defineConfig({
     testDir: './tests',
@@ -7,7 +9,7 @@ module.exports = defineConfig({
         timeout: 20_000
     },
     use: {
-        baseURL: 'http://127.0.0.1:4173',
+        baseURL,
         viewport: { width: 1440, height: 1280 },
         deviceScaleFactor: 1,
         colorScheme: 'dark',
@@ -23,8 +25,8 @@ module.exports = defineConfig({
         }
     ],
     webServer: {
-        command: 'node server.js',
-        url: 'http://127.0.0.1:4173/converter.html',
+        command: `PORT=${port} node server.js`,
+        url: `${baseURL}/converter.html`,
         reuseExistingServer: true,
         timeout: 120_000
     }

@@ -91,6 +91,28 @@ test('PDF tab is registered as fifth tab and hides image import sidebar', async 
     await expect(page.locator('#pdf-step-review')).toBeHidden();
 });
 
+test('tab slugs support direct visits and browser history', async ({ page }) => {
+    await page.goto('/bulk');
+    await expect(page).toHaveURL(/\/bulk$/);
+    await expect(page.locator('.segmented-control-tab[data-tab="bulk"]')).toHaveClass(/active/);
+    await expect(page.locator('#tab-bulk')).toBeVisible();
+
+    await page.locator('.segmented-control-tab[data-tab="pdf"]').click();
+    await expect(page).toHaveURL(/\/pdf$/);
+    await expect(page.locator('#tab-pdf')).toBeVisible();
+
+    await page.goBack();
+    await expect(page).toHaveURL(/\/bulk$/);
+    await expect(page.locator('.segmented-control-tab[data-tab="bulk"]')).toHaveClass(/active/);
+    await expect(page.locator('#tab-bulk')).toBeVisible();
+});
+
+test('legacy converter URL canonicalizes to the 3D OBJ slug', async ({ page }) => {
+    await page.goto('/converter.html');
+    await expect(page).toHaveURL(/\/3d-obj$/);
+    await expect(page.locator('.segmented-control-tab[data-tab="svg"]')).toHaveClass(/active/);
+});
+
 test('PDF guided finish arranges, rotates, finishes, reviews, and downloads output', async ({ page }) => {
     const alphaPdf = await buildPdfBuffer('alpha', [[210, 211], [220, 221]]);
     const betaPdf = await buildPdfBuffer('beta', [[310, 311], [320, 321], [330, 331]]);

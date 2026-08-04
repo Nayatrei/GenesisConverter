@@ -1,11 +1,177 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <meta http-equiv="refresh" content="0; url=converter.html">
-    <title>Genesis Image Tools</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Genesis Image Tools — 이미지와 3D 작업을 한곳에서</title>
+    <meta name="description" content="이미지를 얕은 3D 레이어로 만들고, 로고를 입체화하고, 이미지 크기와 PDF를 브라우저 안에서 정리하세요.">
+    <meta property="og:title" content="Genesis Image Tools">
+    <meta property="og:description" content="Image, 3D, resize, bulk, and PDF tools in your browser. 이미지와 3D 작업을 브라우저 안에서 간편하게 처리하세요.">
+    <meta property="og:type" content="website">
+    <meta property="og:image" content="favIcon.png">
+    <link rel="icon" type="image/png" href="favIcon.png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Noto+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="landing.css?v=20260804a">
+    <script src="landing.js?v=20260804a" defer></script>
 </head>
 <body>
-    <script>window.location.replace('converter.html');</script>
+    <a class="skip-link" href="#tools">도구 선택으로 건너뛰기 / Skip to tools</a>
+
+    <header class="site-header">
+        <a class="brand" href="/" aria-label="Genesis Image Tools 홈 / Home">
+            <img src="favIcon.png" alt="" width="38" height="38">
+            <span class="brand-name">Genesis</span>
+            <span class="brand-product">Image Tools</span>
+        </a>
+        <nav class="site-nav" aria-label="주요 탐색 / Main navigation">
+            <a href="#about">소개 <span aria-hidden="true">·</span> About</a>
+            <a class="recent-tool" id="recent-tool-link" href="/3d-obj">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7M3 4v5h5M12 7v5l3 2"/></svg>
+                <span>최근 도구 <span aria-hidden="true">·</span> Recent tool</span>
+            </a>
+        </nav>
+    </header>
+
+    <main>
+        <section class="hero" id="about" aria-labelledby="hero-title">
+            <div class="hero-copy">
+                <p class="eyebrow">START WITH AN OUTCOME <span>결과부터 시작하세요</span></p>
+                <h1 id="hero-title">필요한 결과부터<br><span>시작하세요.</span></h1>
+                <p class="hero-title-en" lang="en">Start with the result you need.</p>
+                <p class="hero-description">
+                    이미지를 3D 레이어로 만들고, 크기를 바꾸고, PDF를 정리하세요.
+                    <span lang="en">Turn images into layered 3D, resize files, and organize PDFs.</span>
+                </p>
+            </div>
+            <div class="hero-note" aria-label="서비스 특징 / Service details">
+                <span class="status-dot" aria-hidden="true"></span>
+                <p><strong>브라우저 안에서 안전하게</strong><span lang="en">Private, in-browser processing</span></p>
+            </div>
+        </section>
+
+        <section class="tool-grid" id="tools" aria-label="도구 선택 / Choose a tool">
+            <a class="tool-card tool-card-3d" href="/3d-obj" data-tool-path="/3d-obj" style="--order: 0">
+                <div class="tool-copy">
+                    <div class="tool-heading">
+                        <span class="tool-icon" aria-hidden="true">
+                            <svg viewBox="0 0 24 24"><path d="m12 2 8 4.5v11L12 22l-8-4.5v-11L12 2Z"/><path d="m4 6.5 8 4.5 8-4.5M12 11v11"/></svg>
+                        </span>
+                        <span class="tool-number">01</span>
+                    </div>
+                    <p class="tool-name-en" lang="en">Image to 3D</p>
+                    <h2>이미지를 3D로</h2>
+                    <p class="tool-description">평면 이미지의 색상 영역을 추적해 얕은 3D 레이어로 만듭니다.</p>
+                    <p class="tool-description-en" lang="en">Trace a flat image into shallow, printable color layers.</p>
+                    <span class="tool-action">도구 열기 <span aria-hidden="true">·</span> Open tool <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 10h11M11 6l4 4-4 4"/></svg></span>
+                </div>
+                <div class="tool-visual image-3d-visual" aria-label="평면 이미지가 얕은 3D 레이어로 변환되는 예시 / Flat image converted into a shallow 3D relief">
+                    <div class="conversion-stage source-stage">
+                        <span class="stage-label">FLAT IMAGE <b>평면 이미지</b></span>
+                        <div class="source-art">
+                            <img src="testImage.png" alt="I am an artist 평면 그래픽">
+                        </div>
+                    </div>
+                    <div class="conversion-arrow" aria-hidden="true">
+                        <span></span>
+                        <svg viewBox="0 0 32 16"><path d="M1 8h27M22 2l6 6-6 6"/></svg>
+                    </div>
+                    <div class="conversion-stage relief-stage">
+                        <span class="stage-label">LAYERED 3D <b>얕은 3D 레이어</b></span>
+                        <div class="relief-stack" aria-hidden="true">
+                            <span class="relief-back relief-layer"></span>
+                            <span class="relief-mid relief-layer"></span>
+                            <span class="relief-front relief-layer"><img src="testImage.png" alt=""></span>
+                        </div>
+                    </div>
+                </div>
+            </a>
+
+            <a class="tool-card tool-card-logo" href="/logo" data-tool-path="/logo" style="--order: 1">
+                <div class="tool-copy">
+                    <div class="tool-heading">
+                        <span class="tool-icon" aria-hidden="true">
+                            <svg viewBox="0 0 24 24"><path d="m12 3 2.3 4.7 5.2.8-3.8 3.7.9 5.2-4.6-2.5-4.6 2.5.9-5.2-3.8-3.7 5.2-.8L12 3Z"/></svg>
+                        </span>
+                        <span class="tool-number">02</span>
+                    </div>
+                    <p class="tool-name-en" lang="en">Logo to 3D</p>
+                    <h2>로고를 3D로</h2>
+                    <p class="tool-description">로고와 글자를 출력 가능한 입체 레이어로 만듭니다.</p>
+                    <p class="tool-description-en" lang="en">Build printable depth from logos, text, HTML, or SVG.</p>
+                    <span class="tool-action">도구 열기 <span aria-hidden="true">·</span> Open tool <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 10h11M11 6l4 4-4 4"/></svg></span>
+                </div>
+                <div class="tool-visual logo-visual" aria-hidden="true">
+                    <div class="logo-sample flat-logo"><span>GENESIS</span><small>FLAT / 평면</small></div>
+                    <svg class="mini-arrow" viewBox="0 0 52 20"><path d="M2 10h44M39 4l7 6-7 6"/></svg>
+                    <div class="logo-sample extruded-logo"><span>GENESIS</span><small>DEPTH / 입체</small></div>
+                </div>
+            </a>
+
+            <a class="tool-card tool-card-resize" href="/raster" data-tool-path="/raster" style="--order: 2">
+                <div class="tool-copy compact-copy">
+                    <div class="tool-heading">
+                        <span class="tool-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M8 3H3v5M16 3h5v5M8 21H3v-5M16 21h5v-5M3 8l6-6M21 8l-6-6M3 16l6 6M21 16l-6 6"/></svg></span>
+                        <span class="tool-number">03</span>
+                    </div>
+                    <p class="tool-name-en" lang="en">Resize Image</p>
+                    <h2>이미지 크기 변경</h2>
+                    <p class="tool-description">원하는 크기와 형식으로 한 장을 정확하게 변환하세요.</p>
+                    <p class="tool-description-en" lang="en">Resize and export a single image precisely.</p>
+                    <span class="tool-action">도구 열기 <span aria-hidden="true">·</span> Open tool <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 10h11M11 6l4 4-4 4"/></svg></span>
+                </div>
+                <div class="tool-visual resize-visual" aria-hidden="true">
+                    <div class="picture picture-before"><span>1024</span><svg viewBox="0 0 180 110"><path d="M0 82 42 42l27 25 36-43 75 86H0Z"/><circle cx="145" cy="26" r="10"/></svg></div>
+                    <svg class="mini-arrow" viewBox="0 0 52 20"><path d="M2 10h44M39 4l7 6-7 6"/></svg>
+                    <div class="picture picture-after"><span>1920</span><svg viewBox="0 0 230 110"><path d="M0 82 54 42l34 25 46-43 96 86H0Z"/><circle cx="185" cy="26" r="10"/></svg></div>
+                </div>
+            </a>
+
+            <a class="tool-card tool-card-bulk" href="/bulk" data-tool-path="/bulk" style="--order: 3">
+                <div class="tool-copy compact-copy">
+                    <div class="tool-heading">
+                        <span class="tool-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="m12 3 9 4.5-9 4.5-9-4.5L12 3Z"/><path d="m3 12 9 4.5 9-4.5M3 16.5 12 21l9-4.5"/></svg></span>
+                        <span class="tool-number">04</span>
+                    </div>
+                    <p class="tool-name-en" lang="en">Bulk Resize</p>
+                    <h2>이미지 일괄 변환</h2>
+                    <p class="tool-description">여러 이미지를 한 번에 변환하고 ZIP으로 내려받으세요.</p>
+                    <p class="tool-description-en" lang="en">Convert a folder at once and download one ZIP.</p>
+                    <span class="tool-action">도구 열기 <span aria-hidden="true">·</span> Open tool <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 10h11M11 6l4 4-4 4"/></svg></span>
+                </div>
+                <div class="tool-visual bulk-visual" aria-hidden="true">
+                    <div class="folder-shape"><span>12</span><small>FILES / 파일</small></div>
+                    <div class="file-stream"><i></i><i></i><i></i></div>
+                    <svg class="mini-arrow" viewBox="0 0 52 20"><path d="M2 10h44M39 4l7 6-7 6"/></svg>
+                    <div class="zip-shape"><span>ZIP</span><small>ONE FILE / 하나로</small></div>
+                </div>
+            </a>
+
+            <a class="tool-card tool-card-pdf" href="/pdf" data-tool-path="/pdf" style="--order: 4">
+                <div class="tool-copy compact-copy">
+                    <div class="tool-heading">
+                        <span class="tool-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M6 2h8l4 4v16H6V2Z"/><path d="M14 2v5h5M9 12h6M9 16h6"/></svg></span>
+                        <span class="tool-number">05</span>
+                    </div>
+                    <p class="tool-name-en" lang="en">PDF Tools</p>
+                    <h2>PDF 정리</h2>
+                    <p class="tool-description">페이지를 합치고, 나누고, 회전해 새 PDF로 저장하세요.</p>
+                    <p class="tool-description-en" lang="en">Merge, split, rotate, reorder, and export PDFs.</p>
+                    <span class="tool-action">도구 열기 <span aria-hidden="true">·</span> Open tool <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 10h11M11 6l4 4-4 4"/></svg></span>
+                </div>
+                <div class="tool-visual pdf-visual" aria-hidden="true">
+                    <div class="pdf-pages incoming"><i></i><i></i><i></i></div>
+                    <div class="pdf-merge"><svg viewBox="0 0 32 32"><path d="M7 7h6v6M25 7h-6v6M13 10l3 3 3-3M16 13v12"/></svg></div>
+                    <div class="pdf-pages outgoing"><i><b>PDF</b></i></div>
+                </div>
+            </a>
+        </section>
+    </main>
+
+    <footer class="site-footer">
+        <p><span>브라우저 안에서 안전하게</span><i aria-hidden="true"></i><span lang="en">Private in your browser</span></p>
+        <p><span>로그인 없이 사용</span><i aria-hidden="true"></i><span lang="en">No sign-in required</span></p>
+    </footer>
 </body>
 </html>

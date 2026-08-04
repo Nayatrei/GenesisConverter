@@ -14,6 +14,7 @@ const RATE_LIMIT_WINDOW_MS = 15 * 60 * 1000;
 const RATE_LIMIT_MAX_UPLOADS = 30;
 const TRANSFER_DIR = path.join(os.tmpdir(), 'genesis-bambu-transfers');
 const transfers = new Map();
+const TAB_ROUTE_PATHS = new Set(['/3d-obj', '/logo', '/raster', '/bulk', '/pdf']);
 const uploadHistoryByIp = new Map();
 
 const MIME_TYPES = {
@@ -262,7 +263,8 @@ function resolveStaticFile(pathname) {
 }
 
 async function serveStaticFile(request, response, pathname) {
-    const filePath = resolveStaticFile(pathname);
+    const routedPathname = TAB_ROUTE_PATHS.has(pathname) ? '/converter.html' : pathname;
+    const filePath = resolveStaticFile(routedPathname);
     if (!filePath) {
         response.writeHead(400);
         response.end('Bad request');

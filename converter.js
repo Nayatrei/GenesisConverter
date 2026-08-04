@@ -41,6 +41,32 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     const elements = createElements();
     const state = createState();
+    const TAB_SLUGS = Object.freeze({
+        svg: '3d-obj',
+        logo: 'logo',
+        raster: 'raster',
+        bulk: 'bulk',
+        pdf: 'pdf'
+    });
+
+    function getTabFromPathname(pathname = window.location.pathname) {
+        const pageName = pathname.split('/').filter(Boolean).pop()?.replace(/\.html$/i, '').toLowerCase() || '';
+        const slugMatch = Object.entries(TAB_SLUGS).find(([, slug]) => slug === pageName)?.[0];
+        if (slugMatch) return slugMatch;
+        return Object.hasOwn(TAB_SLUGS, pageName) ? pageName : 'svg';
+    }
+
+    function syncTabSlug(target, historyMode) {
+        if (!historyMode || !Object.hasOwn(TAB_SLUGS, target)) return;
+        const pathname = `/${TAB_SLUGS[target]}`;
+        try {
+            window.localStorage.setItem('genesis:lastTool', pathname);
+        } catch {
+            // Tool navigation must remain functional when storage is unavailable.
+        }
+        if (window.location.pathname === pathname) return;
+        window.history[`${historyMode}State`]({ tab: target }, '', pathname);
+    }
 
     function showLoader(show, options = {}) {
         if (show) {
@@ -323,8 +349,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         downloadBlob
     });
 
-    function switchExportTab(target) {
+    function switchExportTab(target, { historyMode = null } = {}) {
         state.activeTab = target;
+        syncTabSlug(target, historyMode);
 
         // One declarative call drives BOTH columns for this tab: sidebar
         // sections (column 1) plus the tab button, export panel, footer, and
@@ -533,8 +560,12 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         elements.exportTabs.forEach((btn) => {
             btn.addEventListener('click', () => {
-                switchExportTab(btn.dataset.tab);
+                switchExportTab(btn.dataset.tab, { historyMode: 'push' });
             });
+        });
+
+        window.addEventListener('popstate', () => {
+            switchExportTab(getTabFromPathname());
         });
     }
 
@@ -548,13 +579,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         logoTab.bindEvents();
         pdfTab.bindEvents();
 
-        // Detect default tab from the HTML filename so svg.html, logo.html, etc. open the right tab
-        const _tabFromPath = (function() {
-            const validTabs = ['svg', 'logo', 'raster', 'bulk', 'pdf'];
-            const pageName = window.location.pathname.split('/').pop().replace('.html', '').toLowerCase();
-            return validTabs.includes(pageName) ? pageName : 'svg';
-        })();
-        switchExportTab(_tabFromPath);
+        // Legacy HTML entrypoints and converter.html canonicalize to the tab's clean slug.
+        switchExportTab(getTabFromPathname(), { historyMode: 'replace' });
         rasterTab.setExportScale(state.exportScale);
         bulkTab.setExportScale(state.bulk.exportScale);
         svgTab.syncTraceControlUi();
