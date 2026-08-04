@@ -1032,36 +1032,39 @@ export function createPdfTabController({
     function buildReviewSummary(entries) {
         const finish = state.pdf.finish;
         const rotatedCount = entries.filter((entry) => entry.rotation !== 0).length;
-        return [
-            {
-                label: 'Page arrangement',
-                value: rotatedCount
-                    ? `${entries.length} pages · ${rotatedCount} rotated`
-                    : `${entries.length} pages · original orientation`,
-                active: entries.length > 0
-            },
-            {
+        const rows = [{
+            label: 'Page arrangement',
+            value: rotatedCount
+                ? `${rotatedCount} page${rotatedCount === 1 ? '' : 's'} rotated`
+                : 'Original orientation',
+            active: entries.length > 0
+        }];
+
+        if (finish.signature.enabled && finish.signature.text) {
+            rows.push({
                 label: 'Signature',
-                value: finish.signature.enabled && finish.signature.text
-                    ? `${finish.signature.text} · ${scopeLabel(finish.signature.applyTo)}`
-                    : 'Not applied',
-                active: finish.signature.enabled && Boolean(finish.signature.text)
-            },
-            {
+                value: `${finish.signature.text} · ${scopeLabel(finish.signature.applyTo)}`,
+                active: true
+            });
+        }
+        if (finish.stamp.enabled) {
+            rows.push({
                 label: 'Stamp / watermark',
-                value: finish.stamp.enabled
-                    ? `${finish.stamp.text} · ${scopeLabel(finish.stamp.applyTo)}`
-                    : 'Not applied',
-                active: finish.stamp.enabled
-            },
-            {
+                value: `${finish.stamp.text} · ${scopeLabel(finish.stamp.applyTo)}`,
+                active: true
+            });
+        }
+        if (finish.pageNumbers.enabled) {
+            rows.push({
                 label: 'Page numbers',
-                value: finish.pageNumbers.enabled
-                    ? `${formatLabel(finish.pageNumbers.format)} · ${positionLabel(finish.pageNumbers.position)}`
-                    : 'Not applied',
-                active: finish.pageNumbers.enabled
-            }
-        ];
+                value: `${formatLabel(finish.pageNumbers.format)} · ${positionLabel(finish.pageNumbers.position)}`,
+                active: true
+            });
+        }
+        if (rows.length === 1) {
+            rows.push({ label: 'Finishing', value: 'None applied', active: false });
+        }
+        return rows;
     }
 
     function countFinishingTools() {
