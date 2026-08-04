@@ -1,6 +1,6 @@
 import { SLIDER_TOOLTIPS } from '../config.js';
-import { createObjPreview } from '../preview3d.js?v=20260726a';
-import { createObjExporter } from '../export3d.js?v=20260726a';
+import { createObjPreview } from '../preview3d.js?v=20260730a';
+import { createObjExporter } from '../export3d.js?v=20260730a';
 import { hasTransparentPixels, markTransparentPixels, stripTransparentPalette } from '../shared/image-utils.js';
 import {
     debounce,

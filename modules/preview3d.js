@@ -1,8 +1,9 @@
 import { OBJ_ZOOM_MIN, OBJ_ZOOM_MAX, BED_PRESETS } from './config.js';
 import { formatObjScalePercent } from './obj-scale.js';
-import { buildObjGeometryBundle, buildObjModelPlan } from './obj-model-plan.js?v=20260725j';
+import { buildObjGeometryBundle, buildObjModelPlan } from './obj-model-plan.js?v=20260730a';
 import { resolveMergedLayerGroups } from './shared/trace-utils.js?v=20260726a';
 import { getGeometryBundleBounds } from './shared/print-validation.js?v=20260725h';
+import { updateMagnetPocketStatus } from './shared/magnet-pocket-controls.js?v=20260730a';
 
 const BED_CONTACT_EPSILON = 0.005;
 
@@ -205,6 +206,56 @@ export function createObjPreview({
 
     function clearGroup() {
         disposeObjectGroup(state.objPreview.group);
+    }
+
+    function addMagnetPocketOverlays(plan, THREERef) {
+        const result = plan?.magnetPocketResult;
+        const scale = plan?.scalePlan?.scale || 1;
+        if (view.objPreviewCanvas) view.objPreviewCanvas.dataset.magnetPocketCount = '0';
+        if (!result?.enabled || !result.valid || !result.placements?.length || scale <= 0) return;
+
+        result.placements.forEach((placement) => {
+            const height = Math.max(0.05, result.cavityHeight);
+            let geometry;
+            if (result.config.shape === 'disc') {
+                geometry = new THREERef.CylinderGeometry(
+                    placement.cavityWidthMm / (2 * scale),
+                    placement.cavityWidthMm / (2 * scale),
+                    height,
+                    32,
+                    1,
+                    false
+                );
+                geometry.rotateX(Math.PI / 2);
+            } else {
+                geometry = new THREERef.BoxGeometry(
+                    placement.cavityWidthMm / scale,
+                    placement.cavityDepthMm / scale,
+                    height
+                );
+            }
+
+            const material = new THREERef.MeshBasicMaterial({
+                color: 0x69a99e,
+                depthTest: false,
+                depthWrite: false,
+                transparent: true,
+                opacity: 0.78,
+                wireframe: true
+            });
+            const proxy = new THREERef.Mesh(geometry, material);
+            proxy.position.set(
+                placement.sourceX + (plan.normalization?.shiftX || 0),
+                -placement.sourceY - (plan.normalization?.shiftY || 0),
+                result.cavityZStart + (height / 2) + (plan.normalization?.shiftZ || 0)
+            );
+            proxy.renderOrder = 20;
+            proxy.userData.magnetPocketProxy = true;
+            state.objPreview.group.add(proxy);
+        });
+        if (view.objPreviewCanvas) {
+            view.objPreviewCanvas.dataset.magnetPocketCount = String(result.placements.length);
+        }
     }
 
     function clearBuildPlate() {
@@ -800,6 +851,7 @@ export function createObjPreview({
             updateSizeReadout(null);
             updateStructureWarning([]);
             updateTriangleEstimate();
+            updateMagnetPocketStatus(model, null);
             renderFrame();
             return;
         }
@@ -846,6 +898,7 @@ export function createObjPreview({
                 updateSizeReadout(null);
                 updateStructureWarning([]);
                 updateTriangleEstimate({ decimatePercent });
+                updateMagnetPocketStatus(model, plan?.magnetPocketResult || null);
                 renderFrame();
                 return;
             }
@@ -898,6 +951,7 @@ export function createObjPreview({
                 mesh.visible = !(hasSelection && displayMode === 'solo' && !isSelected);
                 preview.group.add(mesh);
             });
+            addMagnetPocketOverlays(plan, THREERef);
 
             preview.group.scale.set(scalePlan.scale, scalePlan.scale, 1);
             preview.group.position.set(
@@ -937,11 +991,13 @@ export function createObjPreview({
                 triangleCount: getBundleTriangleCount(geometryBundle),
                 decimatePercent
             });
+            updateMagnetPocketStatus(model, plan.magnetPocketResult);
             renderFrame();
         } catch (error) {
             console.error('3D preview failed:', error);
             setPlaceholder('3D preview failed. Try re-analyzing.', true);
             updateTriangleEstimate();
+            updateMagnetPocketStatus(model, null);
         }
     }
 

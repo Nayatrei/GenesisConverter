@@ -1,8 +1,8 @@
-import { createBulkTabController } from './modules/tabs/bulk-tab.js?v=20260804a';
+import { createBulkTabController } from './modules/tabs/bulk-tab.js?v=20260804b';
 import { createRasterTabController } from './modules/tabs/raster-tab.js';
-import { createSvgTabController } from './modules/tabs/svg-tab.js?v=20260726a';
-import { createLogoTabController } from './modules/tabs/logo-tab.js?v=20260726a';
-import { createPdfTabController } from './modules/tabs/pdf-tab.js?v=20260803b';
+import { createSvgTabController } from './modules/tabs/svg-tab.js?v=20260804b';
+import { createLogoTabController } from './modules/tabs/logo-tab.js?v=20260804b';
+import { createPdfTabController } from './modules/tabs/pdf-tab.js?v=20260804b';
 import {
     getDataUrlSize,
     getImageFormat,
@@ -10,14 +10,15 @@ import {
     isImportableImageFile,
     normalizeImageBlob
 } from './modules/raster-utils.js';
-import { createElements } from './modules/app-elements.js?v=20260803b';
-import { createState } from './modules/app-state.js?v=20260804a';
+import { createElements } from './modules/app-elements.js?v=20260804b';
+import { createState } from './modules/app-state.js?v=20260804b';
 import { applyTabCase, TAB_CASES } from './modules/tab-cases.js?v=20260725a';
+import { bindMagnetPocketControls } from './modules/shared/magnet-pocket-controls.js?v=20260804b';
 
 async function loadTabPartials() {
     const tabs = ['svg', 'logo', 'raster', 'bulk', 'pdf'];
     await Promise.all(tabs.map(async (name) => {
-        const res = await fetch(`modules/tabs/html/tab-${name}.html?v=20260804a`);
+        const res = await fetch(`modules/tabs/html/tab-${name}.html?v=20260804b`);
         const html = await res.text();
         const tmp = document.createElement('div');
         tmp.innerHTML = html;
@@ -249,7 +250,21 @@ document.addEventListener('DOMContentLoaded', async () => {
         downloadBlob
     });
 
-    const svgTab = createSvgTabController({
+    let svgTab = null;
+    let logoTab = null;
+    bindMagnetPocketControls({
+        state,
+        controls: elements.shared3d,
+        onChange: () => {
+            if (state.activeTab === 'logo') {
+                logoTab?.updateFilteredPreview();
+            } else if (state.activeTab === 'svg') {
+                svgTab?.updateFilteredPreview();
+            }
+        }
+    });
+
+    svgTab = createSvgTabController({
         state,
         sharedElements: {
             sourceImage: elements.sourceImage,
@@ -274,7 +289,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         onRasterExportStateChanged: rasterTab.updateExportScaleDisplay
     });
 
-    const logoTab = createLogoTabController({
+    logoTab = createLogoTabController({
         state,
         ls: state.logo,
         sharedElements: {
