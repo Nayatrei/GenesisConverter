@@ -187,6 +187,7 @@ export function createPdfTabController({
 
         const hasFiles = state.pdf.files.length > 0;
         elements.pdf.previewEmpty?.classList.toggle('hidden', hasFiles);
+        elements.pdf.pageToolbar?.classList.toggle('hidden', !hasFiles);
         list.classList.toggle('hidden', !hasFiles);
         list.textContent = '';
         if (!hasFiles) return;

@@ -135,6 +135,7 @@ export function createElements() {
             previewList: document.getElementById('pdf-preview-list'),
             selectAllBtn: document.getElementById('pdf-select-all-btn'),
             clearBtn: document.getElementById('pdf-clear-btn'),
+            pageToolbar: document.getElementById('pdf-page-toolbar'),
             rotateLeftBtn: document.getElementById('pdf-rotate-left-btn'),
             rotateRightBtn: document.getElementById('pdf-rotate-right-btn'),
             pageUpBtn: document.getElementById('pdf-page-up-btn'),

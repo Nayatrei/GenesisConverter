@@ -7556,15 +7556,16 @@ body.app-shell-v2 .pdf-preview-pager button:active:not(:disabled) {
 }
 
 body.app-shell-v2 .pdf-page-toolbar {
-    min-height: 2.75rem;
+    min-height: 2.35rem;
     display: flex;
     align-items: center;
     gap: 0.18rem;
-    margin: 0 1rem 0.8rem;
-    padding: 0.3rem 0.45rem;
-    border: 1px solid var(--pdf-line);
-    border-radius: 11px;
-    background: var(--pdf-surface);
+    margin: 0 1rem 0.6rem;
+    padding: 0;
+}
+
+body.app-shell-v2 .pdf-page-toolbar.hidden {
+    display: none;
 }
 
 body.app-shell-v2 .pdf-page-toolbar button {
