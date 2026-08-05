@@ -92,8 +92,10 @@ main,
 }
 
 .brand img {
-    width: 2.15rem;
-    height: 2.15rem;
+    width: 2.75rem;
+    height: 2.75rem;
+    min-width: 2.5rem;
+    min-height: 2.5rem;
     object-fit: contain;
 }
 
