@@ -376,24 +376,113 @@ function validateSupportFootprint(outputLayers, resolvedBaseOutputLayer, THREERe
 }
 
 export function ensureLayerThicknessById(state, sourceLayerIds, defaultThickness) {
-    const next = (state.layerThicknessById && typeof state.layerThicknessById === 'object')
+    const overrides = (state.layerThicknessById && typeof state.layerThicknessById === 'object')
         ? { ...state.layerThicknessById }
         : {};
     const legacy = Array.isArray(state.layerThicknesses) ? state.layerThicknesses : null;
+    const resolved = {};
 
     sourceLayerIds.forEach((sourceLayerId) => {
         const legacyValue = legacy && legacy[sourceLayerId] !== undefined
             ? legacy[sourceLayerId]
             : undefined;
-        next[sourceLayerId] = clampThickness(
-            next[sourceLayerId] !== undefined ? next[sourceLayerId] : legacyValue,
+        const hasOverride = overrides[sourceLayerId] !== undefined;
+        const value = hasOverride ? overrides[sourceLayerId] : legacyValue;
+        resolved[sourceLayerId] = clampThickness(
+            value,
             defaultThickness
         );
+        if (!hasOverride && legacyValue !== undefined) {
+            overrides[sourceLayerId] = resolved[sourceLayerId];
+        }
     });
 
-    state.layerThicknessById = next;
+    // Keep only explicit per-layer values in state. Layers without an override
+    // continue to follow the global Default Layer Height control.
+    state.layerThicknessById = overrides;
     state.layerThicknesses = null;
-    return next;
+    return resolved;
+}
+
+/**
+ * Repositions an existing model plan after height-only edits. XY topology,
+ * masks, triangulation, and repair results remain valid, so callers can reuse
+ * their current meshes and apply the returned affine Z transforms.
+ */
+export function updateObjModelPlanLayerHeights(plan, state, defaultThickness) {
+    if (!plan?.outputLayers?.length || !state) return null;
+
+    const sourceLayerIds = Array.isArray(plan.visibleSourceLayerIds)
+        ? plan.visibleSourceLayerIds
+        : plan.outputLayers.flatMap((layer) => layer.sourceLayerIds || []);
+    const thicknessById = ensureLayerThicknessById(state, sourceLayerIds, defaultThickness);
+    const transitions = [];
+    const baseLayer = plan.resolvedBaseOutputLayerId === null || plan.resolvedBaseOutputLayerId === undefined
+        ? null
+        : plan.outputLayers.find((layer) => layer.outputLayerId === plan.resolvedBaseOutputLayerId) || null;
+
+    plan.outputLayers.forEach((layer) => {
+        const previousStart = layer.zStart;
+        const previousEnd = layer.zEnd;
+        layer.thickness = clampThickness(
+            thicknessById[layer.primarySourceLayerId],
+            defaultThickness
+        );
+        transitions.push({
+            outputLayerId: layer.outputLayerId,
+            previousStart,
+            previousEnd,
+            nextStart: 0,
+            nextEnd: 0
+        });
+    });
+
+    if (baseLayer) {
+        const baseExtraHeight = plan.bezelSpec?.enabled ? plan.bezelSpec.extraHeightMm || 0 : 0;
+        plan.outputLayers.forEach((layer) => {
+            if (layer.outputLayerId === baseLayer.outputLayerId) {
+                layer.isBase = true;
+                layer.zStart = 0;
+                layer.zEnd = layer.thickness + baseExtraHeight;
+            } else {
+                layer.isBase = false;
+                layer.zStart = baseLayer.thickness;
+                layer.zEnd = baseLayer.thickness + layer.thickness;
+            }
+        });
+    } else {
+        let cursor = 0;
+        plan.outputLayers.forEach((layer) => {
+            layer.isBase = false;
+            layer.zStart = cursor;
+            layer.zEnd = cursor + layer.thickness;
+            cursor = layer.zEnd;
+        });
+    }
+
+    plan.outputLayers.forEach((layer) => {
+        const transition = transitions.find((entry) => entry.outputLayerId === layer.outputLayerId);
+        transition.nextStart = layer.zStart;
+        transition.nextEnd = layer.zEnd;
+
+        if (Array.isArray(layer.geometrySegments) && layer.geometrySegments.length === 1) {
+            layer.geometrySegments[0].zStart = layer.zStart;
+            layer.geometrySegments[0].depth = layer.thickness;
+        }
+    });
+
+    plan.thicknessById = thicknessById;
+    plan.totalHeight = plan.outputLayers.reduce(
+        (maxHeight, layer) => Math.max(maxHeight, layer.zEnd),
+        0
+    );
+    plan.maxHeight = plan.totalHeight;
+
+    return {
+        plan,
+        transitions,
+        totalHeight: plan.totalHeight
+    };
 }
 
 function migrateLegacyBaseSourceLayerId(state, outputLayers, detectedBaseOutputLayer) {

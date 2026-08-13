@@ -2,7 +2,7 @@ import {
     buildObjGeometryBundle,
     buildObjModelPlan,
     sanitizeGeometryForPrint
-} from './obj-model-plan.js?v=20260730a';
+} from './obj-model-plan.js?v=20260813a';
 import { buildBambuProjectFiles } from './bambu-project.js?v=20260730a';
 import { BAMBU_PROJECT_NOZZLE_DIAMETER } from './config.js';
 import { canvasToBlobAsync, dataUrlToBlob } from './raster-utils.js';
@@ -536,17 +536,29 @@ export function createObjExporter({
     // ── Geometry cache ────────────────────────────────────────────────────────
     let cachedGeometry = null;
     let cachedGeometryKey = '';
+    let cachedTracedata = null;
+    let cachedTraceOptions = null;
 
     function getGeometryCacheKey(defaultThickness) {
+        const thicknessOverrides = Object.entries(state.layerThicknessById || {})
+            .sort(([left], [right]) => Number(left) - Number(right))
+            .map(([sourceLayerId, thickness]) => `${sourceLayerId}:${thickness}`)
+            .join(',');
         return [
             defaultThickness,
+            thicknessOverrides,
             model.objDecimateSlider?.value ?? 0,
             model.objBedSelect?.value ?? 'x1',
             model.objMarginInput?.value ?? 5,
             model.objScaleSlider?.value ?? 100,
             model.objBezelSelect?.value ?? state.objParams?.bezelPreset ?? 'off',
             serializeMagnetPocketConfig(state.objParams?.magnetPocket),
+            JSON.stringify(state.mergeRules || []),
+            state.useBaseLayer ? 'base:on' : 'base:off',
+            state.baseSourceLayerId ?? '',
+            state.sourceRenderScale || 1,
             state.tracedata?.layers?.length ?? 0,
+            state.tracedata?.layers?.map((layer) => layer?.length || 0).join(',') ?? '',
             state.tracedata?.palette?.map(c => `${c.r},${c.g},${c.b}`).join(';') ?? '',
             Array.from(state.hiddenSourceLayerIds || []).sort((a, b) => a - b).join(',')
         ].join('|');
@@ -564,7 +576,12 @@ export function createObjExporter({
 
     function buildExportGeometry(defaultThickness) {
         const key = getGeometryCacheKey(defaultThickness);
-        if (cachedGeometry && cachedGeometryKey === key) {
+        if (
+            cachedGeometry
+            && cachedGeometryKey === key
+            && cachedTracedata === state.tracedata
+            && cachedTraceOptions === state.lastOptions
+        ) {
             // Clone cached geometries so callers can dispose without breaking the cache
             const cloned = {
                 ...cachedGeometry,
@@ -678,6 +695,8 @@ export function createObjExporter({
         }
         cachedGeometry = geometryBundle;
         cachedGeometryKey = key;
+        cachedTracedata = state.tracedata;
+        cachedTraceOptions = state.lastOptions;
 
         // Return cloned geometries so callers can dispose freely
         const result = { ...geometryBundle, layers: new Map() };

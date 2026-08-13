@@ -1,7 +1,7 @@
 import { createBulkTabController } from './modules/tabs/bulk-tab.js?v=20260804d';
 import { createRasterTabController } from './modules/tabs/raster-tab.js';
-import { createSvgTabController } from './modules/tabs/svg-tab.js?v=20260804b';
-import { createLogoTabController } from './modules/tabs/logo-tab.js?v=20260804b';
+import { createSvgTabController } from './modules/tabs/svg-tab.js?v=20260813a';
+import { createLogoTabController } from './modules/tabs/logo-tab.js?v=20260813a';
 import { createPdfTabController } from './modules/tabs/pdf-tab.js?v=20260804b';
 import {
     getDataUrlSize,

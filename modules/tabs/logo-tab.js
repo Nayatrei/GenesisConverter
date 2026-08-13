@@ -1,6 +1,6 @@
 import { SLIDER_TOOLTIPS } from '../config.js';
-import { createObjPreview } from '../preview3d.js?v=20260730a';
-import { createObjExporter } from '../export3d.js?v=20260730a';
+import { createObjPreview } from '../preview3d.js?v=20260813a';
+import { createObjExporter } from '../export3d.js?v=20260813a';
 import {
     hasTransparentPixels,
     markTransparentPixels,
@@ -839,9 +839,13 @@ export function createLogoTabController({
         if (le.objThicknessSlider && le.objThicknessValue) {
             le.objThicknessValue.textContent = le.objThicknessSlider.value;
             le.objThicknessSlider.addEventListener('input', () => {
-                state.objParams.thickness = Number.parseFloat(le.objThicknessSlider.value);
-                le.objThicknessValue.textContent = state.objParams.thickness;
-                if (state.activeTab === 'logo') updateFilteredPreview();
+                const nextThickness = Number.parseFloat(le.objThicknessSlider.value);
+                state.objParams.thickness = nextThickness;
+                ls.objParams.thickness = nextThickness;
+                le.objThicknessValue.textContent = nextThickness;
+            });
+            le.objThicknessSlider.addEventListener('change', () => {
+                if (state.activeTab === 'logo') objPreview.updateLayerHeights();
             });
         }
 
@@ -1042,7 +1046,6 @@ export function createLogoTabController({
         window.addEventListener('resize', () => {
             updateSegmentedControlIndicator();
             objPreview.resize();
-            objPreview.render();
         });
 
         le.sourceImage.addEventListener('load', onSourceImageLoaded);

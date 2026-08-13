@@ -1,6 +1,10 @@
 import { OBJ_ZOOM_MIN, OBJ_ZOOM_MAX, BED_PRESETS } from './config.js';
 import { formatObjScalePercent } from './obj-scale.js';
-import { buildObjGeometryBundle, buildObjModelPlan } from './obj-model-plan.js?v=20260730a';
+import {
+    buildObjGeometryBundle,
+    buildObjModelPlan,
+    updateObjModelPlanLayerHeights
+} from './obj-model-plan.js?v=20260813a';
 import { resolveMergedLayerGroups } from './shared/trace-utils.js?v=20260726a';
 import { getGeometryBundleBounds } from './shared/print-validation.js?v=20260725h';
 import { updateMagnetPocketStatus } from './shared/magnet-pocket-controls.js?v=20260730a';
@@ -186,6 +190,7 @@ export function createObjPreview({
         preview.renderer.setSize(width, height, false);
         preview.camera.aspect = width / height;
         preview.camera.updateProjectionMatrix();
+        renderFrame();
     }
 
     function disposeObjectGroup(group) {
@@ -206,6 +211,12 @@ export function createObjPreview({
 
     function clearGroup() {
         disposeObjectGroup(state.objPreview.group);
+        state.objPreview.layerMeshes = new Map();
+        state.objPreview.lastPlan = null;
+        state.objPreview.lastGeometryBundle = null;
+        state.objPreview.lastActualBounds = null;
+        state.objPreview.lastTriangleCount = 0;
+        state.objPreview.topologySnapshot = null;
     }
 
     function addMagnetPocketOverlays(plan, THREERef) {
@@ -431,7 +442,13 @@ export function createObjPreview({
     function setBuildPlateVisible(showBuildPlate) {
         state.objPreview.showBuildPlate = !!showBuildPlate;
         updateBuildPlateToggleButton();
-        render();
+        if (!ensureObjPreview()) return;
+        clearBuildPlate();
+        if (state.objPreview.showBuildPlate) {
+            const bed = BED_PRESETS[getSelectedBedKey()] || BED_PRESETS.x1;
+            buildBuildPlate(window.THREE, bed);
+        }
+        renderFrame();
     }
 
     function setBedPreset(bedKey) {
@@ -459,7 +476,28 @@ export function createObjPreview({
     function setLayerDisplayMode(mode) {
         state.objPreview.layerDisplayMode = mode === 'solo' ? 'solo' : 'ghost';
         updateLayerModeButtons();
-        render();
+        const preview = state.objPreview;
+        const selectionSet = getSelectionIndices();
+        const hasSelection = selectionSet.size > 0;
+
+        if (!(preview.layerMeshes instanceof Map) || preview.layerMeshes.size === 0) {
+            render();
+            return;
+        }
+
+        preview.lastPlan?.outputLayers?.forEach((layer, outputIndex) => {
+            const mesh = preview.layerMeshes.get(layer.outputLayerId);
+            if (!mesh) return;
+            const isSelected = !hasSelection || selectionSet.has(outputIndex);
+            mesh.visible = !(hasSelection && state.objPreview.layerDisplayMode === 'solo' && !isSelected);
+            if (mesh.material) {
+                mesh.material.transparent = hasSelection && !isSelected;
+                mesh.material.opacity = hasSelection && !isSelected ? 0.18 : 1;
+                mesh.material.depthWrite = !(hasSelection && !isSelected);
+                mesh.material.needsUpdate = true;
+            }
+        });
+        renderFrame();
     }
 
     function updateTargetLockButton() {
@@ -480,9 +518,10 @@ export function createObjPreview({
         preview.panX = 0;
         preview.panY = 0;
         preview.viewGroup.position.set(0, 0, 0);
-        preview.needsFit = true;
+        if (preview.fitTarget) preview.target = preview.fitTarget.clone();
+        if (preview.fitLookAtTarget) preview.lookAtTarget = preview.fitLookAtTarget.clone();
+        preview.needsFit = false;
         setZoom(1);
-        render();
     }
 
     function recenterView() {
@@ -769,7 +808,7 @@ export function createObjPreview({
                     ...(state.layerThicknessById || {}),
                     [layer.primarySourceLayerId]: nextValue
                 };
-                render();
+                updateLayerHeights();
             });
 
             const range = document.createElement('span');
@@ -824,6 +863,143 @@ export function createObjPreview({
 
                 view.layerStackList.appendChild(row);
             });
+    }
+
+    function createTopologySnapshot() {
+        const visibleSourceLayerIds = getVisibleLayerIndices();
+        return {
+            tracedata: state.tracedata,
+            lastOptions: state.lastOptions,
+            key: [
+                visibleSourceLayerIds.join(','),
+                JSON.stringify(state.mergeRules || []),
+                state.useBaseLayer ? 'base:on' : 'base:off',
+                state.baseSourceLayerId ?? '',
+                model.objDecimateSlider?.value ?? 0,
+                model.objBedSelect?.value ?? 'x1',
+                model.objMarginInput?.value ?? 5,
+                model.objScaleSlider?.value ?? 100,
+                state.sourceRenderScale || 1,
+                model.objBezelSelect?.value || state.objParams?.bezelPreset || 'off',
+                JSON.stringify(state.objParams?.magnetPocket || null)
+            ].join('|')
+        };
+    }
+
+    function topologyMatchesLastRender() {
+        const previous = state.objPreview.topologySnapshot;
+        if (!previous) return false;
+        const current = createTopologySnapshot();
+        return previous.tracedata === current.tracedata
+            && previous.lastOptions === current.lastOptions
+            && previous.key === current.key;
+    }
+
+    function canApplyHeightUpdate() {
+        const preview = state.objPreview;
+        const plan = preview.lastPlan;
+        if (!plan?.outputLayers?.length || !(preview.layerMeshes instanceof Map)) return false;
+        if (plan.bezelSpec?.enabled || plan.magnetPocketResult?.enabled) return false;
+        if (!topologyMatchesLastRender()) return false;
+        return plan.outputLayers.every((layer) => preview.layerMeshes.has(layer.outputLayerId));
+    }
+
+    function updateLayerHeights() {
+        if (!canApplyHeightUpdate()) {
+            render();
+            return false;
+        }
+
+        const preview = state.objPreview;
+        const plan = preview.lastPlan;
+        const defaultValue = model.objThicknessSlider
+            ? Number.parseFloat(model.objThicknessSlider.value)
+            : 4;
+        const defaultThickness = Number.isFinite(defaultValue) ? defaultValue : 4;
+        const update = updateObjModelPlanLayerHeights(plan, state, defaultThickness);
+        if (!update) {
+            render();
+            return false;
+        }
+
+        update.transitions.forEach((transition) => {
+            const mesh = preview.layerMeshes.get(transition.outputLayerId);
+            const baseline = mesh?.userData?.objHeightBaseline;
+            if (!mesh || !baseline) return;
+
+            const baselineDepth = Math.max(0.01, baseline.zEnd - baseline.zStart);
+            const nextDepth = Math.max(0.01, transition.nextEnd - transition.nextStart);
+            const ratio = nextDepth / baselineDepth;
+            mesh.scale.z = ratio;
+            mesh.position.z = transition.nextStart - (baseline.zStart * ratio);
+
+            const layerData = preview.lastGeometryBundle?.layers?.get(transition.outputLayerId);
+            const updatedLayer = plan.outputLayers.find(
+                (layer) => layer.outputLayerId === transition.outputLayerId
+            );
+            if (layerData && updatedLayer) {
+                layerData.thickness = updatedLayer.thickness;
+                layerData.zStart = updatedLayer.zStart;
+                layerData.zEnd = updatedLayer.zEnd;
+            }
+        });
+
+        const previousBounds = preview.lastActualBounds;
+        const minZ = previousBounds?.isValid ? previousBounds.minZ : 0;
+        const nextBounds = previousBounds?.isValid
+            ? {
+                ...previousBounds,
+                minZ,
+                maxZ: minZ + update.totalHeight,
+                height: update.totalHeight,
+                centerZ: minZ + (update.totalHeight / 2)
+            }
+            : null;
+        preview.lastActualBounds = nextBounds;
+
+        const bed = BED_PRESETS[getSelectedBedKey()] || BED_PRESETS.x1;
+        const scalePlan = plan.scalePlan;
+        if (scalePlan) {
+            const width = nextBounds?.isValid ? nextBounds.width : scalePlan.footprintWidth || 0;
+            const depth = nextBounds?.isValid ? nextBounds.depth : scalePlan.footprintDepth || 0;
+            scalePlan.modelHeight = update.totalHeight;
+            scalePlan.actualFootprintWidth = width;
+            scalePlan.actualFootprintDepth = depth;
+            scalePlan.overflowWidth = Math.max(0, width - (scalePlan.usableBedWidth || bed.width));
+            scalePlan.overflowDepth = Math.max(0, depth - (scalePlan.usableBedDepth || bed.depth));
+            scalePlan.overflowHeight = Math.max(0, update.totalHeight - bed.height);
+            scalePlan.fitsBed = scalePlan.overflowWidth <= 0.05
+                && scalePlan.overflowDepth <= 0.05
+                && scalePlan.overflowHeight <= 0.05;
+        }
+
+        const selectionSet = getSelectionIndices();
+        updateLayerStackPreview(plan, defaultThickness, selectionSet);
+        updateSizeReadout(scalePlan, nextBounds);
+        updateStructureWarning(plan.warnings);
+        updateTriangleEstimate({
+            triangleCount: preview.lastTriangleCount,
+            decimatePercent: plan.decimatePercent
+        });
+
+        const frameState = createFrameState({
+            THREERef: window.THREE,
+            footprintWidth: nextBounds?.isValid ? nextBounds.width : scalePlan?.footprintWidth || 0,
+            footprintDepth: nextBounds?.isValid ? nextBounds.depth : scalePlan?.footprintDepth || 0,
+            modelHeight: update.totalHeight,
+            bed,
+            showBuildPlate: preview.showBuildPlate !== false
+        });
+        preview.frameMaxDim = frameState.frameMaxDim;
+        preview.panScale = frameState.panScale;
+        preview.fitTarget = frameState.fitTarget;
+        preview.fitLookAtTarget = frameState.lookAtTarget;
+        preview.heightUpdateCount = (preview.heightUpdateCount || 0) + 1;
+        if (view.objPreviewCanvas) {
+            view.objPreviewCanvas.dataset.heightUpdateCount = String(preview.heightUpdateCount);
+        }
+        renderFrame();
+        return true;
     }
 
     function render() {
@@ -932,6 +1108,7 @@ export function createObjPreview({
                 scalePlan.fitsBed = scalePlan.fitsBed && scalePlan.overflowHeight <= 0.05;
             }
 
+            preview.layerMeshes = new Map();
             plan.outputLayers.forEach((layer, outputIndex) => {
                 const layerData = geometryBundle.layers.get(layer.outputLayerId);
                 if (!layerData) {
@@ -948,8 +1125,13 @@ export function createObjPreview({
                 if (hasSelection && !isSelected) material.depthWrite = false;
 
                 const mesh = new THREERef.Mesh(layerData.geometry, material);
+                mesh.userData.objHeightBaseline = {
+                    zStart: layer.zStart,
+                    zEnd: layer.zEnd
+                };
                 mesh.visible = !(hasSelection && displayMode === 'solo' && !isSelected);
                 preview.group.add(mesh);
+                preview.layerMeshes.set(layer.outputLayerId, mesh);
             });
             addMagnetPocketOverlays(plan, THREERef);
 
@@ -976,6 +1158,7 @@ export function createObjPreview({
             preview.frameMaxDim = frameState.frameMaxDim;
             preview.panScale = frameState.panScale;
             preview.fitTarget = frameState.fitTarget;
+            preview.fitLookAtTarget = frameState.lookAtTarget;
 
             if (preview.needsFit || !preview.target) {
                 preview.target = frameState.fitTarget.clone();
@@ -983,12 +1166,22 @@ export function createObjPreview({
                 preview.needsFit = false;
             }
 
+            preview.lastPlan = plan;
+            preview.lastGeometryBundle = geometryBundle;
+            preview.lastActualBounds = actualBounds;
+            preview.lastTriangleCount = getBundleTriangleCount(geometryBundle);
+            preview.topologySnapshot = createTopologySnapshot();
+            preview.fullRenderCount = (preview.fullRenderCount || 0) + 1;
+            if (view.objPreviewCanvas) {
+                view.objPreviewCanvas.dataset.fullRenderCount = String(preview.fullRenderCount);
+            }
+
             setPlaceholder('', false);
             updateLayerStackPreview(plan, thickness, selectionSet);
             updateSizeReadout(scalePlan, actualBounds);
             updateStructureWarning(plan.warnings);
             updateTriangleEstimate({
-                triangleCount: getBundleTriangleCount(geometryBundle),
+                triangleCount: preview.lastTriangleCount,
                 decimatePercent
             });
             updateMagnetPocketStatus(model, plan.magnetPocketResult);
@@ -1042,6 +1235,7 @@ export function createObjPreview({
 
     return {
         render,
+        updateLayerHeights,
         resize,
         bindControls,
         fitView,

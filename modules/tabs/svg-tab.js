@@ -1,6 +1,6 @@
 import { SLIDER_TOOLTIPS } from '../config.js';
-import { createObjPreview } from '../preview3d.js?v=20260730a';
-import { createObjExporter } from '../export3d.js?v=20260730a';
+import { createObjPreview } from '../preview3d.js?v=20260813a';
+import { createObjExporter } from '../export3d.js?v=20260813a';
 import { hasTransparentPixels, markTransparentPixels, stripTransparentPalette } from '../shared/image-utils.js';
 import {
     debounce,
@@ -594,7 +594,9 @@ export function createSvgTabController({
             elements.objThicknessSlider.addEventListener('input', () => {
                 state.objParams.thickness = Number.parseFloat(elements.objThicknessSlider.value);
                 elements.objThicknessValue.textContent = state.objParams.thickness;
-                if (state.activeTab === 'svg') updateFilteredPreview();
+            });
+            elements.objThicknessSlider.addEventListener('change', () => {
+                if (state.activeTab === 'svg') objPreview.updateLayerHeights();
             });
         }
         if (elements.objDecimateSlider && elements.objDecimateValue) {
@@ -855,7 +857,6 @@ export function createSvgTabController({
         window.addEventListener('resize', () => {
             updateSegmentedControlIndicator();
             objPreview.resize();
-            objPreview.render();
         });
 
         elements.sourceImage.onload = onSourceImageLoaded;
