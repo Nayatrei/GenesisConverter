@@ -58,7 +58,7 @@ async function waitForShell(page) {
 for (const viewport of MOBILE_SIZES) {
     test(`mobile shell stays in flow at ${viewport.width}px`, async ({ page }) => {
         await page.setViewportSize(viewport);
-        await page.goto('/converter.html');
+        await page.goto('/3d-obj');
         await waitForShell(page);
 
         const layout = await readLayout(page, '#svg-export-footer');
@@ -75,7 +75,7 @@ for (const viewport of MOBILE_SIZES) {
 
 test('every workflow finishes before the brand footer on mobile', async ({ page }) => {
     await page.setViewportSize({ width: 330, height: 720 });
-    await page.goto('/converter.html');
+    await page.goto('/3d-obj');
     await waitForShell(page);
 
     const workflows = [
@@ -101,7 +101,7 @@ test('every workflow finishes before the brand footer on mobile', async ({ page 
 
 test('mobile settings sheet is unobstructed, scroll-locking, and Escape dismissible', async ({ page }) => {
     await page.setViewportSize({ width: 330, height: 720 });
-    await page.goto('/converter.html');
+    await page.goto('/3d-obj');
     await waitForShell(page);
 
     const toggle = page.locator('#mobile-controls-toggle');

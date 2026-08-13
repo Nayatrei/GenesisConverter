@@ -19,7 +19,7 @@ async function uploadSource(page, markup) {
 }
 
 test('background detector requires broad edge contact', async ({ page }) => {
-    await page.goto('/converter.html');
+    await page.goto('/3d-obj');
 
     const result = await page.evaluate(async () => {
         const { detectBackgroundLayerIndex } = await import('/modules/shared/trace-utils.js?v=20260726a');
@@ -48,7 +48,7 @@ test('background detector requires broad edge contact', async ({ page }) => {
 });
 
 test('detected background can be hidden and restored from the layer stack', async ({ page }) => {
-    await page.goto('/converter.html');
+    await page.goto('/3d-obj');
     await uploadSource(page, buildBackgroundFixture());
 
     const action = page.locator('#background-layer-toggle');
@@ -75,7 +75,7 @@ test('detected background can be hidden and restored from the layer stack', asyn
 });
 
 test('the final visible layer cannot be hidden', async ({ page }) => {
-    await page.goto('/converter.html');
+    await page.goto('/3d-obj');
     await page.locator('#file-input').setInputFiles({
         name: 'single-layer.svg',
         mimeType: 'image/svg+xml',

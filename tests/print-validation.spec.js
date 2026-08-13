@@ -1,7 +1,7 @@
 const { test, expect } = require('@playwright/test');
 
 test.beforeEach(async ({ page }) => {
-    await page.goto('/converter.html');
+    await page.goto('/3d-obj');
     await expect.poll(
         () => page.evaluate(() => Boolean(window.THREE)),
         { timeout: 30_000 }

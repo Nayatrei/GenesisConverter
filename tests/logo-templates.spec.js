@@ -47,7 +47,7 @@ async function expectRenderedImage(locator) {
 }
 
 async function openLogoTab(page) {
-    await page.goto('/converter.html');
+    await page.goto('/3d-obj');
     await page.locator('.segmented-control-tab[data-tab="logo"]').click();
     await expect(page.locator('#tab-logo')).toBeVisible();
     await expect(page.locator('#logo-sidebar-controls')).toBeVisible();

@@ -3,6 +3,7 @@
   "private": true,
   "scripts": {
     "start": "node server.js",
+    "sync:entrypoints": "node scripts/sync-entrypoints.js",
     "test": "playwright test",
     "test:smoke": "playwright test"
   },

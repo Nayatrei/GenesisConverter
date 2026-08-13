@@ -184,7 +184,7 @@ print(json.dumps({
 }
 
 test('Bambu project export includes native package metadata and preserves handedness', async ({ page }, testInfo) => {
-    await page.goto('/converter.html');
+    await page.goto('/3d-obj');
 
     await expect(page.locator('#svg-bambu-open-btn')).toBeDisabled();
 
@@ -292,7 +292,7 @@ test('Bambu project export includes native package metadata and preserves handed
 });
 
 test('default Logo exports a centered, watertight Bambu project at the displayed print size', async ({ page }, testInfo) => {
-    await page.goto('/converter.html');
+    await page.goto('/3d-obj');
     await page.locator('.segmented-control-tab[data-tab="logo"]').click();
     await expect(page.locator('#logo-html-status')).toHaveText('Ready', { timeout: 30_000 });
     await expect(page.locator('#logo-export-3mf-btn')).toBeEnabled({ timeout: 30_000 });
@@ -350,7 +350,7 @@ test('Bambu Studio button publishes 3MF and opens the remote project URL', async
         };
     });
 
-    await page.goto('/converter.html');
+    await page.goto('/3d-obj');
     await page.locator('#file-input').setInputFiles({
         name: 'asymmetric-bubble.svg',
         mimeType: 'image/svg+xml',
@@ -401,7 +401,7 @@ test('Bambu Studio button downloads a usable backup when direct handoff is unava
         body: JSON.stringify({ error: 'Transfer service unavailable.' })
     }));
 
-    await page.goto('/converter.html');
+    await page.goto('/3d-obj');
     await page.locator('#file-input').setInputFiles({
         name: 'asymmetric-bubble.svg',
         mimeType: 'image/svg+xml',
