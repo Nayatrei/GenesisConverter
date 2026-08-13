@@ -2,7 +2,7 @@ const fs = require('fs');
 const { test, expect } = require('@playwright/test');
 
 async function waitForApp(page) {
-    await page.goto('/converter.html');
+    await page.goto('/3d-obj');
     await page.waitForFunction(() => Boolean(window.THREE && window.SVGLoader && window.ImageTracer));
 }
 

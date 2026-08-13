@@ -25,7 +25,7 @@ function parseFootprint(text) {
 }
 
 test('Bambu bed presets include X1, A1, and H2D with the expected footprint sizes', async ({ page }) => {
-    await page.goto('/converter.html');
+    await page.goto('/3d-obj');
 
     const presets = await page.evaluate(async () => {
         const { BED_PRESETS } = await import('/modules/config.js');
@@ -45,7 +45,7 @@ test('Bambu bed presets include X1, A1, and H2D with the expected footprint size
 });
 
 test('oversized 3D models auto-fit to the selected Bambu printer bed', async ({ page }) => {
-    await page.goto('/converter.html');
+    await page.goto('/3d-obj');
 
     const svgDataUrl = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(buildOversizedSvg())}`;
     await page.locator('#url-input').fill(svgDataUrl);

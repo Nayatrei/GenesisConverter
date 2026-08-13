@@ -244,7 +244,7 @@ function findDownloadByLayer(downloads, layerToken) {
 }
 
 test('welded overlap removes duplicated cap faces before extrusion', async ({ page }) => {
-    await page.goto('/converter.html');
+    await page.goto('/3d-obj');
     await page.waitForFunction(() => Boolean(window.THREE && window.SVGLoader && window.ImageTracer));
 
     const result = await page.evaluate(async () => {
@@ -324,7 +324,7 @@ test('welded overlap removes duplicated cap faces before extrusion', async ({ pa
 });
 
 test('logo support base stays continuous while detail reduction lowers triangle count', async ({ page }, testInfo) => {
-    await page.goto('/converter.html');
+    await page.goto('/3d-obj');
     await page.locator('.segmented-control-tab[data-tab="logo"]').click();
     await expect(page.locator('#tab-logo')).toBeVisible();
 
@@ -366,7 +366,7 @@ test('logo support base stays continuous while detail reduction lowers triangle 
 });
 
 test('svg tab uses the welded silhouette for support-base exports', async ({ page }, testInfo) => {
-    await page.goto('/converter.html');
+    await page.goto('/3d-obj');
 
     const svgDataUrl = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(buildConnectedBlocksSvg())}`;
     await page.locator('#url-input').fill(svgDataUrl);
@@ -392,7 +392,7 @@ test('svg tab uses the welded silhouette for support-base exports', async ({ pag
 });
 
 test('rounded wordmark base stays printable without perimeter chatter', async ({ page }, testInfo) => {
-    await page.goto('/converter.html');
+    await page.goto('/3d-obj');
 
     const svgDataUrl = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(buildRoundedWordmarkSvg())}`;
     await page.locator('#url-input').fill(svgDataUrl);
@@ -426,7 +426,7 @@ test('rounded wordmark base stays printable without perimeter chatter', async ({
 });
 
 test('bezel presets raise the base without changing footprint size or adding layers', async ({ page }, testInfo) => {
-    await page.goto('/converter.html');
+    await page.goto('/3d-obj');
 
     const svgDataUrl = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(buildConnectedBlocksSvg())}`;
     await page.locator('#url-input').fill(svgDataUrl);
@@ -474,7 +474,7 @@ test('bezel presets raise the base without changing footprint size or adding lay
 });
 
 test('bezel clips edge detail inward without breaking the exported meshes', async ({ page }, testInfo) => {
-    await page.goto('/converter.html');
+    await page.goto('/3d-obj');
 
     const svgDataUrl = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(buildEdgeStripeSvg())}`;
     await page.locator('#url-input').fill(svgDataUrl);
@@ -518,7 +518,7 @@ test('bezel clips edge detail inward without breaking the exported meshes', asyn
 });
 
 test('tiny models skip bezel cleanly when no printable interior remains', async ({ page }, testInfo) => {
-    await page.goto('/converter.html');
+    await page.goto('/3d-obj');
 
     const svgDataUrl = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(buildTinyBadgeSvg())}`;
     await page.locator('#url-input').fill(svgDataUrl);

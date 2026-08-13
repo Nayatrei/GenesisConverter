@@ -26,7 +26,7 @@ module.exports = defineConfig({
     ],
     webServer: {
         command: `PORT=${port} node server.js`,
-        url: `${baseURL}/converter.html`,
+        url: `${baseURL}/3d-obj`,
         reuseExistingServer: true,
         timeout: 120_000
     }

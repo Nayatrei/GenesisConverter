@@ -32,7 +32,7 @@ function rowFor(page, filename) {
 }
 
 test('PDF range parser handles supported syntax and validation', async ({ page }) => {
-    await page.goto('/converter.html');
+    await page.goto('/3d-obj');
 
     const result = await page.evaluate(async () => {
         const { parsePdfPageRange } = await import('/modules/tabs/pdf-utils.js');
@@ -68,7 +68,7 @@ test('PDF range parser handles supported syntax and validation', async ({ page }
 });
 
 test('PDF tab is registered as fifth tab and hides image import sidebar', async ({ page }) => {
-    await page.goto('/converter.html');
+    await page.goto('/3d-obj');
 
     await expect(page.locator('.segmented-control-tab .workspace-tab-title')).toHaveText([
         '3D OBJ',
@@ -107,8 +107,8 @@ test('tab slugs support direct visits and browser history', async ({ page }) => 
     await expect(page.locator('#tab-bulk')).toBeVisible();
 });
 
-test('legacy converter URL canonicalizes to the 3D OBJ slug', async ({ page }) => {
-    await page.goto('/converter.html');
+test('3D OBJ clean URL opens the named 3D entrypoint', async ({ page }) => {
+    await page.goto('/3d-obj');
     await expect(page).toHaveURL(/\/3d-obj$/);
     await expect(page.locator('.segmented-control-tab[data-tab="svg"]')).toHaveClass(/active/);
 });
@@ -117,7 +117,7 @@ test('PDF guided finish arranges, rotates, finishes, reviews, and downloads outp
     const alphaPdf = await buildPdfBuffer('alpha', [[210, 211], [220, 221]]);
     const betaPdf = await buildPdfBuffer('beta', [[310, 311], [320, 321], [330, 331]]);
 
-    await page.goto('/converter.html');
+    await page.goto('/3d-obj');
     await page.locator('.segmented-control-tab[data-tab="pdf"]').click();
     await addPdfFiles(page, [
         {

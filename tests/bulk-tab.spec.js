@@ -37,7 +37,7 @@ test('Bulk ZIP keeps every file and preserves filenames by default', async ({ pa
     fs.writeFileSync(`${inputDirectory}/b/shared.svg`, makeSvg('#00ff00'));
     fs.writeFileSync(`${inputDirectory}/unique.svg`, makeSvg('#0000ff'));
 
-    await page.goto('/converter.html');
+    await page.goto('/3d-obj');
     await page.locator('.segmented-control-tab[data-tab="bulk"]').click();
 
     await expect(page.locator('#bulk-keep-names')).toBeChecked();
@@ -68,7 +68,7 @@ test('single-file Bulk ZIP uses the original filename instead of the folder name
         '<svg xmlns="http://www.w3.org/2000/svg" width="4" height="4"><rect width="4" height="4" fill="#ff00ff"/></svg>'
     );
 
-    await page.goto('/converter.html');
+    await page.goto('/3d-obj');
     await page.locator('.segmented-control-tab[data-tab="bulk"]').click();
     await page.locator('#bulk-folder-input').setInputFiles(inputDirectory);
 
@@ -89,7 +89,7 @@ test('25% resize preserves a Korean source filename', async ({ page }, testInfo)
     fs.mkdirSync(inputDirectory, { recursive: true });
     fs.copyFileSync(path.join(__dirname, '..', 'favicon.jpg'), `${inputDirectory}/김경환 장로.JPG`);
 
-    await page.goto('/converter.html');
+    await page.goto('/3d-obj');
     await page.locator('.segmented-control-tab[data-tab="bulk"]').click();
     await page.locator('#bulk-folder-input').setInputFiles(inputDirectory);
     await page.locator('.bulk-resize-chip[data-scale="25"]').click();

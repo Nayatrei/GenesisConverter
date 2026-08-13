@@ -77,7 +77,7 @@ async function uploadSingleSource(page, markup, filename = 'fixture.svg') {
 }
 
 test('trace option builder stays monotonic and direct', async ({ page }) => {
-    await page.goto('/converter.html');
+    await page.goto('/3d-obj');
 
     const result = await page.evaluate(async () => {
         const mod = await import('/modules/shared/trace-controls.js');
@@ -131,7 +131,7 @@ test('trace option builder stays monotonic and direct', async ({ page }) => {
 });
 
 test('svg direct-output controls update helpers and generated result', async ({ page }) => {
-    await page.goto('/converter.html');
+    await page.goto('/3d-obj');
     await uploadSingleSource(page, buildNoisyShapeSvg());
 
     const preview = page.locator('#svg-preview');
@@ -174,7 +174,7 @@ test('svg direct-output controls update helpers and generated result', async ({ 
 });
 
 test('logo image mode controls retrace with direct helpers', async ({ page }) => {
-    await page.goto('/converter.html');
+    await page.goto('/3d-obj');
     await page.locator('.segmented-control-tab[data-tab="logo"]').click();
     await expect(page.locator('#tab-logo')).toBeVisible();
 
@@ -207,7 +207,7 @@ test('logo image mode controls retrace with direct helpers', async ({ page }) =>
 });
 
 test('logo html mode shows declared-color summary and retraces path cleanup', async ({ page }) => {
-    await page.goto('/converter.html');
+    await page.goto('/3d-obj');
     await page.locator('.segmented-control-tab[data-tab="logo"]').click();
     await expect(page.locator('#tab-logo')).toBeVisible();
 

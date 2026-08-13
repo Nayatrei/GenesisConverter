@@ -1,7 +1,7 @@
 const { test, expect } = require('@playwright/test');
 
 test('logo preset registry exposes ten unique, print-safe numeric starters', async ({ page }) => {
-    await page.goto('/converter.html');
+    await page.goto('/3d-obj');
 
     const result = await page.evaluate(async () => {
         const {
@@ -44,7 +44,7 @@ test('logo preset registry exposes ten unique, print-safe numeric starters', asy
 });
 
 test('numeric controls report overflow before rendering an unreadable logo', async ({ page }) => {
-    await page.goto('/converter.html');
+    await page.goto('/3d-obj');
     await page.locator('.segmented-control-tab[data-tab="logo"]').click();
 
     await page.locator('[data-logo-preset="address-plate"]').click();

@@ -25,7 +25,7 @@ function parseFootprint(text) {
 }
 
 test('auto working image helper chooses expected dimensions', async ({ page }) => {
-    await page.goto('/converter.html');
+    await page.goto('/3d-obj');
 
     const result = await page.evaluate(async () => {
         const mod = await import('/modules/raster-utils.js');
@@ -64,7 +64,7 @@ test('auto working image helper chooses expected dimensions', async ({ page }) =
 });
 
 test('color and path settings start collapsed in svg and logo sidebars', async ({ page }) => {
-    await page.goto('/converter.html');
+    await page.goto('/3d-obj');
 
     const accordionState = await page.evaluate(() => {
         const readState = (bodyId) => {
@@ -108,7 +108,7 @@ test('color and path settings start collapsed in svg and logo sidebars', async (
 });
 
 test('small source keeps full size and avoids oversized notice', async ({ page }) => {
-    await page.goto('/converter.html');
+    await page.goto('/3d-obj');
     await page.locator('#file-input').setInputFiles(path.join(process.cwd(), 'genesis-logo.png'));
 
     await expect(page.locator('#status-text')).toHaveText('Preview generated!', { timeout: 30_000 });
@@ -117,7 +117,7 @@ test('small source keeps full size and avoids oversized notice', async ({ page }
 });
 
 test('oversized source uses reduced working image while preserving 3D footprint scale', async ({ page }) => {
-    await page.goto('/converter.html');
+    await page.goto('/3d-obj');
     await page.locator('#file-input').setInputFiles({
         name: 'oversized-rect.svg',
         mimeType: 'image/svg+xml',
@@ -138,7 +138,7 @@ test('oversized source uses reduced working image while preserving 3D footprint 
 });
 
 test('test image is internally reduced and still completes preview generation', async ({ page }) => {
-    await page.goto('/converter.html');
+    await page.goto('/3d-obj');
     await page.locator('#file-input').setInputFiles(path.join(process.cwd(), 'testImage.png'));
 
     await expect(page.locator('#status-text')).toHaveText('Preview generated!', { timeout: 60_000 });
@@ -148,7 +148,7 @@ test('test image is internally reduced and still completes preview generation', 
 });
 
 test('logo html mode does not use oversized working-image notice', async ({ page }) => {
-    await page.goto('/converter.html');
+    await page.goto('/3d-obj');
     await page.locator('.segmented-control-tab[data-tab="logo"]').click();
     await expect(page.locator('#tab-logo')).toBeVisible();
 

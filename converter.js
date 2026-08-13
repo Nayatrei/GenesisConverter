@@ -579,7 +579,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         logoTab.bindEvents();
         pdfTab.bindEvents();
 
-        // Legacy HTML entrypoints and converter.html canonicalize to the tab's clean slug.
+        // Named HTML entrypoints canonicalize to each tab's clean slug.
         switchExportTab(getTabFromPathname(), { historyMode: 'replace' });
         rasterTab.setExportScale(state.exportScale);
         bulkTab.setExportScale(state.bulk.exportScale);
