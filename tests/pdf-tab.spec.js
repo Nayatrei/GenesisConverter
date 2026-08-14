@@ -71,7 +71,7 @@ test('PDF tab is registered as fifth tab and hides image import sidebar', async 
     await page.goto('/3d-obj');
 
     await expect(page.locator('.segmented-control-tab .workspace-tab-title')).toHaveText([
-        '3D OBJ',
+        'Bambu 3D',
         'Logo',
         'Raster',
         'Bulk',
@@ -107,7 +107,7 @@ test('tab slugs support direct visits and browser history', async ({ page }) => 
     await expect(page.locator('#tab-bulk')).toBeVisible();
 });
 
-test('3D OBJ clean URL opens the named 3D entrypoint', async ({ page }) => {
+test('Bambu 3D clean URL opens the named 3D entrypoint', async ({ page }) => {
     await page.goto('/3d-obj');
     await expect(page).toHaveURL(/\/3d-obj$/);
     await expect(page.locator('.segmented-control-tab[data-tab="svg"]')).toHaveClass(/active/);

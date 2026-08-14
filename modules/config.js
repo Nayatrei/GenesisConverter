@@ -15,6 +15,39 @@ export const OBJ_ZOOM_MIN = 0.5;
 export const OBJ_ZOOM_MAX = 3;
 export const OBJ_DEFAULT_ROTATION = { x: -0.65, y: -0.45 };
 
+export const DEFAULT_AMS_PRINT_STYLE = 'raised-efficient';
+
+export const AMS_PRINT_STYLE_PRESETS = Object.freeze({
+    'raised-efficient': Object.freeze({
+        id: 'raised-efficient',
+        baseThickness: 2.4,
+        colorThickness: 0.6,
+        faceDown: false
+    }),
+    'face-down': Object.freeze({
+        id: 'face-down',
+        baseThickness: 2.4,
+        colorThickness: 0.6,
+        faceDown: true
+    }),
+    'full-depth': Object.freeze({
+        id: 'full-depth',
+        baseThickness: 4,
+        colorThickness: 4,
+        faceDown: false
+    })
+});
+
+export function normalizeAmsPrintStyle(value) {
+    return Object.hasOwn(AMS_PRINT_STYLE_PRESETS, value)
+        ? value
+        : DEFAULT_AMS_PRINT_STYLE;
+}
+
+export function getAmsPrintStylePreset(value) {
+    return AMS_PRINT_STYLE_PRESETS[normalizeAmsPrintStyle(value)];
+}
+
 export const BAMBU_PROJECT_APP_VERSION = '02.05.00.66';
 export const BAMBU_PROJECT_3MF_VERSION = '1';
 export const BAMBU_PROJECT_NOZZLE_DIAMETER = 0.4;

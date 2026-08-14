@@ -159,7 +159,7 @@ test('per-layer height edits invalidate export geometry without rebuilding the p
     const initialOverallMaxZ = Math.max(...initialBounds.map((bounds) => bounds.maxZ));
     const updatedOverallMaxZ = Math.max(...updatedBounds.map((bounds) => bounds.maxZ));
 
-    expect(initialOverallMaxZ).toBeCloseTo(8, 1);
+    expect(initialOverallMaxZ).toBeCloseTo(3, 1);
     expect(updatedOverallMaxZ).toBeCloseTo(3.6, 1);
     const updatedHeights = updatedBounds.map((bounds) => bounds.height).sort((a, b) => a - b);
     expect(updatedHeights[0]).toBeCloseTo(1.2, 1);

@@ -1,6 +1,6 @@
 import { SLIDER_TOOLTIPS } from '../config.js';
-import { createObjPreview } from '../preview3d.js?v=20260813a';
-import { createObjExporter } from '../export3d.js?v=20260813a';
+import { createObjPreview } from '../preview3d.js?v=20260813b';
+import { createObjExporter } from '../export3d.js?v=20260813b';
 import {
     hasTransparentPixels,
     markTransparentPixels,
@@ -33,6 +33,10 @@ import {
     readTraceControls
 } from '../shared/trace-controls.js';
 import { setMakerWorkflow, updateMakerPreflight } from '../shared/maker-workflow.js?v=20260725a';
+import {
+    applyAmsPrintStylePreset,
+    syncAmsPrintStyleControls
+} from '../shared/ams-print-style.js';
 
 export function createLogoTabController({
     state,
@@ -67,6 +71,7 @@ export function createLogoTabController({
         ...exportElements,
         ...htmlElements
     };
+    syncAmsPrintStyleControls({ rootState: state, tabState: ls, controls: le });
     setMakerWorkflow(le.workflow, 'source');
 
     function getBuilderValues() {
@@ -555,10 +560,26 @@ export function createLogoTabController({
     // ── Quality display ────────────────────────────────────────────────────────
 
     function updateQualityDisplay(quality) {
+        const plan = ls.objPreview?.lastPlan;
+        const finalColorCount = plan?.outputLayers?.length || quality.colorCount;
+        const styleWarnings = (plan?.warnings || []).filter((warning) => (
+            String(warning?.type || '').startsWith('ams-')
+        ));
+        const finalQuality = {
+            ...quality,
+            colorCount: finalColorCount,
+            ...(quality.status === 'ready' && styleWarnings.length
+                ? {
+                    status: 'review',
+                    label: 'Style adjusted',
+                    note: styleWarnings.map((warning) => warning.message).join(' ')
+                }
+                : {})
+        };
         if (le.qualityIndicator) {
-            le.qualityIndicator.textContent = `${quality.pathCount.toLocaleString()} paths · ${quality.colorCount} colors`;
+            le.qualityIndicator.textContent = `${finalQuality.pathCount.toLocaleString()} paths · ${finalQuality.colorCount} colors`;
         }
-        updateMakerPreflight(viewControls, quality);
+        updateMakerPreflight(viewControls, finalQuality);
     }
 
     // ── 3D preview / exporter ──────────────────────────────────────────────────
@@ -571,6 +592,15 @@ export function createLogoTabController({
         getVisibleLayerIndices,
         ImageTracer: tracer
     });
+
+    function renderObjModelOnly() {
+        objPreview.render();
+        if (ls.tracedata) {
+            updateQualityDisplay(assess3DPrintQuality(ls.tracedata, getVisibleLayerIndices()));
+        }
+    }
+
+    const scheduleObjModelRender = debounce(renderObjModelOnly, 80);
 
     const objExporter = createObjExporter({
         state: ls,
@@ -778,7 +808,7 @@ export function createLogoTabController({
                 htmlEditor.triggerHtmlRender();
             } else if (ls.colorsAnalyzed) {
                 setMakerWorkflow(le.workflow, 'export');
-                objPreview.render();
+                renderObjModelOnly();
             } else {
                 setMakerWorkflow(le.workflow, 'source');
             }
@@ -836,6 +866,33 @@ export function createLogoTabController({
             });
         }
 
+        if (le.objAmsPrintStyle) {
+            le.objAmsPrintStyle.addEventListener('change', () => {
+                if (state.activeTab !== 'logo') return;
+                applyAmsPrintStylePreset({
+                    rootState: state,
+                    tabState: ls,
+                    controls: le,
+                    styleId: le.objAmsPrintStyle.value
+                });
+                renderObjModelOnly();
+            });
+        }
+        if (le.objBaseThicknessSlider && le.objBaseThicknessValue) {
+            le.objBaseThicknessValue.textContent = le.objBaseThicknessSlider.value;
+            le.objBaseThicknessSlider.addEventListener('input', () => {
+                const nextBaseThickness = Number.parseFloat(le.objBaseThicknessSlider.value);
+                state.objParams.baseThickness = nextBaseThickness;
+                ls.objParams.baseThickness = nextBaseThickness;
+                le.objBaseThicknessValue.textContent = nextBaseThickness;
+            });
+            le.objBaseThicknessSlider.addEventListener('change', () => {
+                if (state.activeTab === 'logo') {
+                    objPreview.updateLayerHeights();
+                    updateQualityDisplay(assess3DPrintQuality(ls.tracedata, getVisibleLayerIndices()));
+                }
+            });
+        }
         if (le.objThicknessSlider && le.objThicknessValue) {
             le.objThicknessValue.textContent = le.objThicknessSlider.value;
             le.objThicknessSlider.addEventListener('input', () => {
@@ -845,7 +902,10 @@ export function createLogoTabController({
                 le.objThicknessValue.textContent = nextThickness;
             });
             le.objThicknessSlider.addEventListener('change', () => {
-                if (state.activeTab === 'logo') objPreview.updateLayerHeights();
+                if (state.activeTab === 'logo') {
+                    objPreview.updateLayerHeights();
+                    updateQualityDisplay(assess3DPrintQuality(ls.tracedata, getVisibleLayerIndices()));
+                }
             });
         }
 
@@ -854,7 +914,7 @@ export function createLogoTabController({
             le.objDecimateSlider.addEventListener('input', () => {
                 state.objParams.decimate = Number.parseFloat(le.objDecimateSlider.value);
                 le.objDecimateValue.textContent = state.objParams.decimate;
-                if (state.activeTab === 'logo') updateFilteredPreview();
+                if (state.activeTab === 'logo') scheduleObjModelRender();
 
                 const tooltipEl = document.getElementById('obj-decimate-tooltip');
                 if (tooltipEl) {
@@ -871,26 +931,26 @@ export function createLogoTabController({
             le.objScaleSlider.addEventListener('input', () => {
                 state.objParams.scale = Number.parseFloat(le.objScaleSlider.value);
                 le.objScaleValue.textContent = formatObjScalePercent(state.objParams.scale);
-                if (state.activeTab === 'logo') updateFilteredPreview();
+                if (state.activeTab === 'logo') scheduleObjModelRender();
             });
         }
         if (le.objBedSelect) {
             le.objBedSelect.addEventListener('change', (e) => {
                 state.objParams.bedKey = e.target.value;
-                if (state.activeTab === 'logo') updateFilteredPreview();
+                if (state.activeTab === 'logo') scheduleObjModelRender();
             });
         }
         if (le.objMarginInput) {
             le.objMarginInput.addEventListener('input', (e) => {
                 state.objParams.margin = Number.parseFloat(e.target.value);
-                if (state.activeTab === 'logo') updateFilteredPreview();
+                if (state.activeTab === 'logo') scheduleObjModelRender();
             });
         }
         if (le.objBezelSelect) {
             le.objBezelSelect.addEventListener('change', () => {
                 state.objParams.bezelPreset = le.objBezelSelect.value || 'off';
                 updateBezelHelperText();
-                if (state.activeTab === 'logo') updateFilteredPreview();
+                if (state.activeTab === 'logo') scheduleObjModelRender();
 
                 const tooltipEl = document.getElementById('obj-bezel-tooltip');
                 if (tooltipEl) {

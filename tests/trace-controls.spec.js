@@ -166,7 +166,7 @@ test('svg direct-output controls update helpers and generated result', async ({ 
     previousSrc = await preview.getAttribute('src');
 
     await setRangeValue(page.locator('#output-colors'), 2);
-    await expect(page.locator('#output-colors-helper')).toContainText('2 color layers');
+    await expect(page.locator('#output-colors-helper')).toContainText('2 final filament colors');
     await waitForPreviewChange(preview, previousSrc);
 
     await expect(page.locator('#output-colors')).toHaveValue('2');
@@ -198,7 +198,7 @@ test('logo image mode controls retrace with direct helpers', async ({ page }) =>
     await expectRenderedImage(preview);
 
     await setRangeValue(page.locator('#logo-output-colors'), 2);
-    await expect(page.locator('#logo-output-colors-helper')).toContainText('2 color layers');
+    await expect(page.locator('#logo-output-colors-helper')).toContainText('2 final filament colors');
     await waitForGenerateCycle(page.locator('#logo-generate-preview-btn'));
     await expectRenderedImage(preview);
 

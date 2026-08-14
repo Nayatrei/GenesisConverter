@@ -48,6 +48,10 @@ export function createElements() {
 
         // Shared 3D controls (Unificed)
         shared3d: {
+            objAmsPrintStyle: document.getElementById('obj-ams-print-style'),
+            objAmsPrintStyleHelper: document.getElementById('obj-ams-print-style-helper'),
+            objBaseThicknessSlider: document.getElementById('obj-base-thickness'),
+            objBaseThicknessValue: document.getElementById('obj-base-thickness-value'),
             objThicknessSlider: document.getElementById('obj-thickness'),
             objThicknessValue: document.getElementById('obj-thickness-value'),
             objDecimateSlider: document.getElementById('obj-decimate'),
@@ -273,6 +277,7 @@ export function createElements() {
             preview3d: {
                 objPreviewCanvas: document.getElementById('obj-preview-canvas'),
                 objPreviewPlaceholder: document.getElementById('obj-preview-placeholder'),
+                printOrientationNote: document.getElementById('obj-print-orientation-note'),
                 objBuildPlateToggle: document.getElementById('obj-build-plate-toggle'),
                 objPreviewBedSelect: document.getElementById('obj-preview-bed'),
                 objFitView: document.getElementById('obj-fit-view'),
@@ -354,6 +359,7 @@ export function createElements() {
             preview3d: {
                 objPreviewCanvas: document.getElementById('logo-obj-preview-canvas'),
                 objPreviewPlaceholder: document.getElementById('logo-obj-preview-placeholder'),
+                printOrientationNote: document.getElementById('logo-obj-print-orientation-note'),
                 objBuildPlateToggle: document.getElementById('logo-obj-build-plate-toggle'),
                 objFitView: document.getElementById('logo-obj-fit-view'),
                 objRecenter: document.getElementById('logo-obj-recenter'),

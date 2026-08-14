@@ -29,10 +29,10 @@
 
 export const TAB_CASES = {
     svg: {
-        label: '3D OBJ',
-        eyebrow: 'Image to 3D',
-        title: 'Create a 3D model',
-        description: 'Turn an image into layered geometry, check the print, and export a 3D file.',
+        label: 'Bambu 3D',
+        eyebrow: 'Image to Bambu 3MF',
+        title: 'Make an AMS color print',
+        description: 'Separate image colors, reduce filament swaps, and export an AMS-ready Bambu project.',
         accent: '#38bdf8',
         accentSoft: 'rgba(56, 189, 248, 0.16)',
         accentRgb: '56, 189, 248',

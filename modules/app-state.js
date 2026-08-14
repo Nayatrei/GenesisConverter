@@ -1,5 +1,9 @@
 import { createDefaultTraceControls } from './shared/trace-controls.js';
-import { OBJ_DEFAULT_ROTATION } from './config.js';
+import {
+    DEFAULT_AMS_PRINT_STYLE,
+    OBJ_DEFAULT_ROTATION,
+    getAmsPrintStylePreset
+} from './config.js';
 import { createDefaultMagnetPocketConfig } from './shared/magnet-pockets.js';
 
 /**
@@ -11,7 +15,9 @@ export function createState() {
     const sharedMagnetPocket = createDefaultMagnetPocketConfig();
     const createObjParams = () => ({
         scale: 100,
-        thickness: 4,
+        thickness: getAmsPrintStylePreset(DEFAULT_AMS_PRINT_STYLE).colorThickness,
+        baseThickness: getAmsPrintStylePreset(DEFAULT_AMS_PRINT_STYLE).baseThickness,
+        amsPrintStyle: DEFAULT_AMS_PRINT_STYLE,
         decimate: 0,
         bedKey: 'x1',
         margin: 5,

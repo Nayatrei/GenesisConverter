@@ -1,6 +1,6 @@
 import { SLIDER_TOOLTIPS } from '../config.js';
-import { createObjPreview } from '../preview3d.js?v=20260813a';
-import { createObjExporter } from '../export3d.js?v=20260813a';
+import { createObjPreview } from '../preview3d.js?v=20260813b';
+import { createObjExporter } from '../export3d.js?v=20260813b';
 import { hasTransparentPixels, markTransparentPixels, stripTransparentPalette } from '../shared/image-utils.js';
 import {
     debounce,
@@ -26,6 +26,10 @@ import {
     readTraceControls
 } from '../shared/trace-controls.js';
 import { setMakerWorkflow, updateMakerPreflight } from '../shared/maker-workflow.js?v=20260725a';
+import {
+    applyAmsPrintStylePreset,
+    syncAmsPrintStyleControls
+} from '../shared/ams-print-style.js';
 
 export function createSvgTabController({
     state,
@@ -56,6 +60,7 @@ export function createSvgTabController({
         ...viewControls,
         ...exportElements
     };
+    syncAmsPrintStyleControls({ rootState: state, tabState: state, controls: elements });
     setMakerWorkflow(elements.workflow, elements.sourceImage?.src ? 'layers' : 'source');
 
     // ── Debounced re-trace ─────────────────────────────────────────────────────
@@ -262,10 +267,26 @@ export function createSvgTabController({
     // ── Quality display ────────────────────────────────────────────────────────
 
     function updateQualityDisplay(quality) {
+        const plan = state.objPreview?.lastPlan;
+        const finalColorCount = plan?.outputLayers?.length || quality.colorCount;
+        const styleWarnings = (plan?.warnings || []).filter((warning) => (
+            String(warning?.type || '').startsWith('ams-')
+        ));
+        const finalQuality = {
+            ...quality,
+            colorCount: finalColorCount,
+            ...(quality.status === 'ready' && styleWarnings.length
+                ? {
+                    status: 'review',
+                    label: 'Style adjusted',
+                    note: styleWarnings.map((warning) => warning.message).join(' ')
+                }
+                : {})
+        };
         if (elements.qualityIndicator) {
-            elements.qualityIndicator.textContent = `${quality.pathCount.toLocaleString()} paths · ${quality.colorCount} colors`;
+            elements.qualityIndicator.textContent = `${finalQuality.pathCount.toLocaleString()} paths · ${finalQuality.colorCount} colors`;
         }
-        updateMakerPreflight(viewControls, quality);
+        updateMakerPreflight(viewControls, finalQuality);
     }
 
     // ── 3D preview / exporter ──────────────────────────────────────────────────
@@ -297,6 +318,17 @@ export function createSvgTabController({
         },
         ImageTracer: tracer
     });
+
+    function renderObjModelOnly() {
+        objPreview.render();
+        if (state.tracedata) {
+            updateQualityDisplay(assess3DPrintQuality(state.tracedata, getVisibleLayerIndices()));
+        }
+    }
+
+    // Coalesce rapid 3D-only control changes and leave the 2D filtered preview
+    // alone; neither its pixels nor its layer selection changed.
+    const scheduleObjModelRender = debounce(renderObjModelOnly, 80);
 
     const objExporter = createObjExporter({
         state,
@@ -589,14 +621,44 @@ export function createSvgTabController({
             });
         }
 
+        if (elements.objAmsPrintStyle) {
+            elements.objAmsPrintStyle.addEventListener('change', () => {
+                if (state.activeTab !== 'svg') return;
+                applyAmsPrintStylePreset({
+                    rootState: state,
+                    tabState: state,
+                    controls: elements,
+                    styleId: elements.objAmsPrintStyle.value
+                });
+                renderObjModelOnly();
+            });
+        }
+        if (elements.objBaseThicknessSlider && elements.objBaseThicknessValue) {
+            elements.objBaseThicknessValue.textContent = elements.objBaseThicknessSlider.value;
+            elements.objBaseThicknessSlider.addEventListener('input', () => {
+                state.objParams.baseThickness = Number.parseFloat(elements.objBaseThicknessSlider.value);
+                if (state.logo?.objParams) state.logo.objParams.baseThickness = state.objParams.baseThickness;
+                elements.objBaseThicknessValue.textContent = state.objParams.baseThickness;
+            });
+            elements.objBaseThicknessSlider.addEventListener('change', () => {
+                if (state.activeTab === 'svg') {
+                    objPreview.updateLayerHeights();
+                    updateQualityDisplay(assess3DPrintQuality(state.tracedata, getVisibleLayerIndices()));
+                }
+            });
+        }
         if (elements.objThicknessSlider && elements.objThicknessValue) {
             elements.objThicknessValue.textContent = elements.objThicknessSlider.value;
             elements.objThicknessSlider.addEventListener('input', () => {
                 state.objParams.thickness = Number.parseFloat(elements.objThicknessSlider.value);
+                if (state.logo?.objParams) state.logo.objParams.thickness = state.objParams.thickness;
                 elements.objThicknessValue.textContent = state.objParams.thickness;
             });
             elements.objThicknessSlider.addEventListener('change', () => {
-                if (state.activeTab === 'svg') objPreview.updateLayerHeights();
+                if (state.activeTab === 'svg') {
+                    objPreview.updateLayerHeights();
+                    updateQualityDisplay(assess3DPrintQuality(state.tracedata, getVisibleLayerIndices()));
+                }
             });
         }
         if (elements.objDecimateSlider && elements.objDecimateValue) {
@@ -604,7 +666,7 @@ export function createSvgTabController({
             elements.objDecimateSlider.addEventListener('input', () => {
                 state.objParams.decimate = Number.parseFloat(elements.objDecimateSlider.value);
                 elements.objDecimateValue.textContent = state.objParams.decimate;
-                if (state.activeTab === 'svg') updateFilteredPreview();
+                if (state.activeTab === 'svg') scheduleObjModelRender();
 
                 const tooltipEl = document.getElementById('obj-decimate-tooltip');
                 if (tooltipEl) {
@@ -620,26 +682,26 @@ export function createSvgTabController({
             elements.objScaleSlider.addEventListener('input', () => {
                 state.objParams.scale = Number.parseFloat(elements.objScaleSlider.value);
                 elements.objScaleValue.textContent = formatObjScalePercent(state.objParams.scale);
-                if (state.activeTab === 'svg') updateFilteredPreview();
+                if (state.activeTab === 'svg') scheduleObjModelRender();
             });
         }
         if (elements.objBedSelect) {
             elements.objBedSelect.addEventListener('change', (e) => {
                 state.objParams.bedKey = e.target.value;
-                if (state.activeTab === 'svg') updateFilteredPreview();
+                if (state.activeTab === 'svg') scheduleObjModelRender();
             });
         }
         if (elements.objMarginInput) {
             elements.objMarginInput.addEventListener('input', (e) => {
                 state.objParams.margin = Number.parseFloat(e.target.value);
-                if (state.activeTab === 'svg') updateFilteredPreview();
+                if (state.activeTab === 'svg') scheduleObjModelRender();
             });
         }
         if (elements.objBezelSelect) {
             elements.objBezelSelect.addEventListener('change', () => {
                 state.objParams.bezelPreset = elements.objBezelSelect.value || 'off';
                 updateBezelHelperText();
-                if (state.activeTab === 'svg') updateFilteredPreview();
+                if (state.activeTab === 'svg') scheduleObjModelRender();
 
                 const tooltipEl = document.getElementById('obj-bezel-tooltip');
                 if (tooltipEl) {

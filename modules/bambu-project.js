@@ -127,7 +127,7 @@ function getGeometryMeshData(geometry) {
 
 function buildObjectModelXml({ objectFileId, meshData, uuid }) {
     const verticesXml = meshData.vertices.map((vertex) => (
-        `     <vertex x="${formatNumber(vertex.x)}" y="${formatNumber(vertex.y)}" z="${formatNumber(vertex.z)}"/>`
+        `     <vertex x="${formatNumber(vertex.x, 9)}" y="${formatNumber(vertex.y, 9)}" z="${formatNumber(vertex.z, 9)}"/>`
     )).join('\n');
     const trianglesXml = meshData.triangles.map((triangle) => (
         `     <triangle v1="${triangle.v1}" v2="${triangle.v2}" v3="${triangle.v3}"/>`

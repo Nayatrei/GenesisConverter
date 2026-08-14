@@ -3,6 +3,10 @@ import { buildShapesFromTracedataLayers, buildWeldedShapeSet } from './shared/si
 import { computeObjScalePlan } from './obj-scale.js';
 import { applyCanonicalRawExtrudeTransform } from './shared/canonical-3d.js';
 import {
+    getAmsPrintStylePreset,
+    normalizeAmsPrintStyle
+} from './config.js';
+import {
     BEZEL_PRESETS,
     DEFAULT_PRINT_PROFILE,
     analyzeMaskComponents,
@@ -31,6 +35,31 @@ function clampThickness(value, defaultThickness) {
     const numeric = Number.isFinite(value) ? value : Number.parseFloat(value);
     const fallback = Number.isFinite(defaultThickness) ? defaultThickness : 4;
     return Math.max(0.1, Math.min(20, Number.isFinite(numeric) ? numeric : fallback));
+}
+
+function hasExplicitThickness(state, sourceLayerId) {
+    return Object.prototype.hasOwnProperty.call(state?.layerThicknessById || {}, sourceLayerId);
+}
+
+function unionMaskData(maskSpace, masks) {
+    const length = Math.max(0, (maskSpace?.width || 0) * (maskSpace?.height || 0));
+    const result = new Uint8Array(length);
+    (Array.isArray(masks) ? masks : []).forEach((mask) => {
+        if (!(mask instanceof Uint8Array) || mask.length !== length) return;
+        for (let index = 0; index < length; index++) {
+            if (mask[index]) result[index] = 255;
+        }
+    });
+    return result;
+}
+
+function subtractMaskData(baseMask, subtractMask) {
+    if (!(baseMask instanceof Uint8Array)) return new Uint8Array();
+    const result = new Uint8Array(baseMask.length);
+    for (let index = 0; index < baseMask.length; index++) {
+        result[index] = baseMask[index] && !subtractMask?.[index] ? 255 : 0;
+    }
+    return result;
 }
 
 function clampDecimatePercent(value) {
@@ -398,7 +427,7 @@ export function ensureLayerThicknessById(state, sourceLayerIds, defaultThickness
     });
 
     // Keep only explicit per-layer values in state. Layers without an override
-    // continue to follow the global Default Layer Height control.
+    // continue to follow the global Color surface thickness control.
     state.layerThicknessById = overrides;
     state.layerThicknesses = null;
     return resolved;
@@ -411,6 +440,7 @@ export function ensureLayerThicknessById(state, sourceLayerIds, defaultThickness
  */
 export function updateObjModelPlanLayerHeights(plan, state, defaultThickness) {
     if (!plan?.outputLayers?.length || !state) return null;
+    if (plan.amsPrintStyle === 'face-down') return null;
 
     const sourceLayerIds = Array.isArray(plan.visibleSourceLayerIds)
         ? plan.visibleSourceLayerIds
@@ -424,10 +454,16 @@ export function updateObjModelPlanLayerHeights(plan, state, defaultThickness) {
     plan.outputLayers.forEach((layer) => {
         const previousStart = layer.zStart;
         const previousEnd = layer.zEnd;
+        const layerDefault = layer.outputLayerId === baseLayer?.outputLayerId
+            ? clampThickness(state.objParams?.baseThickness, plan.baseThickness || 2.4)
+            : defaultThickness;
         layer.thickness = clampThickness(
-            thicknessById[layer.primarySourceLayerId],
-            defaultThickness
+            hasExplicitThickness(state, layer.primarySourceLayerId)
+                ? thicknessById[layer.primarySourceLayerId]
+                : layerDefault,
+            layerDefault
         );
+        thicknessById[layer.primarySourceLayerId] = layer.thickness;
         transitions.push({
             outputLayerId: layer.outputLayerId,
             previousStart,
@@ -908,6 +944,12 @@ export function buildObjModelPlan({
     if (!Array.isArray(visibleSourceLayerIds) || visibleSourceLayerIds.length === 0) return null;
 
     const sourceLayerIds = visibleSourceLayerIds.slice();
+    const requestedAmsPrintStyle = normalizeAmsPrintStyle(state.objParams?.amsPrintStyle);
+    const amsPrintStylePreset = getAmsPrintStylePreset(requestedAmsPrintStyle);
+    const requestedBaseThickness = clampThickness(
+        state.objParams?.baseThickness,
+        amsPrintStylePreset.baseThickness
+    );
     const thicknessById = ensureLayerThicknessById(state, sourceLayerIds, defaultThickness);
     const outputGroups = resolveMergedLayerGroups(sourceLayerIds, state.mergeRules || []);
     const shapeCache = new Map();
@@ -974,6 +1016,13 @@ export function buildObjModelPlan({
 
     const detectedBaseOutputLayer = detectBaseOutputLayer(outputLayers, THREERef);
 
+    // A face-down inlay is one assembled sign: the selected base color fills
+    // the front around the details and continues as the backing. Do not allow
+    // this style to degrade into an unrelated stack of independent Z layers.
+    if (requestedAmsPrintStyle === 'face-down' && detectedBaseOutputLayer) {
+        state.useBaseLayer = true;
+    }
+
     if (state.autoBaseLayerSelectionPending && detectedBaseOutputLayer) {
         state.useBaseLayer = true;
         state.baseSourceLayerId = detectedBaseOutputLayer.primarySourceLayerId;
@@ -989,6 +1038,17 @@ export function buildObjModelPlan({
             resolvedBaseOutputLayer = detectedBaseOutputLayer || outputLayers[0];
             state.baseSourceLayerId = resolvedBaseOutputLayer.primarySourceLayerId;
         }
+    }
+
+    if (resolvedBaseOutputLayer) {
+        const baseSourceLayerId = resolvedBaseOutputLayer.primarySourceLayerId;
+        resolvedBaseOutputLayer.thickness = clampThickness(
+            hasExplicitThickness(state, baseSourceLayerId)
+                ? thicknessById[baseSourceLayerId]
+                : requestedBaseThickness,
+            requestedBaseThickness
+        );
+        thicknessById[baseSourceLayerId] = resolvedBaseOutputLayer.thickness;
     }
 
     const finalizedOutputLayers = [];
@@ -1346,7 +1406,111 @@ export function buildObjModelPlan({
         layerManifest.push(manifestEntry);
     });
 
-    if (resolvedBaseOutputLayer) {
+    const printStyleWarnings = [];
+    const faceDownBlockReason = requestedAmsPrintStyle === 'face-down'
+        ? !resolvedBaseOutputLayer
+            ? 'Face-down inlay needs a support base.'
+            : bezelSpec.enabled
+                ? 'Face-down inlay is not combined with a raised bezel.'
+                : magnetPocketResult.enabled
+                    ? 'Face-down inlay is not combined with magnet pockets.'
+                    : ''
+        : '';
+    const appliedAmsPrintStyle = requestedAmsPrintStyle === 'face-down' && faceDownBlockReason
+        ? 'raised-efficient'
+        : requestedAmsPrintStyle;
+
+    if (faceDownBlockReason) {
+        printStyleWarnings.push({
+            type: 'ams-print-style',
+            message: `${faceDownBlockReason} Using thin raised color for this model.`
+        });
+    }
+
+    if (resolvedBaseOutputLayer && appliedAmsPrintStyle === 'face-down') {
+        const minimumBackingThickness = 0.2;
+        const minimumColorDepth = 0.2;
+        const requestedFaceDownBaseThickness = resolvedBaseOutputLayer.thickness;
+        const baseThickness = Math.max(
+            requestedFaceDownBaseThickness,
+            minimumBackingThickness + minimumColorDepth
+        );
+        if (Math.abs(baseThickness - requestedFaceDownBaseThickness) > 1e-6) {
+            printStyleWarnings.push({
+                type: 'ams-base-depth',
+                message: `Base thickness increased to ${baseThickness.toFixed(1)}mm so the face-down backing remains printable.`
+            });
+        }
+        resolvedBaseOutputLayer.thickness = baseThickness;
+        thicknessById[resolvedBaseOutputLayer.primarySourceLayerId] = baseThickness;
+        const requestedColorDepth = clampThickness(defaultThickness, amsPrintStylePreset.colorThickness);
+        const colorDepth = Math.max(
+            minimumColorDepth,
+            Math.min(requestedColorDepth, Math.max(minimumColorDepth, baseThickness - minimumBackingThickness))
+        );
+        if (Math.abs(colorDepth - requestedColorDepth) > 1e-6) {
+            printStyleWarnings.push({
+                type: 'ams-color-depth',
+                message: `Color surface reduced to ${colorDepth.toFixed(1)}mm so the backing remains printable.`
+            });
+        }
+
+        const detailLayers = finalizedOutputLayers.filter(
+            (layer) => layer.outputLayerId !== resolvedBaseOutputLayer.outputLayerId
+        );
+        const detailMask = unionMaskData(maskSpace, detailLayers.map((layer) => layer.printMask));
+        const frontBaseMask = subtractMaskData(supportBaseMask, detailMask);
+        const baseSimplifyTolerance = getMaskLoopSimplifyTolerance(
+            normalizedDecimatePercent,
+            maskSpace.pixelsPerUnit,
+            {
+                baseTolerancePx: 0,
+                maxExtraTolerancePx: 3,
+                minimumTolerancePx: 1.5
+            }
+        );
+
+        resolvedBaseOutputLayer.geometrySegments = [];
+        if (hasMaskPixels(frontBaseMask)) {
+            resolvedBaseOutputLayer.geometrySegments.push({
+                maskData: frontBaseMask,
+                maskSpace,
+                zStart: 0,
+                depth: colorDepth,
+                simplifyTolerance: baseSimplifyTolerance
+            });
+        }
+        if (baseThickness - colorDepth > 0.001) {
+            resolvedBaseOutputLayer.geometrySegments.push({
+                maskData: supportBaseMask,
+                maskSpace,
+                zStart: colorDepth,
+                depth: baseThickness - colorDepth,
+                simplifyTolerance: baseSimplifyTolerance
+            });
+        }
+
+        finalizedOutputLayers.forEach((layer) => {
+            if (layer.outputLayerId === resolvedBaseOutputLayer.outputLayerId) {
+                layer.isBase = true;
+                layer.zStart = 0;
+                layer.zEnd = baseThickness;
+                return;
+            }
+            layer.isBase = false;
+            layer.thickness = colorDepth;
+            layer.zStart = 0;
+            layer.zEnd = colorDepth;
+            layer.geometrySegments = [{
+                maskData: layer.printMask,
+                maskSpace: layer.printMaskSpace,
+                zStart: 0,
+                depth: colorDepth,
+                simplifyTolerance: layer.geometrySegments?.[0]?.simplifyTolerance ?? null
+            }];
+            thicknessById[layer.primarySourceLayerId] = colorDepth;
+        });
+    } else if (resolvedBaseOutputLayer) {
         const baseExtraHeight = bezelSpec.enabled ? bezelSpec.extraHeightMm : 0;
         const baseThickness = resolvedBaseOutputLayer.thickness;
         finalizedOutputLayers.forEach((layer) => {
@@ -1418,6 +1582,13 @@ export function buildObjModelPlan({
         outputLayers: finalizedOutputLayers,
         visibleSourceLayerIds: sourceLayerIds,
         thicknessById,
+        requestedAmsPrintStyle,
+        amsPrintStyle: appliedAmsPrintStyle,
+        previewFlipZ: appliedAmsPrintStyle === 'face-down',
+        baseThickness: resolvedBaseOutputLayer?.thickness || null,
+        colorLayerDepth: appliedAmsPrintStyle === 'face-down'
+            ? finalizedOutputLayers.find((layer) => !layer.isBase)?.thickness || 0
+            : null,
         useBaseLayer: !!(state.useBaseLayer || normalizedMagnetPocket.enabled),
         baseSourceLayerId: state.baseSourceLayerId,
         detectedBaseSourceLayerId: detectedBaseOutputLayer?.primarySourceLayerId ?? null,
@@ -1441,7 +1612,7 @@ export function buildObjModelPlan({
         layerManifest,
         magnetPocketResult,
         pauseEvents,
-        warnings: magnetWarnings
+        warnings: [...magnetWarnings, ...printStyleWarnings]
     };
 }
 

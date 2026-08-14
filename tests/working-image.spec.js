@@ -130,7 +130,7 @@ test('oversized source uses reduced working image while preserving 3D footprint 
     await expect(page.locator('#obj-preview-placeholder')).toBeHidden({ timeout: 30_000 });
 
     await setRangeValue(page.locator('#obj-scale'), 50);
-    await expect(page.locator('#obj-size-readout')).toContainText('Footprint:', { timeout: 30_000 });
+    await expect(page.locator('#obj-size-readout')).toContainText('Footprint: 137.5 × 112.5 mm', { timeout: 30_000 });
 
     const footprint = parseFootprint(await page.locator('#obj-size-readout').textContent());
     expect(footprint.width).toBeCloseTo(137.5, 0);

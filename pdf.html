@@ -20,8 +20,8 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet">
     <script src="imagetracer_v1.2.6.js?v=20260324d"></script>
     <script type="module" src="three-setup.js?v=20260324d"></script>
-    <script type="module" src="converter.js?v=20260813a"></script>
-    <link rel="stylesheet" href="style.css?v=20260804b">
+    <script type="module" src="converter.js?v=20260813b"></script>
+    <link rel="stylesheet" href="style.css?v=20260813b">
 </head>
 <body class="app-body antialiased app-shell-v2">
 
@@ -54,11 +54,11 @@
             <div id="tab-case-strip" class="tab-case-strip" data-case="svg" aria-live="polite">
                 <span class="tab-case-strip-rail" aria-hidden="true"></span>
                 <div class="tab-case-strip-body">
-                    <span class="tab-case-strip-eyebrow" data-case-eyebrow>Image to 3D</span>
-                    <span class="tab-case-strip-title" data-case-title>Create a 3D model</span>
-                    <span class="tab-case-strip-desc" data-case-desc>Turn an image into layered geometry, check the print, and export a 3D file.</span>
+                    <span class="tab-case-strip-eyebrow" data-case-eyebrow>Image to Bambu 3MF</span>
+                    <span class="tab-case-strip-title" data-case-title>Make an AMS color print</span>
+                    <span class="tab-case-strip-desc" data-case-desc>Separate image colors, reduce filament swaps, and export an AMS-ready Bambu project.</span>
                 </div>
-                <span class="tab-case-strip-badge" data-case-badge>3D OBJ</span>
+                <span class="tab-case-strip-badge" data-case-badge>Bambu 3D</span>
             </div>
 
             <div class="flex-grow p-4 overflow-y-auto sidebar-scroll">
@@ -105,7 +105,7 @@
                             <svg class="sidebar-accordion-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                 <path d="M12 20h9M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/>
                             </svg>
-                            <h2 class="sidebar-accordion-title">2. Clean Layers</h2>
+                            <h2 class="sidebar-accordion-title">2. Clean Colors</h2>
                         </span>
                         <div class="flex items-center gap-2">
                             <button id="reset-btn" class="hidden text-xs font-semibold text-blue-400 hover:text-blue-300" onclick="event.stopPropagation()">Reset to Initial</button>
@@ -126,7 +126,7 @@
                                             <circle cx="12" cy="12" r="10"/><path d="M12 2a10 10 0 010 20"/>
                                             <path d="M2 12h20"/>
                                         </svg>
-                                        Color Settings
+                                        AMS Colors
                                     </span>
                                     <svg class="sidebar-sub-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                         <path d="M19 9l-7 7-7-7"/>
@@ -144,12 +144,12 @@
                                             <p id="trace-preset-tooltip" class="slider-tooltip text-xs text-gray-400 mt-1 h-4 opacity-0"></p>
                                         </div>
                                         <div class="mt-3">
-                                            <label for="output-colors" class="text-sm font-medium text-gray-300">Output Colors</label>
+                                            <label for="output-colors" class="text-sm font-medium text-gray-300">Maximum Filament Colors</label>
                                             <div class="flex items-center space-x-2">
                                                 <input type="range" id="output-colors" min="2" max="8" value="4" step="1">
                                                 <span id="output-colors-value" class="text-sm font-mono bg-gray-700 border border-gray-600 rounded-md px-2 py-0.5 w-12 text-center text-gray-200">4</span>
                                             </div>
-                                            <p id="output-colors-helper" class="text-xs text-gray-400 mt-1">Keeps up to 4 color layers.</p>
+                                            <p id="output-colors-helper" class="text-xs text-gray-400 mt-1">Keeps up to 4 final colors—the capacity of one AMS.</p>
                                             <p id="output-colors-tooltip" class="slider-tooltip text-xs text-gray-400 mt-1 h-4 opacity-0"></p>
                                         </div>
                                         <div class="mt-3">
@@ -337,7 +337,7 @@
                                         <svg class="sidebar-sub-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                             <path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/>
                                         </svg>
-                                        3. Build 3D
+                                        3. Prepare AMS Print
                                     </span>
                                     <svg class="sidebar-sub-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                         <path d="M19 9l-7 7-7-7"/>
@@ -355,12 +355,29 @@
                                             <p id="obj-size-readout" class="text-xs text-gray-400 mt-1">Footprint: —</p>
                                             <p id="obj-structure-warning" class="text-xs text-yellow-300 mt-1 hidden"></p>
                                         </div>
+                                        <div class="ams-print-style-panel mt-3">
+                                            <label for="obj-ams-print-style" class="text-sm font-medium text-gray-200">AMS print style</label>
+                                            <select id="obj-ams-print-style" class="mt-1 w-full text-xs bg-gray-800 border border-gray-600 rounded px-2 py-2 text-white">
+                                                <option value="raised-efficient" selected>Thin raised color · recommended</option>
+                                                <option value="face-down">Face-down inlay · flush front</option>
+                                                <option value="full-depth">Full-depth color · colored sidewalls</option>
+                                            </select>
+                                            <p id="obj-ams-print-style-helper" class="text-xs text-gray-400 mt-2">2.4mm base with a 0.6mm color surface. Keeps the raised look while limiting AMS swaps.</p>
+                                        </div>
                                         <div class="mt-3">
-                                            <label for="obj-thickness" class="text-sm font-medium text-gray-300">Default Layer Height (mm)</label>
+                                            <label for="obj-base-thickness" class="text-sm font-medium text-gray-300">Base thickness (mm)</label>
                                             <div class="flex items-center space-x-2">
-                                                <input type="range" id="obj-thickness" min="0.4" max="20" value="4" step="0.4">
-                                                <span id="obj-thickness-value" class="text-sm font-mono bg-gray-700 border border-gray-600 rounded-md px-2 py-0.5 w-12 text-center text-gray-200">4</span>
+                                                <input type="range" id="obj-base-thickness" min="1.2" max="8" value="2.4" step="0.2">
+                                                <span id="obj-base-thickness-value" class="text-sm font-mono bg-gray-700 border border-gray-600 rounded-md px-2 py-0.5 w-12 text-center text-gray-200">2.4</span>
                                             </div>
+                                        </div>
+                                        <div class="mt-3">
+                                            <label for="obj-thickness" class="text-sm font-medium text-gray-300">Color surface thickness (mm)</label>
+                                            <div class="flex items-center space-x-2">
+                                                <input type="range" id="obj-thickness" min="0.2" max="4" value="0.6" step="0.2">
+                                                <span id="obj-thickness-value" class="text-sm font-mono bg-gray-700 border border-gray-600 rounded-md px-2 py-0.5 w-12 text-center text-gray-200">0.6</span>
+                                            </div>
+                                            <p class="text-xs text-gray-400 mt-1">Model thickness, not the slicer's 0.2mm print layer height.</p>
                                         </div>
                                         <div class="mt-3">
                                             <label for="obj-decimate" class="text-sm font-medium text-gray-300">Mesh Detail Reduction (%)</label>
@@ -372,7 +389,7 @@
                                         </div>
                                         <div class="grid grid-cols-2 gap-2 mt-3">
                                             <div>
-                                                <label for="obj-bed" class="text-sm font-medium text-gray-300">Printer Bed</label>
+                                                <label for="obj-bed" class="text-sm font-medium text-gray-300">Bambu printer</label>
                                                 <select id="obj-bed" class="text-xs bg-gray-800 border border-gray-600 rounded px-2 py-2 text-white w-full">
                                                     <option value="x1" selected>Bambu X1/X1C (256×256)</option>
                                                     <option value="a1">Bambu A1 (256×256)</option>
@@ -583,7 +600,7 @@
                     <div class="segmented-control-container export-tabs-overlay" aria-label="Export Tabs">
                         <div class="segmented-control">
                             <div class="segmented-control-indicator"></div>
-                            <button class="segmented-control-tab export-tab active" data-tab="svg"><span class="workspace-tab-title">3D OBJ</span><span class="workspace-tab-subtitle">Create 3D from Image</span></button>
+                            <button class="segmented-control-tab export-tab active" data-tab="svg"><span class="workspace-tab-title">Bambu 3D</span><span class="workspace-tab-subtitle">AMS color print from image</span></button>
                             <button class="segmented-control-tab export-tab" data-tab="logo"><span class="workspace-tab-title">Logo</span><span class="workspace-tab-subtitle">Custom HTML logo to 3D</span></button>
                             <button class="segmented-control-tab export-tab" data-tab="raster"><span class="workspace-tab-title">Raster</span><span class="workspace-tab-subtitle">Resize Images</span></button>
                             <button class="segmented-control-tab export-tab" data-tab="bulk"><span class="workspace-tab-title">Bulk</span><span class="workspace-tab-subtitle">Resize Bulk Images</span></button>

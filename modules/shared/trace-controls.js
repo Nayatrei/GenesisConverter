@@ -197,7 +197,12 @@ export function updateTraceControlUi(elements, controls, { htmlModeActive = fals
     if (elements.cornerSharpnessValue) elements.cornerSharpnessValue.textContent = String(normalized.cornerSharpness);
     if (elements.curveStraightnessValue) elements.curveStraightnessValue.textContent = String(normalized.curveStraightness);
 
-    setText(elements.outputColorsHelper, `Keeps up to ${normalized.outputColors} color layer${normalized.outputColors === 1 ? '' : 's'}.`);
+    setText(
+        elements.outputColorsHelper,
+        normalized.outputColors <= 4
+            ? `Keeps up to ${normalized.outputColors} final filament color${normalized.outputColors === 1 ? '' : 's'} · fits one 4-slot AMS.`
+            : `Keeps up to ${normalized.outputColors} final filament colors · more than one 4-slot AMS may be required.`
+    );
     setText(
         elements.colorCleanupHelper,
         options.mincolorratio <= 0

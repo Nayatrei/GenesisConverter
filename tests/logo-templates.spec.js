@@ -145,7 +145,7 @@ test('quick logo builder updates the HTML source and completes 3D preflight', as
     await expect(page.locator('#logo-html-input')).toHaveValue(/width:460\.0px/);
     await expect(page.locator('#logo-builder-fit-status')).toHaveClass(/is-ready/);
     await expect(page.locator('#logo-html-status')).toHaveText('Ready', { timeout: 30_000 });
-    await expect(page.locator('#logo-preflight-status')).toContainText(/Ready|Check|Auto-fit/);
+    await expect(page.locator('#logo-preflight-status')).toContainText(/Ready|Check|Auto-fit|One AMS/);
     await expect(page.locator('#logo-maker-workflow')).toHaveAttribute('data-stage', 'export');
 });
 

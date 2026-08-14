@@ -3147,6 +3147,28 @@ body,
     padding: 0.5rem 0.75rem 0.75rem;
 }
 
+.ams-print-style-panel {
+    padding: 0.8rem;
+    border: 1px solid rgba(var(--case-accent-rgb, 56, 189, 248), 0.28);
+    border-radius: 0.65rem;
+    background:
+        linear-gradient(135deg, rgba(var(--case-accent-rgb, 56, 189, 248), 0.1), transparent 68%),
+        rgba(17, 24, 39, 0.72);
+}
+
+.ams-print-style-panel select {
+    transition: border-color 180ms ease, background-color 180ms ease, transform 180ms ease;
+}
+
+.ams-print-style-panel select:hover {
+    border-color: rgba(var(--case-accent-rgb, 56, 189, 248), 0.6);
+}
+
+.ams-print-style-panel select:focus-visible {
+    outline: 2px solid rgba(var(--case-accent-rgb, 56, 189, 248), 0.9);
+    outline-offset: 2px;
+}
+
 .sidebar-sub-body fieldset {
     border: none;
     padding: 0;

@@ -337,6 +337,51 @@ test('default Logo exports a centered, watertight Bambu project at the displayed
     expect(project.plate.filament_colors).toHaveLength(2);
 });
 
+test('face-down inlay exports complementary front colors with one-color backing', async ({ page }, testInfo) => {
+    await page.goto('/3d-obj');
+    await page.locator('#file-input').setInputFiles({
+        name: 'asymmetric-bubble.svg',
+        mimeType: 'image/svg+xml',
+        buffer: Buffer.from(buildAsymmetricBubbleSvg())
+    });
+
+    await expect(page.locator('#status-text')).toHaveText('Preview generated!', { timeout: 30_000 });
+    await page.locator('#obj-ams-print-style').selectOption('face-down');
+    await expect(page.locator('#obj-preview-canvas')).toHaveAttribute('data-ams-print-style', 'face-down', { timeout: 30_000 });
+    await expect(page.locator('#obj-print-orientation-note')).toHaveText('Front preview · prints face-down');
+    await expect(page.locator('#layer-stack-list .layer-stack-item.is-base .layer-stack-range')).toHaveText('0.0-2.4mm');
+    await expect(page.locator('#layer-stack-list .layer-stack-item:not(.is-base) .layer-stack-range')).toHaveText('0.0-0.6mm');
+    await expect(page.locator('#layer-stack-list .layer-stack-item:not(.is-base) .layer-stack-thickness')).toBeDisabled();
+    await expect(page.locator('#layer-stack-list .layer-stack-item.is-base .layer-stack-thickness')).toBeDisabled();
+    await expect(page.locator('#svg-model-size-readout')).toContainText('× 2.4 mm');
+
+    const downloads = await collectDownloads(page, async () => {
+        await page.locator('#export-3mf-btn').click();
+        await expect(page.locator('#status-text')).toHaveText(
+            'Bambu Studio project downloaded. Open the .3mf in Bambu Studio.',
+            { timeout: 30_000 }
+        );
+    });
+    const filePath = await saveDownload(downloads[0], testInfo);
+    const project = inspectBambuProject(filePath);
+
+    expect(project.plate.filament_colors).toHaveLength(2);
+    expect(project.partExtruders).toEqual(['1', '1', '2']);
+    expect(project.meshStats).toHaveLength(3);
+    project.meshStats.forEach((mesh) => {
+        expect(mesh.finiteVertices).toBe(true);
+        expect(mesh.invalidIndexCount).toBe(0);
+        expect(mesh.degenerateCount).toBe(0);
+        expect(mesh.boundaryEdgeCount).toBe(0);
+        expect(mesh.nonManifoldEdgeCount).toBe(0);
+        expect(mesh.signedVolume).toBeGreaterThan(0);
+    });
+    expect(project.assemblyBounds[2]).toBeCloseTo(0, 5);
+    expect(project.assemblyBounds[5]).toBeCloseTo(2.4, 1);
+    expect(project.meshStats[2].bounds[2]).toBeCloseTo(0, 5);
+    expect(project.meshStats[2].bounds[5]).toBeCloseTo(0.6, 1);
+});
+
 test('Bambu Studio button publishes 3MF and opens the remote project URL', async ({ page, request }) => {
     await page.addInitScript(() => {
         Object.defineProperty(navigator, 'platform', {
@@ -364,7 +409,7 @@ test('Bambu Studio button publishes 3MF and opens the remote project URL', async
     page.on('download', (download) => downloads.push(download));
     await page.locator('#svg-bambu-open-btn').click();
     await expect(page.locator('#status-text')).toContainText(
-        'Sent asymmetric-bubble_8mm.3mf to Bambu Studio',
+        'Sent asymmetric-bubble_3mm.3mf to Bambu Studio',
         { timeout: 30_000 }
     );
 
@@ -417,7 +462,7 @@ test('Bambu Studio button downloads a usable backup when direct handoff is unava
         );
     });
 
-    expect(downloads[0].suggestedFilename()).toBe('asymmetric-bubble_8mm.3mf');
+    expect(downloads[0].suggestedFilename()).toBe('asymmetric-bubble_3mm.3mf');
     await expect(page.evaluate(() => window.__GENESIS_BAMBU_PROTOCOL_CALLS__)).resolves.toEqual([
         'bambustudioopen://'
     ]);

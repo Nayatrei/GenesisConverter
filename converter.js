@@ -1,7 +1,7 @@
 import { createBulkTabController } from './modules/tabs/bulk-tab.js?v=20260804d';
 import { createRasterTabController } from './modules/tabs/raster-tab.js';
-import { createSvgTabController } from './modules/tabs/svg-tab.js?v=20260813a';
-import { createLogoTabController } from './modules/tabs/logo-tab.js?v=20260813a';
+import { createSvgTabController } from './modules/tabs/svg-tab.js?v=20260813b';
+import { createLogoTabController } from './modules/tabs/logo-tab.js?v=20260813b';
 import { createPdfTabController } from './modules/tabs/pdf-tab.js?v=20260804b';
 import {
     getDataUrlSize,
@@ -10,15 +10,15 @@ import {
     isImportableImageFile,
     normalizeImageBlob
 } from './modules/raster-utils.js';
-import { createElements } from './modules/app-elements.js?v=20260804b';
-import { createState } from './modules/app-state.js?v=20260804b';
-import { applyTabCase, TAB_CASES } from './modules/tab-cases.js?v=20260725a';
+import { createElements } from './modules/app-elements.js?v=20260813b';
+import { createState } from './modules/app-state.js?v=20260813b';
+import { applyTabCase, TAB_CASES } from './modules/tab-cases.js?v=20260813b';
 import { bindMagnetPocketControls } from './modules/shared/magnet-pocket-controls.js?v=20260804b';
 
 async function loadTabPartials() {
     const tabs = ['svg', 'logo', 'raster', 'bulk', 'pdf'];
     await Promise.all(tabs.map(async (name) => {
-        const res = await fetch(`modules/tabs/html/tab-${name}.html?v=20260804c`);
+        const res = await fetch(`modules/tabs/html/tab-${name}.html?v=20260813b`);
         const html = await res.text();
         const tmp = document.createElement('div');
         tmp.innerHTML = html;

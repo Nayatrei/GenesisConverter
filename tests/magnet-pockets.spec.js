@@ -350,7 +350,7 @@ test('Logo preview places hidden pockets, auto-thickens the base, and renders X-
         timeout: 30_000
     });
     await expect(page.locator('#obj-magnet-status-text')).toContainText('4 pockets placed');
-    await expect(page.locator('#obj-magnet-status-text')).toContainText('auto-thickened by 0.8 mm');
+    await expect(page.locator('#obj-magnet-status-text')).toContainText('auto-thickened by 2.4 mm');
     await expect(page.locator('#obj-magnet-pause')).toContainText('Z 4 mm');
     await expect(page.locator('#logo-export-obj-btn')).toBeEnabled();
     await expect(page.locator('#logo-export-3mf-btn')).toBeEnabled();
@@ -368,7 +368,7 @@ test('Logo preview places hidden pockets, auto-thickens the base, and renders X-
             proxies: Number.parseInt(canvas?.dataset.magnetPocketCount || '0', 10)
         };
     });
-    expect(preview.height).toBeCloseTo(baselineHeight + 0.8, 1);
+    expect(preview.height).toBeCloseTo(baselineHeight + 2.4, 1);
     expect(preview.canvasWidth).toBeGreaterThan(0);
     expect(preview.canvasHeight).toBeGreaterThan(0);
     expect(preview.proxies).toBe(4);

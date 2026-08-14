@@ -2,8 +2,8 @@ import {
     buildObjGeometryBundle,
     buildObjModelPlan,
     sanitizeGeometryForPrint
-} from './obj-model-plan.js?v=20260813a';
-import { buildBambuProjectFiles } from './bambu-project.js?v=20260730a';
+} from './obj-model-plan.js?v=20260813b';
+import { buildBambuProjectFiles } from './bambu-project.js?v=20260813b';
 import { BAMBU_PROJECT_NOZZLE_DIAMETER } from './config.js';
 import { canvasToBlobAsync, dataUrlToBlob } from './raster-utils.js';
 import { layerHasPaths } from './shared/trace-utils.js?v=20260726a';
@@ -546,6 +546,8 @@ export function createObjExporter({
             .join(',');
         return [
             defaultThickness,
+            model.objBaseThicknessSlider?.value ?? state.objParams?.baseThickness ?? 2.4,
+            model.objAmsPrintStyle?.value ?? state.objParams?.amsPrintStyle ?? 'raised-efficient',
             thicknessOverrides,
             model.objDecimateSlider?.value ?? 0,
             model.objBedSelect?.value ?? 'x1',

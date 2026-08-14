@@ -4,7 +4,7 @@ import {
     buildObjGeometryBundle,
     buildObjModelPlan,
     updateObjModelPlanLayerHeights
-} from './obj-model-plan.js?v=20260813a';
+} from './obj-model-plan.js?v=20260813b';
 import { resolveMergedLayerGroups } from './shared/trace-utils.js?v=20260726a';
 import { getGeometryBundleBounds } from './shared/print-validation.js?v=20260725h';
 import { updateMagnetPocketStatus } from './shared/magnet-pocket-controls.js?v=20260730a';
@@ -404,22 +404,79 @@ export function createObjPreview({
         });
     }
 
+    function updateAmsPreflightFromPlan(plan) {
+        const filamentCount = plan?.outputLayers?.length || 0;
+        if (view.preflightLayers) {
+            view.preflightLayers.textContent = filamentCount
+                ? `${filamentCount} filament${filamentCount === 1 ? '' : 's'}`
+                : '—';
+            view.preflightLayers.dataset.amsCapacity = filamentCount > 4 ? 'multiple' : 'single';
+        }
+        if (!filamentCount || !view.preflightStatus || !view.preflightNote) return;
+
+        const ownsCurrentStatus = [
+            'One AMS ready',
+            'Additional AMS needed',
+            'Style adjusted',
+            'Ready to export',
+            'Auto-fit ready'
+        ].includes(view.preflightStatus.textContent.trim());
+        const sizeReadout = view.modelSizeReadout;
+        const blockedByGeometry = sizeReadout?.dataset.bedFit === 'overflow'
+            || sizeReadout?.dataset.structureWarning === 'true';
+        if (!ownsCurrentStatus || blockedByGeometry) return;
+
+        const styleWarnings = (plan.warnings || []).filter((warning) => (
+            String(warning?.type || '').startsWith('ams-')
+        ));
+        if (styleWarnings.length) {
+            view.preflightStatus.textContent = 'Style adjusted';
+            view.preflightStatus.classList.remove('is-waiting', 'is-ready', 'is-review', 'is-blocked');
+            view.preflightStatus.classList.add('is-review');
+            view.preflightNote.textContent = styleWarnings.map((warning) => warning.message).join(' ');
+            return;
+        }
+
+        const fitsOneAms = filamentCount <= 4;
+        view.preflightStatus.textContent = fitsOneAms ? 'One AMS ready' : 'Additional AMS needed';
+        view.preflightStatus.classList.remove('is-waiting', 'is-ready', 'is-review', 'is-blocked');
+        view.preflightStatus.classList.add(fitsOneAms ? 'is-ready' : 'is-review');
+        if (fitsOneAms) {
+            const styleNote = plan.amsPrintStyle === 'face-down'
+                ? 'The front is shown for inspection; the 3MF places it against the build plate.'
+                : plan.amsPrintStyle === 'full-depth'
+                    ? 'Full-depth color keeps colored sidewalls but creates more AMS swap layers.'
+                    : 'Thin color surfaces reduce the number of AMS swap layers.';
+            view.preflightNote.textContent = `${filamentCount} filament color${filamentCount === 1 ? '' : 's'} fit one AMS. ${styleNote}`;
+        } else {
+            view.preflightNote.textContent = `${filamentCount} filament colors exceed one 4-slot AMS. Merge colors or confirm a multi-AMS setup in Bambu Studio.`;
+        }
+    }
+
     function updateStructureWarning(warnings) {
+        const activeWarnings = Array.isArray(warnings) ? warnings.filter(Boolean) : [];
+        const structureWarnings = activeWarnings.filter((warning) => (
+            warning?.type === 'unsupported-overhang' || warning?.type === 'magnet-pocket'
+        ));
         if (view.modelSizeReadout) {
-            view.modelSizeReadout.dataset.structureWarning = Array.isArray(warnings) && warnings.length ? 'true' : 'false';
+            view.modelSizeReadout.dataset.structureWarning = structureWarnings.length ? 'true' : 'false';
+            view.modelSizeReadout.dataset.structureWarningLabel = structureWarnings.some((warning) => warning.type === 'magnet-pocket')
+                ? 'Check magnet pockets'
+                : 'Check support base';
+            view.modelSizeReadout.dataset.structureWarningMessage = structureWarnings
+                .map((warning) => warning.message)
+                .join(' ');
         }
         if (!model.objStructureWarning) return;
-        if (!Array.isArray(warnings) || warnings.length === 0) {
+        if (activeWarnings.length === 0) {
             model.objStructureWarning.textContent = '';
             model.objStructureWarning.classList.add('hidden');
             return;
         }
 
-        if (warnings.length === 1) {
-            model.objStructureWarning.textContent = warnings[0].message;
-        } else {
-            model.objStructureWarning.textContent = `${warnings.length} output layers extend beyond the selected support base footprint.`;
-        }
+        model.objStructureWarning.textContent = activeWarnings
+            .map((warning) => warning.message)
+            .join(' ');
         model.objStructureWarning.classList.remove('hidden');
     }
 
@@ -749,6 +806,11 @@ export function createObjPreview({
             view.layerStackMeta.textContent = 'No layers yet';
             if (view.useBaseLayerCheckbox) {
                 view.useBaseLayerCheckbox.checked = !!state.useBaseLayer;
+                const requiresBase = state.objParams?.amsPrintStyle === 'face-down';
+                view.useBaseLayerCheckbox.disabled = requiresBase;
+                view.useBaseLayerCheckbox.title = requiresBase
+                    ? 'Face-down inlay requires a base filament.'
+                    : '';
             }
             if (view.baseLayerSelect) {
                 view.baseLayerSelect.innerHTML = '<option value="0">L0</option>';
@@ -763,6 +825,11 @@ export function createObjPreview({
 
         if (view.useBaseLayerCheckbox) {
             view.useBaseLayerCheckbox.checked = !!plan.useBaseLayer;
+            const requiresBase = plan.requestedAmsPrintStyle === 'face-down';
+            view.useBaseLayerCheckbox.disabled = requiresBase;
+            view.useBaseLayerCheckbox.title = requiresBase
+                ? 'Face-down inlay requires a base filament.'
+                : '';
         }
 
         if (view.baseLayerSelect) {
@@ -778,7 +845,7 @@ export function createObjPreview({
             view.baseLayerSelect.disabled = !plan.useBaseLayer;
         }
 
-        view.layerStackMeta.textContent = `${plan.outputLayers.length} layer${plan.outputLayers.length === 1 ? '' : 's'} · max ${plan.maxHeight.toFixed(1)}mm`;
+        view.layerStackMeta.textContent = `${plan.outputLayers.length} filament${plan.outputLayers.length === 1 ? '' : 's'} · ${plan.maxHeight.toFixed(1)}mm total`;
 
         plan.outputLayers.forEach((layer, outputIndex) => {
             const row = document.createElement('div');
@@ -800,8 +867,14 @@ export function createObjPreview({
             thicknessInput.value = layer.thickness;
             thicknessInput.min = '0.1';
             thicknessInput.max = '20';
-            thicknessInput.step = '0.5';
-            thicknessInput.title = 'Layer height (mm)';
+            thicknessInput.step = '0.2';
+            const faceDownLayer = plan.amsPrintStyle === 'face-down';
+            thicknessInput.disabled = faceDownLayer;
+            thicknessInput.title = faceDownLayer
+                ? layer.isBase
+                    ? 'Face-down bases use the Base thickness control.'
+                    : 'Face-down colors share the Color surface thickness control.'
+                : layer.isBase ? 'Base thickness (mm)' : 'Color-part thickness (mm)';
             thicknessInput.addEventListener('change', (event) => {
                 const nextValue = Math.max(0.1, Math.min(20, Number.parseFloat(event.target.value) || defaultThickness));
                 state.layerThicknessById = {
@@ -819,7 +892,7 @@ export function createObjPreview({
             row.appendChild(swatch);
             appendLayerLabel(
                 row,
-                layer.isBase ? `${layer.displayLabel} (Support Base)` : layer.displayLabel,
+                layer.isBase ? `${layer.displayLabel} (Base filament)` : layer.displayLabel,
                 layer.sourceLayerIds.includes(candidateId)
             );
             row.appendChild(thicknessInput);
@@ -880,6 +953,7 @@ export function createObjPreview({
                 model.objMarginInput?.value ?? 5,
                 model.objScaleSlider?.value ?? 100,
                 state.sourceRenderScale || 1,
+                model.objAmsPrintStyle?.value || state.objParams?.amsPrintStyle || 'raised-efficient',
                 model.objBezelSelect?.value || state.objParams?.bezelPreset || 'off',
                 JSON.stringify(state.objParams?.magnetPocket || null)
             ].join('|')
@@ -899,6 +973,7 @@ export function createObjPreview({
         const preview = state.objPreview;
         const plan = preview.lastPlan;
         if (!plan?.outputLayers?.length || !(preview.layerMeshes instanceof Map)) return false;
+        if (plan.amsPrintStyle === 'face-down') return false;
         if (plan.bezelSpec?.enabled || plan.magnetPocketResult?.enabled) return false;
         if (!topologyMatchesLastRender()) return false;
         return plan.outputLayers.every((layer) => preview.layerMeshes.has(layer.outputLayerId));
@@ -1028,6 +1103,7 @@ export function createObjPreview({
             updateStructureWarning([]);
             updateTriangleEstimate();
             updateMagnetPocketStatus(model, null);
+            if (view.printOrientationNote) view.printOrientationNote.textContent = 'Choose an AMS print style';
             renderFrame();
             return;
         }
@@ -1077,6 +1153,19 @@ export function createObjPreview({
                 updateMagnetPocketStatus(model, plan?.magnetPocketResult || null);
                 renderFrame();
                 return;
+            }
+
+            if (view.objPreviewCanvas) {
+                view.objPreviewCanvas.dataset.amsPrintStyle = plan.amsPrintStyle;
+                view.objPreviewCanvas.dataset.previewFace = plan.previewFlipZ ? 'front' : 'print';
+            }
+            if (view.workflow) {
+                view.workflow.dataset.amsPrintStyle = plan.amsPrintStyle;
+            }
+            if (view.printOrientationNote) {
+                view.printOrientationNote.textContent = plan.previewFlipZ
+                    ? 'Front preview · prints face-down'
+                    : 'Raised face · drag to rotate';
             }
 
             const scalePlan = plan.scalePlan;
@@ -1129,6 +1218,10 @@ export function createObjPreview({
                     zStart: layer.zStart,
                     zEnd: layer.zEnd
                 };
+                if (plan.previewFlipZ) {
+                    mesh.scale.z = -1;
+                    mesh.position.z = plan.totalHeight;
+                }
                 mesh.visible = !(hasSelection && displayMode === 'solo' && !isSelected);
                 preview.group.add(mesh);
                 preview.layerMeshes.set(layer.outputLayerId, mesh);
@@ -1184,6 +1277,7 @@ export function createObjPreview({
                 triangleCount: preview.lastTriangleCount,
                 decimatePercent
             });
+            updateAmsPreflightFromPlan(plan);
             updateMagnetPocketStatus(model, plan.magnetPocketResult);
             renderFrame();
         } catch (error) {

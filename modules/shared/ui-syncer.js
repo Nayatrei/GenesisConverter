@@ -19,6 +19,10 @@ export function createUiSyncer({ state, elements }) {
 
         if (el.objScaleSlider) el.objScaleSlider.value = p.scale;
         if (el.objScaleValue) el.objScaleValue.textContent = formatObjScalePercent(p.scale);
+
+        if (el.objAmsPrintStyle) el.objAmsPrintStyle.value = p.amsPrintStyle || 'raised-efficient';
+        if (el.objBaseThicknessSlider) el.objBaseThicknessSlider.value = p.baseThickness;
+        if (el.objBaseThicknessValue) el.objBaseThicknessValue.textContent = p.baseThickness;
         
         if (el.objThicknessSlider) el.objThicknessSlider.value = p.thickness;
         if (el.objThicknessValue) el.objThicknessValue.textContent = p.thickness;
@@ -43,6 +47,21 @@ export function createUiSyncer({ state, elements }) {
             el.objScaleSlider.addEventListener('input', () => {
                 state.objParams.scale = Number.parseFloat(el.objScaleSlider.value);
                 if (el.objScaleValue) el.objScaleValue.textContent = formatObjScalePercent(state.objParams.scale);
+                wrapUpdate();
+            });
+        }
+
+        if (el.objAmsPrintStyle) {
+            el.objAmsPrintStyle.addEventListener('change', () => {
+                state.objParams.amsPrintStyle = el.objAmsPrintStyle.value || 'raised-efficient';
+                wrapUpdate();
+            });
+        }
+
+        if (el.objBaseThicknessSlider) {
+            el.objBaseThicknessSlider.addEventListener('input', () => {
+                state.objParams.baseThickness = Number.parseFloat(el.objBaseThicknessSlider.value);
+                if (el.objBaseThicknessValue) el.objBaseThicknessValue.textContent = state.objParams.baseThickness;
                 wrapUpdate();
             });
         }
