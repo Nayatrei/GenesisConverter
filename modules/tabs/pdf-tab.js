@@ -5,7 +5,7 @@ import {
     PDF_IMAGE_EXPORT_MAX_TOTAL_BYTES,
     sanitizePdfFilename,
     validatePdfImageExportPlan
-} from './pdf-utils.js';
+} from './pdf-utils.js?v=20260814i';
 import {
     estimateSizeBytes,
     exportCanvasToRasterBlob,
@@ -13,7 +13,7 @@ import {
     getRasterExtension,
     sanitizeFileComponent
 } from '../raster-utils.js';
-import { createZipFile } from '../export3d.js';
+import { createZipFile } from '../export3d.js?v=20260814p';
 import { createImageToPdfController } from './pdf-image-to-pdf.js?v=20260814c';
 import { createPdfOcrController } from './pdf-ocr.js?v=20260814c';
 

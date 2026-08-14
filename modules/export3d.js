@@ -2,8 +2,9 @@ import {
     buildObjGeometryBundle,
     buildObjModelPlan,
     sanitizeGeometryForPrint
-} from './obj-model-plan.js?v=20260813b';
-import { buildBambuProjectFiles } from './bambu-project.js?v=20260813b';
+} from './obj-model-plan.js?v=20260814o';
+import { fitObjScalePlanToGeometryBounds } from './obj-scale.js?v=20260814l';
+import { buildBambuProjectFiles } from './bambu-project.js?v=20260814p';
 import { BAMBU_PROJECT_NOZZLE_DIAMETER } from './config.js';
 import { canvasToBlobAsync, dataUrlToBlob } from './raster-utils.js';
 import { layerHasPaths } from './shared/trace-utils.js?v=20260726a';
@@ -274,7 +275,6 @@ function buildBambuProjectGeometryLayers(geometryBundle, bedKey = 'x1') {
             : [layerData.geometry];
         sourceParts.forEach((sourceGeometry, partIndex) => {
             const geometry = sourceGeometry.clone();
-            geometry.translate(placement.x, placement.y, placement.z);
             geometry.computeVertexNormals();
             layers.push({
                 ...layerData,
@@ -283,7 +283,8 @@ function buildBambuProjectGeometryLayers(geometryBundle, bedKey = 'x1') {
                     : layerData.displayLabel,
                 geometry,
                 geometryParts: [],
-                materialIndex
+                materialIndex,
+                translation: placement
             });
         });
         materialIndex += 1;
@@ -633,33 +634,16 @@ export function createObjExporter({
         if (!geometryBundle || geometryBundle.layers.size === 0) return null;
 
         const scalePlan = plan.scalePlan;
+        fitObjScalePlanToGeometryBounds(scalePlan, getGeometryBundleBounds(geometryBundle, {
+            scaleX: scalePlan.scale,
+            scaleY: scalePlan.scale
+        }));
 
         geometryBundle.layers.forEach((layerData) => {
             layerData.geometry.scale(scalePlan.scale, scalePlan.scale, 1);
-            layerData.geometry.computeVertexNormals();
-            const cleanedGeometry = sanitizeGeometryForPrint(
-                layerData.geometry,
-                THREERef,
-                bufferUtils
-            );
-            if (!cleanedGeometry) {
-                layerData.geometry.dispose();
-                layerData.geometry = null;
-            } else {
-                layerData.geometry.dispose();
-                layerData.geometry = cleanedGeometry;
-            }
-            layerData.geometryParts = (layerData.geometryParts || []).map((partGeometry) => {
+            (layerData.geometryParts || []).forEach((partGeometry) => {
                 partGeometry.scale(scalePlan.scale, scalePlan.scale, 1);
-                partGeometry.computeVertexNormals();
-                const cleanedPart = sanitizeGeometryForPrint(
-                    partGeometry,
-                    THREERef,
-                    bufferUtils
-                );
-                partGeometry.dispose();
-                return cleanedPart;
-            }).filter(Boolean);
+            });
         });
 
         const uncenteredBounds = getGeometryBundleBounds(geometryBundle);
@@ -679,6 +663,32 @@ export function createObjExporter({
                 });
             });
         }
+
+        // Centering writes the final Float32 coordinates and can collapse a
+        // microscopic edge that survived the source-coordinate cleanup. Run
+        // print sanitization in that final coordinate frame so validation and
+        // the serialized mesh inspect the exact same triangles.
+        geometryBundle.layers.forEach((layerData) => {
+            layerData.geometry.computeVertexNormals();
+            const sourceGeometry = layerData.geometry;
+            layerData.geometry = sanitizeGeometryForPrint(
+                sourceGeometry,
+                THREERef,
+                bufferUtils
+            );
+            sourceGeometry.dispose();
+
+            layerData.geometryParts = (layerData.geometryParts || []).map((partGeometry) => {
+                partGeometry.computeVertexNormals();
+                const cleanedPart = sanitizeGeometryForPrint(
+                    partGeometry,
+                    THREERef,
+                    bufferUtils
+                );
+                partGeometry.dispose();
+                return cleanedPart;
+            }).filter(Boolean);
+        });
 
         const validation = validateGeometryBundleForPrint(geometryBundle, {
             bedKey,

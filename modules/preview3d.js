@@ -1,15 +1,19 @@
 import { OBJ_ZOOM_MIN, OBJ_ZOOM_MAX, BED_PRESETS } from './config.js';
-import { formatObjScalePercent } from './obj-scale.js';
+import {
+    fitObjScalePlanToGeometryBounds,
+    formatObjScalePercent
+} from './obj-scale.js?v=20260814l';
 import {
     buildObjGeometryBundle,
     buildObjModelPlan,
     updateObjModelPlanLayerHeights
-} from './obj-model-plan.js?v=20260813b';
+} from './obj-model-plan.js?v=20260814o';
 import { resolveMergedLayerGroups } from './shared/trace-utils.js?v=20260726a';
 import { getGeometryBundleBounds } from './shared/print-validation.js?v=20260725h';
 import { updateMagnetPocketStatus } from './shared/magnet-pocket-controls.js?v=20260730a';
 
 const BED_CONTACT_EPSILON = 0.005;
+const BED_FIT_TOLERANCE_MM = 0.05;
 
 function createFrameState({ THREERef, footprintWidth, footprintDepth, modelHeight, bed, showBuildPlate }) {
     const frameMaxDim = Math.max(
@@ -368,13 +372,13 @@ export function createObjPreview({
             : scalePlan.modelHeight || 0;
 
         let suffix = '';
-        if (scalePlan.wasAutoFitted) {
-            suffix = ` · auto-fit to ${scalePlan.bedLabel} at ${formatObjScalePercent(scalePlan.appliedPercent)}%`;
-        } else if (!scalePlan.fitsBed) {
+        if (!scalePlan.fitsBed) {
             const ow = scalePlan.overflowWidth > 0.05 ? ` +${scalePlan.overflowWidth.toFixed(1)}W` : '';
             const od = scalePlan.overflowDepth > 0.05 ? ` +${scalePlan.overflowDepth.toFixed(1)}D` : '';
             const oh = scalePlan.overflowHeight > 0.05 ? ` +${scalePlan.overflowHeight.toFixed(1)}H` : '';
             suffix = ` · exceeds bed${ow}${od}${oh}`;
+        } else if (scalePlan.wasAutoFitted) {
+            suffix = ` · auto-fit to ${scalePlan.bedLabel} at ${formatObjScalePercent(scalePlan.appliedPercent)}%`;
         } else if (scalePlan.bedLabel) {
             suffix = ` · fits ${scalePlan.bedLabel}`;
         }
@@ -396,11 +400,11 @@ export function createObjPreview({
             readout.dataset.printWidth = printWidth.toFixed(3);
             readout.dataset.printDepth = printDepth.toFixed(3);
             readout.dataset.printHeight = printHeight.toFixed(3);
-            readout.title = scalePlan.wasAutoFitted
-                ? `${size} · Auto-fitted to ${scalePlan.bedLabel}`
-                : scalePlan.fitsBed
-                    ? `${size} · Fits ${scalePlan.bedLabel}`
-                    : `${size} · Exceeds ${scalePlan.bedLabel}`;
+            readout.title = !scalePlan.fitsBed
+                ? `${size} · Exceeds ${scalePlan.bedLabel}`
+                : scalePlan.wasAutoFitted
+                    ? `${size} · Auto-fitted to ${scalePlan.bedLabel}`
+                    : `${size} · Fits ${scalePlan.bedLabel}`;
         });
     }
 
@@ -1213,16 +1217,26 @@ export function createObjPreview({
                 return;
             }
 
-            const actualBounds = getGeometryBundleBounds(geometryBundle, {
+            let actualBounds = getGeometryBundleBounds(geometryBundle, {
                 scaleX: scalePlan.scale,
                 scaleY: scalePlan.scale
             });
+            if (fitObjScalePlanToGeometryBounds(scalePlan, actualBounds) < 1) {
+                actualBounds = getGeometryBundleBounds(geometryBundle, {
+                    scaleX: scalePlan.scale,
+                    scaleY: scalePlan.scale
+                });
+            }
             if (actualBounds.isValid) {
                 scalePlan.actualFootprintWidth = actualBounds.width;
                 scalePlan.actualFootprintDepth = actualBounds.depth;
                 scalePlan.modelHeight = actualBounds.height;
+                scalePlan.overflowWidth = Math.max(0, actualBounds.width - scalePlan.usableBedWidth);
+                scalePlan.overflowDepth = Math.max(0, actualBounds.depth - scalePlan.usableBedDepth);
                 scalePlan.overflowHeight = Math.max(0, actualBounds.maxZ - bed.height);
-                scalePlan.fitsBed = scalePlan.fitsBed && scalePlan.overflowHeight <= 0.05;
+                scalePlan.fitsBed = scalePlan.overflowWidth <= BED_FIT_TOLERANCE_MM
+                    && scalePlan.overflowDepth <= BED_FIT_TOLERANCE_MM
+                    && scalePlan.overflowHeight <= BED_FIT_TOLERANCE_MM;
             }
 
             preview.layerMeshes = new Map();

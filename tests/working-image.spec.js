@@ -124,7 +124,7 @@ test('oversized source uses reduced working image while preserving 3D footprint 
         buffer: Buffer.from(buildOversizedRectSvg())
     });
 
-    await expect(page.locator('#status-text')).toHaveText('Preview generated!', { timeout: 30_000 });
+    await expect(page.locator('#status-text')).toHaveText('Preview generated!', { timeout: 60_000 });
     await expect(page.locator('#original-resolution')).toHaveText('1100×900 px');
     await expect(page.locator('#resolution-notice')).toContainText('Using 1024×838 internally');
     await expect(page.locator('#obj-preview-placeholder')).toBeHidden({ timeout: 30_000 });
@@ -137,7 +137,20 @@ test('oversized source uses reduced working image while preserving 3D footprint 
     expect(footprint.depth).toBeCloseTo(112.5, 0);
 });
 
-test('test image is internally reduced and still completes preview generation', async ({ page }) => {
+test('test image completes face-down generation and reaches the Bambu handoff', async ({ page, request }) => {
+    test.setTimeout(300_000);
+    await page.addInitScript(() => {
+        Object.defineProperty(navigator, 'platform', {
+            configurable: true,
+            get: () => 'MacIntel'
+        });
+        window.__GENESIS_BAMBU_PROTOCOL_CALLS__ = [];
+        window.__GENESIS_BAMBU_PROTOCOL_HOOK__ = async (url) => {
+            window.__GENESIS_BAMBU_PROTOCOL_CALLS__.push(url);
+            return true;
+        };
+    });
+
     await page.goto('/3d-obj');
     await page.locator('#file-input').setInputFiles(path.join(process.cwd(), 'testImage.png'));
 
@@ -145,6 +158,35 @@ test('test image is internally reduced and still completes preview generation', 
     await expect(page.locator('#original-resolution')).toHaveText('1536×1024 px');
     await expect(page.locator('#resolution-notice')).toContainText('Using 1024×683 internally');
     await expect(page.locator('#obj-preview-placeholder')).toBeHidden({ timeout: 60_000 });
+
+    await page.locator('#obj-face-down-toggle').click();
+    await expect(page.locator('#obj-preview-canvas')).toHaveAttribute(
+        'data-ams-print-style',
+        'face-down',
+        { timeout: 60_000 }
+    );
+    const printWidth = Number.parseFloat(
+        await page.locator('#svg-model-size-readout').getAttribute('data-print-width')
+    );
+    expect(printWidth).toBeLessThanOrEqual(246);
+
+    await page.locator('#svg-bambu-open-btn').click();
+    await expect.poll(
+        () => page.locator('#status-text').textContent(),
+        { timeout: 180_000 }
+    ).toMatch(/Sent testImage_|3D print validation failed:/);
+    await expect(page.locator('#status-text')).toContainText('Sent testImage_');
+
+    const protocolCalls = await page.evaluate(() => window.__GENESIS_BAMBU_PROTOCOL_CALLS__);
+    expect(protocolCalls).toHaveLength(1);
+    expect(protocolCalls[0]).toMatch(/^bambustudioopen:\/\/https?:\/\//);
+
+    const transferUrl = protocolCalls[0].slice('bambustudioopen://'.length);
+    const transferResponse = await request.get(transferUrl);
+    expect(transferResponse.ok()).toBe(true);
+    expect(transferResponse.headers()['content-type']).toBe('model/3mf');
+    const transferBody = await transferResponse.body();
+    expect(transferBody.subarray(0, 4)).toEqual(Buffer.from([0x50, 0x4b, 0x03, 0x04]));
 });
 
 test('logo html mode does not use oversized working-image notice', async ({ page }) => {

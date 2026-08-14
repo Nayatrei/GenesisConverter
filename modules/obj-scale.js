@@ -3,6 +3,7 @@ import { BED_PRESETS } from './config.js';
 const OBJ_SCALE_MIN = 0.1;
 const OBJ_SCALE_MAX = 200;
 const OBJ_SOURCE_UNIT_TO_MM = 0.25;
+const OBJ_GEOMETRY_FIT_CLEARANCE_MM = 0.05;
 
 export function clampObjScalePercent(value) {
     const numeric = Number.isFinite(value) ? value : Number.parseFloat(value);
@@ -45,6 +46,41 @@ export function computeMaxFitScalePercent({
         : OBJ_SCALE_MAX;
 
     return Math.max(0, Math.min(widthPercent, depthPercent));
+}
+
+export function fitObjScalePlanToGeometryBounds(scalePlan, bounds) {
+    if (
+        !scalePlan
+        || !bounds?.isValid
+        || !(bounds.width > 0)
+        || !(bounds.depth > 0)
+        || !(scalePlan.scale > 0)
+    ) {
+        return 1;
+    }
+
+    // The print masks are rasterized after the raw-path scale estimate and can
+    // extend the finished outline by a few cells. Correct only the final XY
+    // transform so the already-built topology stays unchanged.
+    const targetWidth = Math.max(1, scalePlan.usableBedWidth - OBJ_GEOMETRY_FIT_CLEARANCE_MM);
+    const targetDepth = Math.max(1, scalePlan.usableBedDepth - OBJ_GEOMETRY_FIT_CLEARANCE_MM);
+    const fitRatio = Math.min(
+        1,
+        targetWidth / bounds.width,
+        targetDepth / bounds.depth
+    );
+
+    if (!(fitRatio < 1 - 1e-9)) return 1;
+
+    scalePlan.scale *= fitRatio;
+    scalePlan.geometryFitRatio = (scalePlan.geometryFitRatio || 1) * fitRatio;
+    scalePlan.wasAutoFitted = true;
+    scalePlan.actualFootprintWidth = bounds.width * fitRatio;
+    scalePlan.actualFootprintDepth = bounds.depth * fitRatio;
+    scalePlan.overflowWidth = Math.max(0, scalePlan.actualFootprintWidth - scalePlan.usableBedWidth);
+    scalePlan.overflowDepth = Math.max(0, scalePlan.actualFootprintDepth - scalePlan.usableBedDepth);
+    scalePlan.fitsBed = scalePlan.overflowWidth <= 1e-6 && scalePlan.overflowDepth <= 1e-6;
+    return fitRatio;
 }
 
 export function computeObjScalePlan({

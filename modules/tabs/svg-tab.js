@@ -1,6 +1,6 @@
 import { SLIDER_TOOLTIPS } from '../config.js';
-import { createObjPreview } from '../preview3d.js?v=20260814h';
-import { createObjExporter } from '../export3d.js?v=20260813b';
+import { createObjPreview } from '../preview3d.js?v=20260814o';
+import { createObjExporter } from '../export3d.js?v=20260814p';
 import { hasTransparentPixels, markTransparentPixels, stripTransparentPalette } from '../shared/image-utils.js';
 import {
     debounce,
@@ -15,7 +15,7 @@ import { saveInitialSliderValues, updateAllSliderDisplays, resetSlidersToInitial
 import { createZoomPanController } from '../shared/zoom-pan.js';
 import { svgToPng } from '../shared/svg-renderer.js';
 import { createPaletteManager } from '../shared/palette-manager.js';
-import { formatObjScalePercent } from '../obj-scale.js';
+import { formatObjScalePercent } from '../obj-scale.js?v=20260814l';
 import { createAutoWorkingImageFromSource } from '../raster-utils.js';
 import { canAttemptBambuLaunch } from '../bambu-bridge.js?v=20260725f';
 import {

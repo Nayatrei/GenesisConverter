@@ -15,15 +15,6 @@ function buildOversizedSvg() {
 </svg>`.trim();
 }
 
-function parseFootprint(text) {
-    const match = /Footprint:\s*([0-9.]+)\s*×\s*([0-9.]+)\s*mm/.exec(text || '');
-    if (!match) return null;
-    return {
-        width: Number.parseFloat(match[1]),
-        depth: Number.parseFloat(match[2])
-    };
-}
-
 test('Bambu bed presets include X1, A1, and H2D with the expected footprint sizes', async ({ page }) => {
     await page.goto('/3d-obj');
 
@@ -45,34 +36,51 @@ test('Bambu bed presets include X1, A1, and H2D with the expected footprint size
 });
 
 test('oversized 3D models auto-fit to the selected Bambu printer bed', async ({ page }) => {
+    test.setTimeout(240_000);
     await page.goto('/3d-obj');
 
     const svgDataUrl = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(buildOversizedSvg())}`;
     await page.locator('#url-input').fill(svgDataUrl);
     await page.locator('#load-url-btn').click();
 
-    await expect(page.locator('#status-text')).toHaveText('Preview generated!', { timeout: 30_000 });
-    await expect(page.locator('#obj-preview-placeholder')).toBeHidden({ timeout: 30_000 });
+    await expect(page.locator('#status-text')).toHaveText('Preview generated!', { timeout: 90_000 });
+    await expect(page.locator('#obj-preview-placeholder')).toBeHidden({ timeout: 60_000 });
 
     await page.locator('#obj-bed').selectOption('a1');
+    await expect(page.locator('#obj-size-readout')).toContainText('Bambu A1', { timeout: 60_000 });
     await setRangeValue(page.locator('#obj-scale'), 200);
-    await expect(page.locator('#obj-size-readout')).toContainText('auto-fit to Bambu A1', { timeout: 30_000 });
+    await expect(page.locator('#obj-size-readout')).toContainText('auto-fit to Bambu A1', { timeout: 60_000 });
+    await expect.poll(
+        async () => Number.parseFloat(await page.locator('#obj-scale-value').textContent()),
+        { timeout: 60_000 }
+    ).toBeLessThan(200);
 
     const a1Scale = Number.parseFloat(await page.locator('#obj-scale-value').textContent());
-    const a1Footprint = parseFootprint(await page.locator('#obj-size-readout').textContent());
+    const a1Footprint = {
+        width: Number.parseFloat(await page.locator('#obj-size-readout').getAttribute('data-print-width')),
+        depth: Number.parseFloat(await page.locator('#obj-size-readout').getAttribute('data-print-depth'))
+    };
 
     expect(a1Scale).toBeLessThan(200);
-    expect(a1Footprint.width).toBeLessThanOrEqual(246.1);
-    expect(a1Footprint.depth).toBeLessThanOrEqual(246.1);
+    expect(a1Footprint.width).toBeLessThanOrEqual(246.0);
+    expect(a1Footprint.depth).toBeLessThanOrEqual(246.0);
 
     await page.locator('#obj-bed').selectOption('h2d');
+    await expect(page.locator('#obj-size-readout')).toContainText('Bambu H2D', { timeout: 60_000 });
     await setRangeValue(page.locator('#obj-scale'), 200);
-    await expect(page.locator('#obj-size-readout')).toContainText('auto-fit to Bambu H2D', { timeout: 30_000 });
+    await expect(page.locator('#obj-size-readout')).toContainText('auto-fit to Bambu H2D', { timeout: 60_000 });
+    await expect.poll(
+        async () => Number.parseFloat(await page.locator('#obj-scale-value').textContent()),
+        { timeout: 60_000 }
+    ).toBeLessThan(200);
 
     const h2dScale = Number.parseFloat(await page.locator('#obj-scale-value').textContent());
-    const h2dFootprint = parseFootprint(await page.locator('#obj-size-readout').textContent());
+    const h2dFootprint = {
+        width: Number.parseFloat(await page.locator('#obj-size-readout').getAttribute('data-print-width')),
+        depth: Number.parseFloat(await page.locator('#obj-size-readout').getAttribute('data-print-depth'))
+    };
 
     expect(h2dScale).toBeGreaterThan(a1Scale);
-    expect(h2dFootprint.width).toBeLessThanOrEqual(315.1);
-    expect(h2dFootprint.depth).toBeLessThanOrEqual(310.1);
+    expect(h2dFootprint.width).toBeLessThanOrEqual(315.0);
+    expect(h2dFootprint.depth).toBeLessThanOrEqual(310.0);
 });

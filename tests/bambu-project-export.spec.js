@@ -183,6 +183,136 @@ print(json.dumps({
     return JSON.parse(execFileSync('python3', ['-c', script, filePath], { encoding: 'utf8' }));
 }
 
+test('3MF serialization uses the same seam tolerance as print validation', async ({ page }) => {
+    await page.goto('/3d-obj');
+
+    const result = await page.evaluate(async () => {
+        const { validateGeometryBundleForPrint } = await import('/modules/shared/print-validation.js');
+        const { buildBambuProjectFiles } = await import('/modules/bambu-project.js?v=seam-tolerance-test');
+        const THREERef = window.THREE;
+        const points = {
+            a: [0, 0, 0],
+            b: [10, 0, 0],
+            c: [0, 10, 0],
+            d: [0, 0, 10]
+        };
+        const faces = [
+            ['a', 'c', 'b'],
+            ['a', 'b', 'd'],
+            ['a', 'd', 'c'],
+            ['b', 'c', 'd']
+        ];
+        const positions = [];
+        faces.forEach((face, faceIndex) => {
+            const seamOffset = (faceIndex + 1) * 1e-6;
+            face.forEach((key) => {
+                const point = points[key];
+                positions.push(
+                    point[0] + seamOffset,
+                    point[1] + seamOffset,
+                    point[2] + seamOffset
+                );
+            });
+        });
+
+        const geometry = new THREERef.BufferGeometry();
+        geometry.setAttribute('position', new THREERef.Float32BufferAttribute(positions, 3));
+        const layer = {
+            geometry,
+            displayLabel: 'Tolerance Mesh',
+            color: { r: 240, g: 200, b: 20 },
+            materialIndex: 0
+        };
+        const validation = validateGeometryBundleForPrint({
+            layers: new Map([['tolerance', layer]])
+        }, { bedKey: 'x1', margin: 5 });
+        const project = buildBambuProjectFiles({
+            layers: [layer],
+            baseName: 'tolerance_mesh'
+        });
+        const xml = project.files['3D/Objects/object_1.model'];
+        const documentNode = new DOMParser().parseFromString(xml, 'application/xml');
+        const vertices = [...documentNode.querySelectorAll('vertex')];
+        const triangles = [...documentNode.querySelectorAll('triangle')].map((triangle) => (
+            ['v1', 'v2', 'v3'].map((key) => Number.parseInt(triangle.getAttribute(key), 10))
+        ));
+        const edgeCounts = new Map();
+        triangles.forEach(([v1, v2, v3]) => {
+            [[v1, v2], [v2, v3], [v3, v1]].forEach(([start, end]) => {
+                const edgeKey = start < end ? `${start}|${end}` : `${end}|${start}`;
+                edgeCounts.set(edgeKey, (edgeCounts.get(edgeKey) || 0) + 1);
+            });
+        });
+        geometry.dispose();
+
+        return {
+            validationOk: validation.ok,
+            validationBoundaryEdges: validation.layers[0].boundaryEdgeCount,
+            serializedVertexCount: vertices.length,
+            serializedBoundaryEdges: [...edgeCounts.values()].filter((count) => count === 1).length,
+            serializedNonManifoldEdges: [...edgeCounts.values()].filter((count) => count > 2).length
+        };
+    });
+
+    expect(result).toEqual({
+        validationOk: true,
+        validationBoundaryEdges: 0,
+        serializedVertexCount: 4,
+        serializedBoundaryEdges: 0,
+        serializedNonManifoldEdges: 0
+    });
+});
+
+test('3MF serialization rejects triangles that collapse after canonical seam welding', async ({ page }) => {
+    await page.goto('/3d-obj');
+
+    const result = await page.evaluate(async () => {
+        const { validateGeometryBundleForPrint } = await import('/modules/shared/print-validation.js');
+        const { buildBambuProjectFiles } = await import('/modules/bambu-project.js?v=seam-collapse-test');
+        const THREERef = window.THREE;
+        const a = [10, 10, 0];
+        const b = [11, 10, 0];
+        const c = [10, 11, 1];
+        const d = [12, 10, 0];
+        const shift = (point, dy, dz) => [point[0], point[1] + dy, point[2] + dz];
+        const faces = [
+            [a, c, b],
+            [shift(a, 4e-6, 3e-6), shift(b, -4e-6, -3e-6), d],
+            [shift(a, 2e-6, -2e-6), shift(d, -2e-6, 2e-6), shift(c, 1e-6, 1e-6)],
+            [shift(b, 2e-6, 1e-6), shift(c, -2e-6, -1e-6), shift(d, 1e-6, 2e-6)]
+        ];
+        const geometry = new THREERef.BufferGeometry();
+        geometry.setAttribute(
+            'position',
+            new THREERef.Float32BufferAttribute(faces.flat(2), 3)
+        );
+        const layer = {
+            geometry,
+            displayLabel: 'Collapsed Seam',
+            color: { r: 240, g: 200, b: 20 },
+            materialIndex: 0
+        };
+        const validation = validateGeometryBundleForPrint({
+            layers: new Map([['collapsed', layer]])
+        }, { bedKey: 'x1', margin: 0 });
+        let error = '';
+        try {
+            buildBambuProjectFiles({
+                layers: [layer],
+                baseName: 'collapsed_seam'
+            });
+        } catch (buildError) {
+            error = buildError.message;
+        }
+        geometry.dispose();
+        return { validationOk: validation.ok, error };
+    });
+
+    expect(result.validationOk).toBe(true);
+    expect(result.error).toContain('3MF serialization failed: Collapsed Seam');
+    expect(result.error).toContain('open edge(s)');
+});
+
 test('Bambu project export includes native package metadata and preserves handedness', async ({ page }, testInfo) => {
     await page.goto('/3d-obj');
 
@@ -381,6 +511,60 @@ test('face-down inlay exports complementary front colors with one-color backing'
     expect(project.assemblyBounds[5]).toBeCloseTo(2.4, 1);
     expect(project.meshStats[2].bounds[2]).toBeCloseTo(0, 5);
     expect(project.meshStats[2].bounds[5]).toBeCloseTo(0.6, 1);
+});
+
+test('real raster face-down project stays bed-fit and watertight after 3MF serialization', async ({ page }, testInfo) => {
+    test.setTimeout(300_000);
+    await page.goto('/3d-obj');
+    await page.locator('#file-input').setInputFiles(path.join(process.cwd(), 'testImage.png'));
+
+    await expect(page.locator('#status-text')).toHaveText('Preview generated!', { timeout: 60_000 });
+    await page.locator('#obj-face-down-toggle').click();
+    await expect(page.locator('#obj-preview-canvas')).toHaveAttribute(
+        'data-ams-print-style',
+        'face-down',
+        { timeout: 60_000 }
+    );
+    await expect(page.locator('#svg-model-size-readout')).toHaveAttribute('data-bed-fit', 'fits');
+    const printWidth = Number.parseFloat(
+        await page.locator('#svg-model-size-readout').getAttribute('data-print-width')
+    );
+    expect(printWidth).toBeLessThanOrEqual(246);
+
+    const downloads = await collectDownloads(page, async () => {
+        await page.locator('#export-3mf-btn').click();
+        await expect.poll(
+            () => page.locator('#status-text').textContent(),
+            { timeout: 180_000 }
+        ).toMatch(/Bambu Studio project downloaded|3D print validation failed:/);
+        await expect(page.locator('#status-text')).toContainText('Bambu Studio project downloaded');
+    });
+    const filePath = await saveDownload(downloads[0], testInfo);
+    const project = inspectBambuProject(filePath);
+
+    const filamentCount = project.plate.filament_colors.length;
+    expect(filamentCount).toBeGreaterThanOrEqual(2);
+    expect(new Set(project.partExtruders)).toEqual(
+        new Set(Array.from({ length: filamentCount }, (_, index) => String(index + 1)))
+    );
+    expect(project.meshStats.length).toBeGreaterThan(3);
+    project.meshStats.forEach((mesh) => {
+        expect(mesh.finiteVertices).toBe(true);
+        expect(mesh.invalidIndexCount).toBe(0);
+        expect(mesh.degenerateCount).toBe(0);
+        expect(mesh.boundaryEdgeCount).toBe(0);
+        expect(mesh.nonManifoldEdgeCount).toBe(0);
+        expect(mesh.signedVolume).toBeGreaterThan(0);
+        expect(mesh.bounds[2]).toBeGreaterThanOrEqual(-1e-5);
+        expect(mesh.bounds[5]).toBeLessThanOrEqual(2.4 + 1e-4);
+    });
+
+    const [minX, minY, minZ, maxX, maxY, maxZ] = project.assemblyBounds;
+    expect(maxX - minX).toBeLessThanOrEqual(246);
+    expect((minX + maxX) / 2).toBeCloseTo(128, 3);
+    expect((minY + maxY) / 2).toBeCloseTo(128, 3);
+    expect(minZ).toBeCloseTo(0, 5);
+    expect(maxZ).toBeCloseTo(2.4, 3);
 });
 
 test('Bambu Studio button publishes 3MF and opens the remote project URL', async ({ page, request }) => {

@@ -76,6 +76,39 @@ async function uploadSingleSource(page, markup, filename = 'fixture.svg') {
     });
 }
 
+test('ImageTracer color cleanup is deterministic for the same pixels and options', async ({ page }) => {
+    await page.goto('/3d-obj');
+
+    const palettes = await page.evaluate(() => {
+        const width = 8;
+        const height = 8;
+        const makeImage = () => {
+            const data = new Uint8ClampedArray(width * height * 4);
+            for (let index = 0; index < data.length; index += 4) {
+                data[index] = 254;
+                data[index + 1] = 226;
+                data[index + 2] = 12;
+                data[index + 3] = 255;
+            }
+            return { width, height, data };
+        };
+        const makeOptions = () => ({
+            colorsampling: 2,
+            numberofcolors: 4,
+            mincolorratio: 0.2,
+            colorquantcycles: 4,
+            blurradius: 0,
+            blurdelta: 20
+        });
+        return [
+            window.ImageTracer.colorquantization(makeImage(), makeOptions()).palette,
+            window.ImageTracer.colorquantization(makeImage(), makeOptions()).palette
+        ];
+    });
+
+    expect(palettes[1]).toEqual(palettes[0]);
+});
+
 test('trace option builder stays monotonic and direct', async ({ page }) => {
     await page.goto('/3d-obj');
 

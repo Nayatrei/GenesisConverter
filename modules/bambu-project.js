@@ -5,6 +5,8 @@ import {
 } from './config.js';
 import { getBambuPrinterTemplate, buildBambuProjectSettings } from './bambu/templates.js?v=20260725h';
 
+const MESH_POSITION_EPSILON = 1e-5;
+
 function hash32(seed) {
     const input = String(seed || '');
     let hash = 0x811c9dc5;
@@ -65,14 +67,18 @@ function colorToHex(color) {
     return `#${channel(color?.r)}${channel(color?.g)}${channel(color?.b)}`.toUpperCase();
 }
 
-function getGeometryMeshData(geometry) {
+function getGeometryMeshData(geometry, translation = {}) {
     if (!geometry) return null;
     const position = geometry.getAttribute('position');
     if (!position || position.count < 3) return null;
 
     const index = geometry.index;
+    const translateX = Number.isFinite(translation.x) ? translation.x : 0;
+    const translateY = Number.isFinite(translation.y) ? translation.y : 0;
+    const translateZ = Number.isFinite(translation.z) ? translation.z : 0;
     const vertices = [];
     const triangles = [];
+    const vertexIndexByCoordinate = new Map();
     const bounds = {
         minX: Infinity,
         minY: Infinity,
@@ -82,40 +88,106 @@ function getGeometryMeshData(geometry) {
         maxZ: -Infinity
     };
 
-    for (let vertexIndex = 0; vertexIndex < position.count; vertexIndex++) {
-        const x = position.getX(vertexIndex);
-        const y = position.getY(vertexIndex);
-        const z = position.getZ(vertexIndex);
+    const getOrCreateVertex = (sourceVertex) => {
+        const sourceX = position.getX(sourceVertex);
+        const sourceY = position.getY(sourceVertex);
+        const sourceZ = position.getZ(sourceVertex);
+        // Match print-validation's seam tolerance so a mesh that validates as
+        // welded is serialized with the same shared vertex indices.
+        const key = [sourceX, sourceY, sourceZ]
+            .map((value) => Math.round(value / MESH_POSITION_EPSILON))
+            .join(',');
+        if (vertexIndexByCoordinate.has(key)) return vertexIndexByCoordinate.get(key);
+
+        const x = sourceX + translateX;
+        const y = sourceY + translateY;
+        const z = sourceZ + translateZ;
+        const vertexIndex = vertices.length;
         vertices.push({ x, y, z });
+        vertexIndexByCoordinate.set(key, vertexIndex);
         bounds.minX = Math.min(bounds.minX, x);
         bounds.minY = Math.min(bounds.minY, y);
         bounds.minZ = Math.min(bounds.minZ, z);
         bounds.maxX = Math.max(bounds.maxX, x);
         bounds.maxY = Math.max(bounds.maxY, y);
         bounds.maxZ = Math.max(bounds.maxZ, z);
+        return vertexIndex;
+    };
+
+    const elementCount = index ? index.count : position.count;
+    const getSourceVertex = (elementIndex) => index ? index.getX(elementIndex) : elementIndex;
+    for (let elementIndex = 0; elementIndex + 2 < elementCount; elementIndex += 3) {
+        const sourceA = getSourceVertex(elementIndex);
+        const sourceB = getSourceVertex(elementIndex + 1);
+        const sourceC = getSourceVertex(elementIndex + 2);
+        const ax = position.getX(sourceA);
+        const ay = position.getY(sourceA);
+        const az = position.getZ(sourceA);
+        const bx = position.getX(sourceB);
+        const by = position.getY(sourceB);
+        const bz = position.getZ(sourceB);
+        const cx = position.getX(sourceC);
+        const cy = position.getY(sourceC);
+        const cz = position.getZ(sourceC);
+        const abX = bx - ax;
+        const abY = by - ay;
+        const abZ = bz - az;
+        const acX = cx - ax;
+        const acY = cy - ay;
+        const acZ = cz - az;
+        const crossX = abY * acZ - abZ * acY;
+        const crossY = abZ * acX - abX * acZ;
+        const crossZ = abX * acY - abY * acX;
+        if (crossX * crossX + crossY * crossY + crossZ * crossZ <= 1e-16) continue;
+
+        const v1 = getOrCreateVertex(sourceA);
+        const v2 = getOrCreateVertex(sourceB);
+        const v3 = getOrCreateVertex(sourceC);
+        if (v1 === v2 || v2 === v3 || v3 === v1) continue;
+
+        // Canonical seam welding can make three distinct source occurrences
+        // share representative coordinates that are exactly collinear. Audit
+        // the serialized coordinates, not only the raw triangle occurrences.
+        const canonicalA = vertices[v1];
+        const canonicalB = vertices[v2];
+        const canonicalC = vertices[v3];
+        const canonicalAbX = canonicalB.x - canonicalA.x;
+        const canonicalAbY = canonicalB.y - canonicalA.y;
+        const canonicalAbZ = canonicalB.z - canonicalA.z;
+        const canonicalAcX = canonicalC.x - canonicalA.x;
+        const canonicalAcY = canonicalC.y - canonicalA.y;
+        const canonicalAcZ = canonicalC.z - canonicalA.z;
+        const canonicalCrossX = canonicalAbY * canonicalAcZ - canonicalAbZ * canonicalAcY;
+        const canonicalCrossY = canonicalAbZ * canonicalAcX - canonicalAbX * canonicalAcZ;
+        const canonicalCrossZ = canonicalAbX * canonicalAcY - canonicalAbY * canonicalAcX;
+        if (
+            canonicalCrossX * canonicalCrossX
+            + canonicalCrossY * canonicalCrossY
+            + canonicalCrossZ * canonicalCrossZ
+            <= 1e-16
+        ) {
+            continue;
+        }
+        triangles.push({ v1, v2, v3 });
     }
 
-    if (index) {
-        for (let triangleIndex = 0; triangleIndex < index.count; triangleIndex += 3) {
-            triangles.push({
-                v1: index.getX(triangleIndex),
-                v2: index.getX(triangleIndex + 1),
-                v3: index.getX(triangleIndex + 2)
-            });
-        }
-    } else {
-        for (let triangleIndex = 0; triangleIndex < position.count; triangleIndex += 3) {
-            triangles.push({
-                v1: triangleIndex,
-                v2: triangleIndex + 1,
-                v3: triangleIndex + 2
-            });
-        }
-    }
+    if (!triangles.length || !vertices.length) return null;
+
+    const edgeCounts = new Map();
+    triangles.forEach(({ v1, v2, v3 }) => {
+        [[v1, v2], [v2, v3], [v3, v1]].forEach(([start, end]) => {
+            const edgeKey = start < end ? `${start}|${end}` : `${end}|${start}`;
+            edgeCounts.set(edgeKey, (edgeCounts.get(edgeKey) || 0) + 1);
+        });
+    });
+    const boundaryEdgeCount = [...edgeCounts.values()].filter((count) => count === 1).length;
+    const nonManifoldEdgeCount = [...edgeCounts.values()].filter((count) => count > 2).length;
 
     return {
         vertices,
         triangles,
+        boundaryEdgeCount,
+        nonManifoldEdgeCount,
         bounds: {
             ...bounds,
             width: bounds.maxX - bounds.minX,
@@ -383,9 +455,17 @@ export function buildBambuProjectFiles({
 
     const parts = [];
     layers.forEach((layerData, index) => {
-        const meshData = getGeometryMeshData(layerData.geometry);
+        const meshData = getGeometryMeshData(layerData.geometry, layerData.translation);
         if (!meshData) {
             return;
+        }
+
+        if (meshData.boundaryEdgeCount || meshData.nonManifoldEdgeCount) {
+            const name = layerData.displayLabel || `Layer ${index + 1}`;
+            throw new Error(
+                `3MF serialization failed: ${name} has ${meshData.boundaryEdgeCount} open edge(s) `
+                + `and ${meshData.nonManifoldEdgeCount} non-manifold edge(s).`
+            );
         }
 
         parts.push({

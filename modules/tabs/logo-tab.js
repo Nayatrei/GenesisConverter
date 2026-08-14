@@ -1,6 +1,6 @@
 import { SLIDER_TOOLTIPS } from '../config.js';
-import { createObjPreview } from '../preview3d.js?v=20260814h';
-import { createObjExporter } from '../export3d.js?v=20260813b';
+import { createObjPreview } from '../preview3d.js?v=20260814o';
+import { createObjExporter } from '../export3d.js?v=20260814p';
 import {
     hasTransparentPixels,
     markTransparentPixels,
@@ -14,7 +14,7 @@ import { createZoomPanController } from '../shared/zoom-pan.js';
 import { svgToPng } from '../shared/svg-renderer.js';
 import { createPaletteManager } from '../shared/palette-manager.js';
 import { buildWeldedSilhouetteSvgString } from '../shared/silhouette-builder.js';
-import { formatObjScalePercent } from '../obj-scale.js';
+import { formatObjScalePercent } from '../obj-scale.js?v=20260814l';
 import { createHtmlEditor, extractDeclaredHtmlColors } from './logo/html-editor.js?v=20260725a';
 import {
     DEFAULT_LOGO_PRESET_ID,

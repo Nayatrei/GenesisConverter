@@ -243,6 +243,98 @@ function findDownloadByLayer(downloads, layerToken) {
     return downloads.find((download) => download.suggestedFilename().includes(layerToken)) || null;
 }
 
+test('planar cap repair preserves nested holes while sealing open boundary loops', async ({ page }) => {
+    await page.goto('/3d-obj');
+    await page.waitForFunction(() => Boolean(window.THREE && window.BufferGeometryUtils));
+
+    const result = await page.evaluate(async () => {
+        const { sanitizeGeometryForPrint } = await import('/modules/obj-model-plan.js?v=nested-cap-test');
+        const { validateGeometryBundleForPrint } = await import('/modules/shared/print-validation.js');
+        const THREERef = window.THREE;
+        const outer = [
+            { x: 0, y: 0 },
+            { x: 0, y: 6 },
+            { x: 8, y: 6 },
+            { x: 8, y: 0 }
+        ];
+        const hole = [
+            { x: 2, y: 2 },
+            { x: 4, y: 2 },
+            { x: 4, y: 4 },
+            { x: 2, y: 4 }
+        ];
+        const positions = [];
+        const append = (a, b, c) => positions.push(...a, ...b, ...c);
+        const point3 = (point, z) => [point.x, point.y, z];
+
+        const contour = outer.map((point) => new THREERef.Vector2(point.x, point.y));
+        const holes = [hole.map((point) => new THREERef.Vector2(point.x, point.y))];
+        const capVertices = outer.concat(hole);
+        THREERef.ShapeUtils.triangulateShape(contour, holes).forEach(([a, b, c]) => {
+            const points = [capVertices[a], capVertices[b], capVertices[c]];
+            const crossZ = ((points[1].x - points[0].x) * (points[2].y - points[0].y))
+                - ((points[1].y - points[0].y) * (points[2].x - points[0].x));
+            append(
+                point3(points[0], 0),
+                point3(crossZ > 0 ? points[2] : points[1], 0),
+                point3(crossZ > 0 ? points[1] : points[2], 0)
+            );
+        });
+
+        [outer, hole].forEach((loop) => {
+            loop.forEach((point, index) => {
+                const next = loop[(index + 1) % loop.length];
+                append(point3(point, 0), point3(next, 0), point3(next, 1));
+                append(point3(point, 0), point3(next, 1), point3(point, 1));
+            });
+        });
+
+        const geometry = new THREERef.BufferGeometry();
+        geometry.setAttribute('position', new THREERef.Float32BufferAttribute(positions, 3));
+        const sanitized = sanitizeGeometryForPrint(
+            geometry,
+            THREERef,
+            window.BufferGeometryUtils
+        );
+        const validation = validateGeometryBundleForPrint({
+            layers: new Map([['annulus', {
+                geometry: sanitized,
+                displayLabel: 'Annulus'
+            }]])
+        }, { bedKey: 'x1', margin: 5 });
+        const triangles = sanitized.index ? sanitized.toNonIndexed() : sanitized.clone();
+        const attribute = triangles.getAttribute('position');
+        let topArea = 0;
+        for (let index = 0; index + 2 < attribute.count; index += 3) {
+            const vertices = [0, 1, 2].map((offset) => ({
+                x: attribute.getX(index + offset),
+                y: attribute.getY(index + offset),
+                z: attribute.getZ(index + offset)
+            }));
+            if (!vertices.every((vertex) => Math.abs(vertex.z - 1) <= 1e-6)) continue;
+            topArea += Math.abs(
+                ((vertices[1].x - vertices[0].x) * (vertices[2].y - vertices[0].y))
+                - ((vertices[1].y - vertices[0].y) * (vertices[2].x - vertices[0].x))
+            ) * 0.5;
+        }
+        triangles.dispose();
+        sanitized.dispose();
+        geometry.dispose();
+
+        return {
+            validationOk: validation.ok,
+            boundaryEdgeCount: validation.layers[0].boundaryEdgeCount,
+            nonManifoldEdgeCount: validation.layers[0].nonManifoldEdgeCount,
+            topArea
+        };
+    });
+
+    expect(result.validationOk).toBe(true);
+    expect(result.boundaryEdgeCount).toBe(0);
+    expect(result.nonManifoldEdgeCount).toBe(0);
+    expect(result.topArea).toBeCloseTo(44, 6);
+});
+
 test('welded overlap removes duplicated cap faces before extrusion', async ({ page }) => {
     await page.goto('/3d-obj');
     await page.waitForFunction(() => Boolean(window.THREE && window.SVGLoader && window.ImageTracer));

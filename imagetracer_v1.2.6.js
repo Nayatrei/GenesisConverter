@@ -242,7 +242,12 @@ function ImageTracer(){
 	// 1. Color quantization
 	// Using a form of k-means clustering repeatead options.colorquantcycles times. http://en.wikipedia.org/wiki/Color_quantization
 	this.colorquantization = function( imgd, options ){
-		var arr = [], idx=0, cd,cdl,ci, paletteacc = [], pixelnum = imgd.width * imgd.height, i, j, k, cnt, palette;
+		var arr = [], idx=0, cd,cdl,ci, paletteacc = [], pixelnum = imgd.width * imgd.height, i, j, k, cnt, palette,
+			quantseed = (0x9E3779B9 ^ imgd.width ^ (imgd.height << 16) ^ options.numberofcolors) >>> 0,
+			quantrandom = function(){
+				quantseed = (Math.imul(quantseed, 1664525) + 1013904223) >>> 0;
+				return quantseed / 4294967296;
+			};
 		
 		// imgd.data must be RGBA, not just RGB
 		if( imgd.data.length < pixelnum * 4 ){
@@ -291,10 +296,10 @@ function ImageTracer(){
 					
 					// Randomizing a color, if there are too few pixels and there will be a new cycle
 					if( ( paletteacc[k].n/pixelnum < options.mincolorratio ) && ( cnt < options.colorquantcycles-1 ) ){
-						palette[k] = {  r: Math.floor(Math.random()*255),
-										g: Math.floor(Math.random()*255),
-										b: Math.floor(Math.random()*255),
-										a: Math.floor(Math.random()*255) };
+						palette[k] = {  r: Math.floor(quantrandom()*255),
+										g: Math.floor(quantrandom()*255),
+										b: Math.floor(quantrandom()*255),
+										a: Math.floor(quantrandom()*255) };
 					}
 					
 				}// End of palette loop

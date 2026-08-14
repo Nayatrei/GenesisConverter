@@ -1,8 +1,8 @@
-import { createBulkTabController } from './modules/tabs/bulk-tab.js?v=20260804d';
+import { createBulkTabController } from './modules/tabs/bulk-tab.js?v=20260814p';
 import { createRasterTabController } from './modules/tabs/raster-tab.js';
-import { createSvgTabController } from './modules/tabs/svg-tab.js?v=20260814h';
-import { createLogoTabController } from './modules/tabs/logo-tab.js?v=20260814h';
-import { createPdfTabController } from './modules/tabs/pdf-tab.js?v=20260814c';
+import { createSvgTabController } from './modules/tabs/svg-tab.js?v=20260814p';
+import { createLogoTabController } from './modules/tabs/logo-tab.js?v=20260814p';
+import { createPdfTabController } from './modules/tabs/pdf-tab.js?v=20260814p';
 import {
     getDataUrlSize,
     getImageFormat,

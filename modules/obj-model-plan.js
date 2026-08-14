@@ -1,6 +1,6 @@
 import { resolveMergedLayerGroups } from './shared/trace-utils.js';
 import { buildShapesFromTracedataLayers, buildWeldedShapeSet } from './shared/silhouette-builder.js';
-import { computeObjScalePlan } from './obj-scale.js';
+import { computeObjScalePlan } from './obj-scale.js?v=20260814l';
 import { applyCanonicalRawExtrudeTransform } from './shared/canonical-3d.js';
 import {
     getAmsPrintStylePreset,
@@ -1708,8 +1708,12 @@ function concatenateGeometries(geometries, THREERef) {
     return merged;
 }
 
+const REPAIR_POSITION_EPSILON = 1e-5;
+
 function getRepairVertexKey(vertex) {
-    return `${vertex.x.toFixed(4)},${vertex.y.toFixed(4)},${vertex.z.toFixed(4)}`;
+    return [vertex.x, vertex.y, vertex.z]
+        .map((value) => Math.round(value / REPAIR_POSITION_EPSILON))
+        .join(',');
 }
 
 function getRepairEdgeKey(start, end) {
@@ -1844,45 +1848,163 @@ function repairCollinearBoundaryTJunctions(positions) {
     return workingPositions;
 }
 
-function appendCapLoopTriangles(positions, loop, z, THREERef, orientation = 'up') {
-    if (!Array.isArray(loop) || loop.length < 3) return;
-
-    const contour = loop.map((point) => new THREERef.Vector2(point.x, point.y));
-    let faces = [];
-
-    if (contour.length === 3) {
-        faces = [[0, 1, 2]];
-    } else {
-        faces = THREERef.ShapeUtils.triangulateShape(contour, []);
+function getRepairLoopArea(loop) {
+    let area = 0;
+    for (let index = 0; index < loop.length; index++) {
+        const current = loop[index];
+        const next = loop[(index + 1) % loop.length];
+        area += (current.x * next.y) - (next.x * current.y);
     }
+    return area * 0.5;
+}
 
-    faces.forEach(([a, b, c]) => {
-        const vA = loop[a];
-        const vB = loop[b];
-        const vC = loop[c];
-        if (!vA || !vB || !vC) return;
-        const abX = vB.x - vA.x;
-        const abY = vB.y - vA.y;
-        const acX = vC.x - vA.x;
-        const acY = vC.y - vA.y;
-        const crossZ = abX * acY - abY * acX;
-        if (crossZ * crossZ <= 1e-16) return;
+function isPointInsideRepairLoop(point, loop) {
+    let inside = false;
+    for (let currentIndex = 0, previousIndex = loop.length - 1;
+        currentIndex < loop.length;
+        previousIndex = currentIndex++) {
+        const current = loop[currentIndex];
+        const previous = loop[previousIndex];
+        const crossesRay = (current.y > point.y) !== (previous.y > point.y);
+        if (!crossesRay) continue;
+        const intersectionX = previous.x
+            + ((point.y - previous.y) * (current.x - previous.x))
+            / (current.y - previous.y);
+        if (point.x < intersectionX) inside = !inside;
+    }
+    return inside;
+}
 
-        if (orientation === 'down') {
-            appendTriangle(positions,
-                { x: vC.x, y: vC.y, z },
-                { x: vB.x, y: vB.y, z },
-                { x: vA.x, y: vA.y, z }
-            );
-            return;
+function orderRepairBoundaryLoops(edges, vertexByKey) {
+    const adjacency = new Map();
+    edges.forEach((edge) => {
+        const addNeighbor = (from, to) => {
+            const neighbors = adjacency.get(from) || new Set();
+            neighbors.add(to);
+            adjacency.set(from, neighbors);
+        };
+        addNeighbor(edge.startKey, edge.endKey);
+        addNeighbor(edge.endKey, edge.startKey);
+    });
+
+    const remaining = new Set(adjacency.keys());
+    const loops = [];
+    while (remaining.size) {
+        const [seedKey] = remaining;
+        const componentKeys = [];
+        const queue = [seedKey];
+        remaining.delete(seedKey);
+        while (queue.length) {
+            const currentKey = queue.shift();
+            componentKeys.push(currentKey);
+            (adjacency.get(currentKey) || []).forEach((neighborKey) => {
+                if (!remaining.has(neighborKey)) return;
+                remaining.delete(neighborKey);
+                queue.push(neighborKey);
+            });
         }
 
-        appendTriangle(positions,
+        if (componentKeys.length < 3 || componentKeys.some((key) => adjacency.get(key)?.size !== 2)) {
+            continue;
+        }
+
+        const componentSet = new Set(componentKeys);
+        const componentEdgeCount = edges.filter((edge) => (
+            componentSet.has(edge.startKey) && componentSet.has(edge.endKey)
+        )).length;
+        if (componentEdgeCount !== componentKeys.length) continue;
+
+        const loopKeys = [];
+        let previousKey = null;
+        let currentKey = seedKey;
+        let valid = true;
+        do {
+            if (loopKeys.includes(currentKey)) {
+                valid = false;
+                break;
+            }
+            loopKeys.push(currentKey);
+            const neighbors = [...(adjacency.get(currentKey) || [])];
+            const nextKey = previousKey === null
+                ? neighbors[0]
+                : neighbors.find((neighborKey) => neighborKey !== previousKey);
+            if (!nextKey) {
+                valid = false;
+                break;
+            }
+            previousKey = currentKey;
+            currentKey = nextKey;
+        } while (currentKey !== seedKey && loopKeys.length <= componentKeys.length);
+
+        if (!valid || currentKey !== seedKey || loopKeys.length !== componentKeys.length) continue;
+        const loop = loopKeys.map((key) => vertexByKey.get(key)).filter(Boolean);
+        if (loop.length === loopKeys.length && Math.abs(getRepairLoopArea(loop)) > 1e-10) {
+            loops.push(loop);
+        }
+    }
+    return loops;
+}
+
+function appendCapRegionTriangles(positions, outerLoop, holeLoops, z, THREERef, orientation) {
+    const orientLoop = (loop, clockwise) => {
+        const oriented = loop.slice();
+        const isClockwise = getRepairLoopArea(oriented) < 0;
+        if (isClockwise !== clockwise) oriented.reverse();
+        return oriented;
+    };
+    const contourPoints = orientLoop(outerLoop, true);
+    const holePoints = holeLoops.map((loop) => orientLoop(loop, false));
+    const contour = contourPoints.map((point) => new THREERef.Vector2(point.x, point.y));
+    const holes = holePoints.map((loop) => (
+        loop.map((point) => new THREERef.Vector2(point.x, point.y))
+    ));
+    const vertices = contourPoints.concat(...holePoints);
+    const faces = THREERef.ShapeUtils.triangulateShape(contour, holes);
+
+    faces.forEach(([a, b, c]) => {
+        const vA = vertices[a];
+        const vB = vertices[b];
+        const vC = vertices[c];
+        if (!vA || !vB || !vC) return;
+        const crossZ = ((vB.x - vA.x) * (vC.y - vA.y))
+            - ((vB.y - vA.y) * (vC.x - vA.x));
+        if (crossZ * crossZ <= 1e-16) return;
+
+        const shouldReverse = orientation === 'up' ? crossZ < 0 : crossZ > 0;
+        appendTriangle(
+            positions,
             { x: vA.x, y: vA.y, z },
-            { x: vB.x, y: vB.y, z },
-            { x: vC.x, y: vC.y, z }
+            { x: shouldReverse ? vC.x : vB.x, y: shouldReverse ? vC.y : vB.y, z },
+            { x: shouldReverse ? vB.x : vC.x, y: shouldReverse ? vB.y : vC.y, z }
         );
     });
+}
+
+function getRepairTopologyStats(positions) {
+    const edgeCounts = new Map();
+    const triangleCounts = new Map();
+    for (let offset = 0; offset + 8 < positions.length; offset += 9) {
+        const vertices = [
+            { x: positions[offset], y: positions[offset + 1], z: positions[offset + 2] },
+            { x: positions[offset + 3], y: positions[offset + 4], z: positions[offset + 5] },
+            { x: positions[offset + 6], y: positions[offset + 7], z: positions[offset + 8] }
+        ];
+        const vertexKeys = vertices.map(getRepairVertexKey);
+        const triangleKey = vertexKeys.slice().sort().join('|');
+        triangleCounts.set(triangleKey, (triangleCounts.get(triangleKey) || 0) + 1);
+        for (let edgeIndex = 0; edgeIndex < 3; edgeIndex++) {
+            const edgeKey = getRepairEdgeKey(vertices[edgeIndex], vertices[(edgeIndex + 1) % 3]);
+            edgeCounts.set(edgeKey, (edgeCounts.get(edgeKey) || 0) + 1);
+        }
+    }
+    return {
+        boundaryEdgeCount: [...edgeCounts.values()].filter((count) => count === 1).length,
+        nonManifoldEdgeCount: [...edgeCounts.values()].filter((count) => count > 2).length,
+        duplicateTriangleCount: [...triangleCounts.values()].reduce(
+            (total, count) => total + Math.max(0, count - 1),
+            0
+        )
+    };
 }
 
 function repairPlanarCapHoles(positions, THREERef) {
@@ -1929,79 +2051,77 @@ function repairPlanarCapHoles(positions, THREERef) {
     }
 
     const planarOpenEdges = [...edgeMap.values()].filter((edge) => {
-        return edge.count === 1 && Math.abs(edge.start.z - edge.end.z) <= 1e-5;
+        if (edge.count !== 1 || Math.abs(edge.start.z - edge.end.z) > REPAIR_POSITION_EPSILON) {
+            return false;
+        }
+        const z = (edge.start.z + edge.end.z) / 2;
+        return Math.abs(z - minZ) <= REPAIR_POSITION_EPSILON
+            || Math.abs(z - maxZ) <= REPAIR_POSITION_EPSILON;
     });
     if (!planarOpenEdges.length) return positions;
 
     const groups = new Map();
     planarOpenEdges.forEach((edge) => {
         const z = (edge.start.z + edge.end.z) / 2;
-        const key = z.toFixed(5);
+        const key = Math.round(z / REPAIR_POSITION_EPSILON);
         const bucket = groups.get(key) || [];
         bucket.push(edge);
         groups.set(key, bucket);
     });
 
     const repairedPositions = positions.slice();
-    const midZ = (minZ + maxZ) / 2;
-
     groups.forEach((edges, zKey) => {
-        const adjacency = new Map();
-        edges.forEach((edge) => {
-            const addNeighbor = (from, to) => {
-                const bucket = adjacency.get(from) || new Set();
-                bucket.add(to);
-                adjacency.set(from, bucket);
-            };
-            addNeighbor(edge.startKey, edge.endKey);
-            addNeighbor(edge.endKey, edge.startKey);
+        const loops = orderRepairBoundaryLoops(edges, vertexByKey);
+        const records = loops.map((loop) => ({
+            loop,
+            area: Math.abs(getRepairLoopArea(loop)),
+            parent: null,
+            depth: 0
+        }));
+
+        records.forEach((record) => {
+            const testPoint = record.loop[0];
+            record.parent = records
+                .filter((candidate) => (
+                    candidate !== record
+                    && candidate.area > record.area
+                    && isPointInsideRepairLoop(testPoint, candidate.loop)
+                ))
+                .sort((left, right) => left.area - right.area)[0] || null;
+        });
+        records.forEach((record) => {
+            let parent = record.parent;
+            const visited = new Set();
+            while (parent && !visited.has(parent)) {
+                visited.add(parent);
+                record.depth += 1;
+                parent = parent.parent;
+            }
         });
 
-        const remaining = new Set(adjacency.keys());
-        while (remaining.size) {
-            const [seedKey] = remaining;
-            const queue = [seedKey];
-            const componentKeys = [];
-            remaining.delete(seedKey);
-
-            while (queue.length) {
-                const currentKey = queue.shift();
-                componentKeys.push(currentKey);
-                (adjacency.get(currentKey) || []).forEach((neighborKey) => {
-                    if (!remaining.has(neighborKey)) return;
-                    remaining.delete(neighborKey);
-                    queue.push(neighborKey);
-                });
-            }
-
-            const loop = componentKeys
-                .map((vertexKey) => vertexByKey.get(vertexKey))
-                .filter(Boolean);
-            if (loop.length < 3) continue;
-
-            const centroid = loop.reduce((sum, point) => ({
-                x: sum.x + point.x,
-                y: sum.y + point.y
-            }), { x: 0, y: 0 });
-            const centerX = centroid.x / loop.length;
-            const centerY = centroid.y / loop.length;
-
-            loop.sort((left, right) => (
-                Math.atan2(left.y - centerY, left.x - centerX)
-                - Math.atan2(right.y - centerY, right.x - centerX)
-            ));
-
-            appendCapLoopTriangles(
+        const z = Number(zKey) * REPAIR_POSITION_EPSILON;
+        const orientation = Math.abs(z - maxZ) <= REPAIR_POSITION_EPSILON ? 'up' : 'down';
+        records.filter((record) => record.depth % 2 === 0).forEach((outer) => {
+            const holes = records
+                .filter((record) => record.parent === outer && record.depth % 2 === 1)
+                .map((record) => record.loop);
+            appendCapRegionTriangles(
                 repairedPositions,
-                loop,
-                Number.parseFloat(zKey),
+                outer.loop,
+                holes,
+                z,
                 THREERef,
-                Number.parseFloat(zKey) > midZ ? 'up' : 'down'
+                orientation
             );
-        }
+        });
     });
 
-    return repairedPositions;
+    const beforeStats = getRepairTopologyStats(positions);
+    const afterStats = getRepairTopologyStats(repairedPositions);
+    const improved = afterStats.boundaryEdgeCount < beforeStats.boundaryEdgeCount
+        && afterStats.nonManifoldEdgeCount <= beforeStats.nonManifoldEdgeCount
+        && afterStats.duplicateTriangleCount <= beforeStats.duplicateTriangleCount;
+    return improved ? repairedPositions : positions;
 }
 
 function sanitizeGeometry(geometry, THREERef, bufferUtils, { mergeVerticesEnabled = true } = {}) {
@@ -2117,6 +2237,86 @@ function sanitizeGeometry(geometry, THREERef, bufferUtils, { mergeVerticesEnable
     if (mergedCleanedGeometry !== cleanedGeometry) cleanedGeometry.dispose();
     sanitized.dispose();
     sanitized = mergedCleanedGeometry;
+
+    // The last vertex weld can collapse an extremely short edge and create a
+    // degenerate indexed face. Filter once more without welding afterward;
+    // otherwise the same final operation can recreate the triangles we just
+    // removed. The 3MF serializer restores shared indices with the same 1e-5
+    // seam tolerance used by print validation.
+    const validationTriangles = sanitized.index ? sanitized.toNonIndexed() : sanitized.clone();
+    const validationPositions = validationTriangles.getAttribute('position');
+    const validationCleanPositions = [];
+    let removedValidationTriangles = 0;
+    if (validationPositions) {
+        for (let index = 0; index + 2 < validationPositions.count; index += 3) {
+            vA.fromBufferAttribute(validationPositions, index);
+            vB.fromBufferAttribute(validationPositions, index + 1);
+            vC.fromBufferAttribute(validationPositions, index + 2);
+            const abX = vB.x - vA.x;
+            const abY = vB.y - vA.y;
+            const abZ = vB.z - vA.z;
+            const acX = vC.x - vA.x;
+            const acY = vC.y - vA.y;
+            const acZ = vC.z - vA.z;
+            const crossX = abY * acZ - abZ * acY;
+            const crossY = abZ * acX - abX * acZ;
+            const crossZ = abX * acY - abY * acX;
+            const areaSquared = crossX * crossX + crossY * crossY + crossZ * crossZ;
+            if (areaSquared <= 1e-16) {
+                removedValidationTriangles += 1;
+                continue;
+            }
+            validationCleanPositions.push(
+                vA.x, vA.y, vA.z,
+                vB.x, vB.y, vB.z,
+                vC.x, vC.y, vC.z
+            );
+        }
+    }
+    validationTriangles.dispose();
+
+    if (removedValidationTriangles > 0) {
+        if (!validationCleanPositions.length) {
+            sanitized.dispose();
+            return null;
+        }
+        const validationRepairedPositions = repairPlanarCapHoles(
+            repairCollinearBoundaryTJunctions(validationCleanPositions),
+            THREERef
+        );
+        const finalValidationPositions = [];
+        for (let index = 0; index + 2 < validationRepairedPositions.length / 3; index += 3) {
+            vA.fromArray(validationRepairedPositions, index * 3);
+            vB.fromArray(validationRepairedPositions, (index + 1) * 3);
+            vC.fromArray(validationRepairedPositions, (index + 2) * 3);
+            const abX = vB.x - vA.x;
+            const abY = vB.y - vA.y;
+            const abZ = vB.z - vA.z;
+            const acX = vC.x - vA.x;
+            const acY = vC.y - vA.y;
+            const acZ = vC.z - vA.z;
+            const crossX = abY * acZ - abZ * acY;
+            const crossY = abZ * acX - abX * acZ;
+            const crossZ = abX * acY - abY * acX;
+            if (crossX * crossX + crossY * crossY + crossZ * crossZ <= 1e-16) continue;
+            finalValidationPositions.push(
+                vA.x, vA.y, vA.z,
+                vB.x, vB.y, vB.z,
+                vC.x, vC.y, vC.z
+            );
+        }
+        if (!finalValidationPositions.length) {
+            sanitized.dispose();
+            return null;
+        }
+        const validationCleanGeometry = new THREERef.BufferGeometry();
+        validationCleanGeometry.setAttribute(
+            'position',
+            new THREERef.Float32BufferAttribute(finalValidationPositions, 3)
+        );
+        sanitized.dispose();
+        sanitized = validationCleanGeometry;
+    }
 
     sanitized.computeVertexNormals();
     return sanitized;
