@@ -18,7 +18,7 @@ import { bindMagnetPocketControls } from './modules/shared/magnet-pocket-control
 async function loadTabPartials() {
     const tabs = ['svg', 'logo', 'raster', 'bulk', 'pdf'];
     await Promise.all(tabs.map(async (name) => {
-        const res = await fetch(`modules/tabs/html/tab-${name}.html?v=20260813b`);
+        const res = await fetch(`modules/tabs/html/tab-${name}.html?v=20260814a`);
         const html = await res.text();
         const tmp = document.createElement('div');
         tmp.innerHTML = html;

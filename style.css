@@ -10033,3 +10033,543 @@ body.app-shell-v2 .sidebar-sub-icon {
         padding-inline: 1rem;
     }
 }
+
+/* ════════════════════════════════════════════════════════════════
+   BAMBU 3D — SLICER WORKSPACE
+   Recompose the existing image-to-3MF tools as a dense preparation
+   workspace. Every visible control below already has a real handler;
+   this layer deliberately adds no slicer-only editing affordances.
+   ════════════════════════════════════════════════════════════════ */
+
+.svg-v2 .slicer-workbench {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(19rem, 23rem);
+    gap: 0.75rem;
+    min-width: 0;
+    align-items: start;
+}
+
+.svg-v2 .slicer-canvas-pane,
+.svg-v2 .slicer-inspector-pane {
+    min-width: 0;
+}
+
+.svg-v2 .slicer-inspector-pane {
+    display: grid;
+    gap: 0.75rem;
+    align-content: start;
+}
+
+.svg-v2 .slicer-workbench .output-card,
+.svg-v2 .slicer-filament-card {
+    border-color: rgba(148, 163, 184, 0.15);
+    border-radius: 13px;
+    background: rgba(10, 13, 19, 0.9);
+    box-shadow: none;
+}
+
+.svg-v2 .slicer-workbench .output-card {
+    padding: 4px;
+}
+
+.svg-v2 .slicer-workbench .output-card:hover,
+.svg-v2 .slicer-filament-card:hover {
+    border-color: rgba(148, 163, 184, 0.24);
+}
+
+.svg-v2 .slicer-workbench .output-card-header {
+    min-height: 3.2rem;
+    padding: 0.7rem 0.8rem;
+    border-radius: 9px 9px 0 0;
+    background: rgba(16, 20, 28, 0.96);
+}
+
+.svg-v2 .slicer-workbench .output-card-title {
+    font-size: 0.8rem;
+    font-weight: 650;
+}
+
+.svg-v2 .slicer-workbench .output-card-title .text-xs {
+    font-size: 0.58rem;
+    letter-spacing: 0.02em;
+}
+
+.svg-v2 .model-preview-card {
+    display: flex;
+    min-height: 0;
+    flex-direction: column;
+}
+
+.svg-v2 .model-preview-card .obj-preview-stage {
+    height: clamp(24rem, 49vh, 40rem);
+    min-height: 24rem;
+    border-radius: 0;
+    background-color: #080b10;
+}
+
+.svg-v2 .model-preview-card .obj-preview-stage::after {
+    position: absolute;
+    inset: 0;
+    border: 1px solid rgba(148, 163, 184, 0.08);
+    content: "";
+    pointer-events: none;
+}
+
+.svg-v2 .model-preview-card .preview-card-actions {
+    gap: 0.3rem;
+}
+
+.svg-v2 .model-preview-card .preview-card-actions .btn-secondary,
+.svg-v2 .model-preview-card .preview-bed-picker,
+.svg-v2 .vector-layers-card .zoom-controls,
+.svg-v2 .vector-layers-card #preview-resolution {
+    border-radius: 7px;
+}
+
+.svg-v2 .model-preview-card .preview-card-actions .btn-secondary {
+    min-height: 1.9rem;
+    padding: 0.3rem 0.55rem;
+    font-size: 0.62rem;
+}
+
+.svg-v2 .model-preview-card .preview-bed-picker {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+}
+
+.svg-v2 .model-preview-card #obj-preview-bed {
+    min-height: 1.9rem;
+    max-width: 10.5rem;
+    padding: 0.25rem 1.5rem 0.25rem 0.5rem;
+    border-radius: 7px;
+    font-size: 0.62rem;
+}
+
+.svg-v2 .model-preflight {
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 0.45rem 0.75rem;
+    margin: 4px 0 0;
+    padding: 0.68rem 0.75rem;
+    border-radius: 0 0 9px 9px;
+    background: rgba(16, 20, 28, 0.96);
+}
+
+.svg-v2 .model-preflight-head {
+    grid-column: 1 / -1;
+}
+
+.svg-v2 .model-preflight-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.35rem;
+}
+
+.svg-v2 .model-preflight-metric,
+.svg-v2 .model-preflight-metric:first-child {
+    grid-column: auto;
+}
+
+.svg-v2 .model-preflight-metric {
+    padding: 0.38rem 0.5rem;
+    border-left-width: 1px;
+}
+
+.svg-v2 .model-preflight-metric span {
+    font-size: 0.5rem;
+}
+
+.svg-v2 .model-preflight-metric strong {
+    overflow: hidden;
+    font-size: 0.65rem;
+    text-overflow: ellipsis;
+}
+
+.svg-v2 .model-preflight-note {
+    align-self: center;
+    max-width: none;
+    font-size: 0.59rem;
+}
+
+.svg-v2 .vector-layers-card .preview-container {
+    height: clamp(13rem, 24vh, 18rem);
+    min-height: 13rem;
+    border-radius: 0 0 9px 9px;
+}
+
+.svg-v2 .vector-layers-card .preview-card-actions {
+    gap: 0.35rem;
+}
+
+.svg-v2 .vector-layers-card .zoom-controls button {
+    min-width: 1.7rem;
+    min-height: 1.7rem;
+}
+
+.svg-v2 .vector-layers-card #preview-resolution {
+    min-height: 1.8rem;
+    padding: 0.22rem 1.35rem 0.22rem 0.45rem;
+    font-size: 0.6rem;
+}
+
+.svg-v2 .slicer-filament-card {
+    margin: 0;
+    overflow: hidden;
+}
+
+.svg-v2 .slicer-filament-card .layer-stack-header {
+    min-height: 2.65rem;
+    padding: 0.65rem 0.75rem;
+    background: rgba(16, 20, 28, 0.96);
+    font-size: 0.58rem;
+}
+
+.svg-v2 .slicer-filament-card .layer-stack-options {
+    padding: 0.55rem 0.75rem;
+}
+
+.svg-v2 .slicer-filament-card > p {
+    margin: 0;
+    padding: 0 0.75rem 0.55rem;
+    font-size: 0.57rem;
+    line-height: 1.45;
+}
+
+.svg-v2 .slicer-filament-card .layer-stack-list {
+    max-height: 17rem;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+}
+
+.svg-v2 .slicer-layer-editor-card .output-card-header {
+    min-height: 2.75rem;
+    border-bottom: 1px solid rgba(148, 163, 184, 0.12);
+    border-radius: 9px;
+}
+
+.svg-v2 .slicer-layer-editor-card .collapsible-section:not(.collapsed) {
+    max-height: 22rem;
+    overflow-y: auto;
+}
+
+.svg-v2 .slicer-layer-editor-card .output-grid.two-col {
+    grid-template-columns: 1fr;
+    gap: 0;
+}
+
+.svg-v2 .slicer-layer-editor-card .output-card-content {
+    padding: 0.7rem 0.8rem;
+    border: 0;
+    border-radius: 0;
+    background: rgba(12, 15, 21, 0.94);
+}
+
+.svg-v2 .slicer-layer-editor-card .output-card-content + .output-card-content {
+    border-top: 1px solid rgba(148, 163, 184, 0.12);
+    border-radius: 0 0 9px 9px;
+}
+
+/* The real four-step creator replaces the mockup's invented slicer modes. */
+.svg-v2 .maker-workflow {
+    grid-template-columns: minmax(9rem, 0.32fr) minmax(0, 1.68fr);
+    gap: 0.65rem;
+    margin-bottom: 0.65rem;
+    padding: 0.55rem 0.65rem;
+    border-radius: 11px;
+    background: rgba(10, 13, 19, 0.76);
+}
+
+.svg-v2 .maker-workflow-copy {
+    gap: 0.08rem;
+    padding-right: 0.65rem;
+}
+
+.svg-v2 .maker-workflow-copy strong {
+    font-size: 0.72rem;
+}
+
+.svg-v2 .maker-workflow-eyebrow {
+    font-size: 0.5rem;
+}
+
+.svg-v2 .maker-workflow-steps {
+    gap: 0.25rem;
+}
+
+.svg-v2 .maker-workflow-step {
+    grid-template-columns: 1.35rem minmax(0, 1fr);
+    gap: 0.35rem;
+    padding: 0.3rem 0.38rem;
+    border-radius: 7px;
+}
+
+.svg-v2 .maker-workflow-index {
+    width: 1.35rem;
+    height: 1.35rem;
+    border-radius: 5px;
+    font-size: 0.56rem;
+}
+
+.svg-v2 .maker-workflow-step strong {
+    font-size: 0.61rem;
+}
+
+.svg-v2 .maker-workflow-step small {
+    font-size: 0.5rem;
+}
+
+/* Compact, slicer-like app chrome while the Bambu 3D case is active. */
+@media (min-width: 1024px) {
+    body.app-shell-v2 .app-shell[data-active-case="svg"] {
+        height: 100dvh;
+        min-height: 100dvh;
+        overflow: hidden;
+    }
+
+    body.app-shell-v2 .app-shell[data-active-case="svg"] .app-sidebar,
+    body.app-shell-v2 .app-shell[data-active-case="svg"] .app-workspace {
+        height: 100dvh;
+        min-height: 0;
+    }
+
+    body.app-shell-v2 .app-shell[data-active-case="svg"] #main-content {
+        min-height: 0;
+        overflow: hidden;
+    }
+
+    body.app-shell-v2 .app-shell[data-active-case="svg"] #output-section {
+        min-height: 0;
+        overflow-y: auto;
+    }
+
+    body.app-shell-v2 .app-shell[data-active-case="svg"] .app-sidebar {
+        width: clamp(20.5rem, 23vw, 23rem);
+    }
+
+    body.app-shell-v2 .app-shell[data-active-case="svg"] .app-sidebar > header {
+        padding: 0.85rem 1rem;
+    }
+
+    body.app-shell-v2 .app-shell[data-active-case="svg"] .app-brand-mark {
+        width: 36px;
+        height: 36px;
+        min-width: 36px;
+        min-height: 36px;
+        border-radius: 10px;
+    }
+
+    body.app-shell-v2 .app-shell[data-active-case="svg"] .app-brand-copy h1 {
+        font-size: 0.92rem;
+    }
+
+    body.app-shell-v2 .app-shell[data-active-case="svg"] .app-brand-copy p {
+        font-size: 0.58rem;
+    }
+
+    body.app-shell-v2 .app-shell[data-active-case="svg"] .sidebar-scroll {
+        padding: 0.7rem;
+    }
+
+    body.app-shell-v2 .app-shell[data-active-case="svg"] .sidebar-accordion {
+        margin-bottom: 0.5rem;
+        border-radius: 11px;
+    }
+
+    body.app-shell-v2 .app-shell[data-active-case="svg"] .sidebar-accordion-header {
+        padding: 0.65rem 0.75rem;
+    }
+
+    body.app-shell-v2 .app-shell[data-active-case="svg"] .sidebar-accordion-body-inner {
+        padding: 0 0.65rem 0.65rem;
+    }
+
+    body.app-shell-v2 .app-shell[data-active-case="svg"] .sidebar-sub-accordion {
+        margin-bottom: 0.35rem;
+        border-radius: 9px;
+    }
+
+    body.app-shell-v2 .app-shell[data-active-case="svg"] .sidebar-sub-header {
+        padding: 0.55rem 0.65rem;
+    }
+
+    body.app-shell-v2 .app-shell[data-active-case="svg"] .sidebar-sub-body-inner {
+        padding: 0.65rem;
+    }
+
+    body.app-shell-v2 .app-shell[data-active-case="svg"] .workspace-topbar {
+        padding: 0.55rem 0.7rem;
+    }
+
+    body.app-shell-v2 .app-shell[data-active-case="svg"] .workspace-topbar .segmented-control {
+        gap: 0.35rem;
+    }
+
+    body.app-shell-v2 .app-shell[data-active-case="svg"] .workspace-topbar .segmented-control-tab {
+        min-height: 3.1rem;
+        padding: 0.45rem 0.55rem;
+        border-radius: 9px;
+        font-size: 0.78rem;
+    }
+
+    body.app-shell-v2 .app-shell[data-active-case="svg"] .workspace-tab-subtitle {
+        font-size: 0.52rem;
+    }
+
+    body.app-shell-v2 .app-shell[data-active-case="svg"] #output-section.card {
+        padding: 0.65rem 0.75rem 0.75rem !important;
+        gap: 0;
+    }
+
+    body.app-shell-v2 .app-shell[data-active-case="svg"] .workspace-card-header {
+        display: none;
+    }
+
+    body.app-shell-v2 .app-shell[data-active-case="svg"] #tab-svg.svg-v2 {
+        padding-top: 0;
+        background: transparent;
+    }
+
+    body.app-shell-v2 .app-shell[data-active-case="svg"] .app-sidebar > footer {
+        padding: 0.7rem 0.8rem 0.8rem;
+    }
+
+    body.app-shell-v2 .app-shell[data-active-case="svg"] #generate-preview-btn {
+        padding: 0.72rem 1rem !important;
+        border-radius: 8px !important;
+        font-size: 0.78rem;
+    }
+}
+
+/* Real exports form the only bottom action bar. */
+footer#svg-export-footer.svg-v2 {
+    padding: 0.65rem 0.75rem !important;
+}
+
+.svg-v2 .footer-action-grouped {
+    grid-template-columns: minmax(0, 1fr) minmax(14rem, 0.38fr);
+    gap: 0.6rem;
+}
+
+.svg-v2 .export-recommended-group {
+    grid-template-columns: minmax(11rem, 0.42fr) minmax(0, 1.58fr);
+    align-items: center;
+    gap: 0.6rem;
+}
+
+.svg-v2 .export-group-heading {
+    display: grid;
+    gap: 0.15rem;
+    padding: 0 0.25rem;
+}
+
+.svg-v2 .export-group-heading small {
+    line-height: 1.35;
+}
+
+.svg-v2 .footer-action-card {
+    border-radius: 10px;
+    padding: 0.35rem;
+}
+
+.svg-v2 .export-icon-btn {
+    width: 100%;
+    min-height: 2.4rem;
+    justify-content: center;
+    border-radius: 7px !important;
+    padding: 0.55rem 0.7rem !important;
+    font-size: 0.7rem;
+}
+
+.svg-v2 .footer-action-meta {
+    padding: 0.25rem 0.25rem 0.05rem;
+    font-size: 0.53rem;
+    line-height: 1.35;
+}
+
+.svg-v2 .export-advanced-group {
+    border-radius: 10px;
+}
+
+.svg-v2 .export-advanced-group summary {
+    min-height: 100%;
+    padding: 0.65rem 0.75rem;
+}
+
+@media (max-width: 1280px) and (min-width: 1024px) {
+    .svg-v2 .slicer-workbench {
+        grid-template-columns: minmax(0, 1fr) minmax(17.5rem, 19rem);
+    }
+
+    .svg-v2 .model-preview-card .obj-preview-stage {
+        height: clamp(23rem, 46vh, 32rem);
+        min-height: 23rem;
+    }
+
+    .svg-v2 .model-preview-card .output-card-header {
+        align-items: stretch;
+    }
+
+    .svg-v2 .model-preview-card .preview-card-actions {
+        width: 100%;
+        margin-left: 0;
+        justify-content: flex-start;
+    }
+}
+
+@media (max-width: 1023px) {
+    .svg-v2 .slicer-workbench {
+        grid-template-columns: 1fr;
+    }
+
+    .svg-v2 .slicer-inspector-pane {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .svg-v2 .slicer-layer-editor-card {
+        grid-column: 1 / -1;
+    }
+
+    .svg-v2 .model-preview-card .obj-preview-stage {
+        height: clamp(24rem, 58vh, 36rem);
+        min-height: 24rem;
+    }
+
+    .svg-v2 .footer-action-grouped,
+    .svg-v2 .export-recommended-group {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 680px) {
+    .svg-v2 .slicer-inspector-pane,
+    .svg-v2 .model-preflight-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .svg-v2 .slicer-layer-editor-card {
+        grid-column: auto;
+    }
+
+    .svg-v2 .model-preview-card .obj-preview-stage {
+        height: 22rem;
+        min-height: 22rem;
+    }
+
+    .svg-v2 .model-preflight {
+        grid-template-columns: 1fr;
+    }
+
+    .svg-v2 .model-preflight-head,
+    .svg-v2 .model-preflight-note {
+        grid-column: auto;
+    }
+
+    .svg-v2 .maker-workflow {
+        grid-template-columns: 1fr;
+    }
+
+    .svg-v2 .maker-workflow-copy {
+        padding: 0 0 0.45rem;
+        border-right: 0;
+        border-bottom: 1px solid var(--bulk-hairline);
+    }
+}
