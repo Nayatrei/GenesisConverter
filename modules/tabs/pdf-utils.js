@@ -1,3 +1,8 @@
+export const PDF_IMAGE_EXPORT_MAX_EDGE = 8192;
+export const PDF_IMAGE_EXPORT_MAX_PAGE_PIXELS = 32_000_000;
+export const PDF_IMAGE_EXPORT_MAX_TOTAL_PIXELS = 128_000_000;
+export const PDF_IMAGE_EXPORT_MAX_TOTAL_BYTES = 256 * 1024 * 1024;
+
 export function parsePdfPageRange(rawInput, pageCount) {
     if (!Number.isInteger(pageCount) || pageCount < 1) {
         return {
@@ -132,6 +137,104 @@ export function sanitizePdfFilename(rawName) {
 
     if (!cleaned) return fallback;
     return /\.pdf$/i.test(cleaned) ? cleaned : `${cleaned}.pdf`;
+}
+
+export function getPdfImageExportDimensions({
+    targetWidth,
+    baseWidth,
+    baseHeight,
+    maxEdge = PDF_IMAGE_EXPORT_MAX_EDGE,
+    maxPixels = PDF_IMAGE_EXPORT_MAX_PAGE_PIXELS
+}) {
+    const safeBaseWidth = Number(baseWidth);
+    const safeBaseHeight = Number(baseHeight);
+    const safeTargetWidth = Number(targetWidth);
+    if (
+        !Number.isFinite(safeBaseWidth)
+        || !Number.isFinite(safeBaseHeight)
+        || safeBaseWidth <= 0
+        || safeBaseHeight <= 0
+        || !Number.isFinite(safeTargetWidth)
+        || safeTargetWidth <= 0
+    ) {
+        throw new Error('PDF page dimensions are unavailable for image export.');
+    }
+
+    let scale = safeTargetWidth / safeBaseWidth;
+    scale = Math.min(
+        scale,
+        maxEdge / Math.max(safeBaseWidth, safeBaseHeight),
+        Math.sqrt(maxPixels / (safeBaseWidth * safeBaseHeight))
+    );
+    scale = Math.max(scale, 1 / Math.max(safeBaseWidth, safeBaseHeight));
+
+    let width = Math.max(1, Math.floor(safeBaseWidth * scale));
+    let height = Math.max(1, Math.floor(safeBaseHeight * scale));
+    if (width * height > maxPixels) {
+        const correction = Math.sqrt(maxPixels / (width * height));
+        scale *= correction;
+        width = Math.max(1, Math.floor(safeBaseWidth * scale));
+        height = Math.max(1, Math.floor(safeBaseHeight * scale));
+    }
+
+    return { width, height, scale };
+}
+
+export function validatePdfImageExportPlan({
+    pages,
+    format,
+    maxPagePixels = PDF_IMAGE_EXPORT_MAX_PAGE_PIXELS,
+    maxTotalPixels = PDF_IMAGE_EXPORT_MAX_TOTAL_PIXELS,
+    maxTotalBytes = PDF_IMAGE_EXPORT_MAX_TOTAL_BYTES
+}) {
+    if (!Array.isArray(pages) || !pages.length) {
+        throw new Error('No PDF pages are available for image export.');
+    }
+
+    const normalizedFormat = String(format || '').toLowerCase();
+    let totalPixels = 0;
+    let estimatedBytes = 0;
+    pages.forEach((page, index) => {
+        const width = Math.max(0, Math.floor(Number(page?.width) || 0));
+        const height = Math.max(0, Math.floor(Number(page?.height) || 0));
+        const pixels = width * height;
+        if (!pixels) {
+            throw new Error(`Page ${index + 1} has invalid dimensions for image export.`);
+        }
+        if (pixels > maxPagePixels) {
+            throw new Error(
+                `Page ${index + 1} would exceed the browser-safe ${formatMegapixels(maxPagePixels)} megapixel limit. Reduce the image width.`
+            );
+        }
+        totalPixels += pixels;
+        estimatedBytes += estimatePdfImageBytes(pixels, normalizedFormat);
+    });
+
+    if (totalPixels > maxTotalPixels) {
+        throw new Error(
+            `This export would render ${formatMegapixels(totalPixels)} megapixels across ${pages.length} pages, above the browser-safe ${formatMegapixels(maxTotalPixels)} MP limit. Reduce the image width or export fewer pages.`
+        );
+    }
+    if (estimatedBytes > maxTotalBytes) {
+        const label = normalizedFormat ? normalizedFormat.toUpperCase() : 'image';
+        throw new Error(
+            `This ${label} export is estimated at ${formatPdfBytes(estimatedBytes)}, above the browser-safe ${formatPdfBytes(maxTotalBytes)} limit. Reduce the image width or export fewer pages.`
+        );
+    }
+
+    return { totalPixels, estimatedBytes };
+}
+
+function estimatePdfImageBytes(pixels, format) {
+    if (format === 'jpg' || format === 'jpeg') return Math.max(1, Math.round(pixels * 3 * 0.16));
+    if (format === 'png') return Math.max(1, Math.round(pixels * 3 * 0.45));
+    if (format === 'tga') return Math.max(1, Math.round(pixels * 3) + 18);
+    return Math.max(1, Math.round(pixels * 3));
+}
+
+function formatMegapixels(pixels) {
+    const value = pixels / 1_000_000;
+    return value >= 100 ? value.toFixed(0) : value.toFixed(1);
 }
 
 function parsePageToken(token, pageCount) {

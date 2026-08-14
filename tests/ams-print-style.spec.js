@@ -8,6 +8,15 @@ function buildTwoColorSignSvg() {
 </svg>`.trim();
 }
 
+function buildThreeColorSignSvg() {
+    return `
+<svg xmlns="http://www.w3.org/2000/svg" width="320" height="220" viewBox="0 0 320 220">
+  <rect width="320" height="220" fill="#f3f4f6"/>
+  <rect x="48" y="52" width="96" height="116" fill="#dc2626"/>
+  <rect x="176" y="52" width="96" height="116" fill="#2563eb"/>
+</svg>`.trim();
+}
+
 async function uploadSign(page) {
     await page.locator('#file-input').setInputFiles({
         name: 'ams-sign.svg',
@@ -71,4 +80,71 @@ test('face-down style keeps its required base enabled', async ({ page }) => {
 
     await page.locator('#obj-ams-print-style').selectOption('raised-efficient');
     await expect(page.locator('#use-base-layer')).toBeEnabled();
+});
+
+test('Face on Bed reports an incompatible bezel and applies when the conflict is removed', async ({ page }) => {
+    await page.goto('/3d-obj');
+    await uploadSign(page);
+
+    await page.locator('#obj-bezel').selectOption('low');
+    await page.locator('#obj-face-down-toggle').click();
+
+    const toggle = page.locator('#obj-face-down-toggle');
+    await expect(page.locator('#obj-preview-canvas')).toHaveAttribute('data-ams-print-style', 'raised-efficient', { timeout: 30_000 });
+    await expect(toggle).toHaveAttribute('aria-pressed', 'false');
+    await expect(toggle).toHaveClass(/is-blocked/);
+    await expect(toggle.locator('[data-face-down-state]')).toHaveText('Blocked');
+    await expect(page.locator('#svg-preflight-status')).toHaveText('Style adjusted');
+    await expect(page.locator('#svg-preflight-note')).toContainText('raised bezel');
+
+    await page.locator('#obj-bezel').selectOption('off');
+    await expect(page.locator('#obj-preview-canvas')).toHaveAttribute('data-ams-print-style', 'face-down', { timeout: 30_000 });
+    await expect(toggle).toHaveAttribute('aria-pressed', 'true');
+    await expect(toggle).not.toHaveClass(/is-blocked/);
+    await expect(toggle.locator('[data-face-down-state]')).toHaveText('On');
+});
+
+test('Face on Bed shortcut makes every color coplanar and restores the prior style', async ({ page }) => {
+    const pageErrors = [];
+    page.on('pageerror', (error) => pageErrors.push(error.message));
+    await page.goto('/3d-obj');
+    await page.locator('#file-input').setInputFiles({
+        name: 'three-color-sign.svg',
+        mimeType: 'image/svg+xml',
+        buffer: Buffer.from(buildThreeColorSignSvg())
+    });
+
+    await expect(page.locator('#status-text')).toHaveText('Preview generated!', { timeout: 30_000 });
+    await expect(page.locator('#layer-stack-list .layer-stack-item')).toHaveCount(3);
+
+    const toggle = page.locator('#obj-face-down-toggle');
+    await expect(toggle).toHaveAttribute('aria-pressed', 'false');
+    await expect(toggle.locator('[data-face-down-state]')).toHaveText('Off');
+
+    await page.locator('#obj-ams-print-style').selectOption('full-depth');
+    await expect(page.locator('#obj-preview-canvas')).toHaveAttribute('data-ams-print-style', 'full-depth', { timeout: 30_000 });
+
+    await toggle.click();
+    await expect(toggle).toHaveAttribute('aria-pressed', 'true');
+    await expect(toggle.locator('[data-face-down-state]')).toHaveText('On');
+    await expect(page.locator('#obj-ams-print-style')).toHaveValue('face-down');
+    await expect(page.locator('#obj-preview-canvas')).toHaveAttribute('data-ams-print-style', 'face-down', { timeout: 30_000 });
+    await expect(page.locator('#obj-preview-canvas')).toHaveAttribute('data-preview-face', 'front');
+    await expect(page.locator('#layer-stack-list .layer-stack-item.is-base .layer-stack-range')).toHaveText('0.0-2.4mm');
+    await expect(page.locator('#layer-stack-list .layer-stack-item:not(.is-base) .layer-stack-range')).toHaveText([
+        '0.0-0.6mm',
+        '0.0-0.6mm'
+    ]);
+    await expect(page.locator('#svg-model-size-readout')).toContainText('× 2.4 mm');
+
+    await toggle.click();
+    await expect(toggle).toHaveAttribute('aria-pressed', 'false');
+    await expect(toggle.locator('[data-face-down-state]')).toHaveText('Off');
+    await expect(page.locator('#obj-ams-print-style')).toHaveValue('full-depth');
+    await expect(page.locator('#obj-preview-canvas')).toHaveAttribute('data-ams-print-style', 'full-depth', { timeout: 30_000 });
+    await expect(page.locator('#layer-stack-list .layer-stack-item:not(.is-base) .layer-stack-range')).toHaveText([
+        '4.0-8.0mm',
+        '4.0-8.0mm'
+    ]);
+    expect(pageErrors).toEqual([]);
 });

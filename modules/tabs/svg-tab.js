@@ -1,5 +1,5 @@
 import { SLIDER_TOOLTIPS } from '../config.js';
-import { createObjPreview } from '../preview3d.js?v=20260813b';
+import { createObjPreview } from '../preview3d.js?v=20260814h';
 import { createObjExporter } from '../export3d.js?v=20260813b';
 import { hasTransparentPixels, markTransparentPixels, stripTransparentPalette } from '../shared/image-utils.js';
 import {
@@ -28,8 +28,9 @@ import {
 import { setMakerWorkflow, updateMakerPreflight } from '../shared/maker-workflow.js?v=20260725a';
 import {
     applyAmsPrintStylePreset,
-    syncAmsPrintStyleControls
-} from '../shared/ams-print-style.js';
+    syncAmsPrintStyleControls,
+    toggleFaceDownPrintStyle
+} from '../shared/ams-print-style.js?v=20260814h';
 
 export function createSvgTabController({
     state,
@@ -287,6 +288,7 @@ export function createSvgTabController({
             elements.qualityIndicator.textContent = `${finalQuality.pathCount.toLocaleString()} paths · ${finalQuality.colorCount} colors`;
         }
         updateMakerPreflight(viewControls, finalQuality);
+        objPreview?.refreshPreflight();
     }
 
     // ── 3D preview / exporter ──────────────────────────────────────────────────
@@ -322,7 +324,7 @@ export function createSvgTabController({
     function renderObjModelOnly() {
         objPreview.render();
         if (state.tracedata) {
-            updateQualityDisplay(assess3DPrintQuality(state.tracedata, getVisibleLayerIndices()));
+            updateQualityDisplay(assess3DPrintQuality(state.tracedata, getVisibleLayerIndices));
         }
     }
 
@@ -572,6 +574,7 @@ export function createSvgTabController({
     }
 
     function onTabActivated() {
+        syncAmsPrintStyleControls({ rootState: state, tabState: state, controls: elements });
         if (!hasSingleImageLoaded()) {
             setMakerWorkflow(elements.workflow, 'source');
             return;
@@ -633,6 +636,17 @@ export function createSvgTabController({
                 renderObjModelOnly();
             });
         }
+        if (elements.objFaceDownToggle) {
+            elements.objFaceDownToggle.addEventListener('click', () => {
+                if (state.activeTab !== 'svg') return;
+                toggleFaceDownPrintStyle({
+                    rootState: state,
+                    tabState: state,
+                    controls: elements
+                });
+                renderObjModelOnly();
+            });
+        }
         if (elements.objBaseThicknessSlider && elements.objBaseThicknessValue) {
             elements.objBaseThicknessValue.textContent = elements.objBaseThicknessSlider.value;
             elements.objBaseThicknessSlider.addEventListener('input', () => {
@@ -643,7 +657,7 @@ export function createSvgTabController({
             elements.objBaseThicknessSlider.addEventListener('change', () => {
                 if (state.activeTab === 'svg') {
                     objPreview.updateLayerHeights();
-                    updateQualityDisplay(assess3DPrintQuality(state.tracedata, getVisibleLayerIndices()));
+                    updateQualityDisplay(assess3DPrintQuality(state.tracedata, getVisibleLayerIndices));
                 }
             });
         }
@@ -657,7 +671,7 @@ export function createSvgTabController({
             elements.objThicknessSlider.addEventListener('change', () => {
                 if (state.activeTab === 'svg') {
                     objPreview.updateLayerHeights();
-                    updateQualityDisplay(assess3DPrintQuality(state.tracedata, getVisibleLayerIndices()));
+                    updateQualityDisplay(assess3DPrintQuality(state.tracedata, getVisibleLayerIndices));
                 }
             });
         }

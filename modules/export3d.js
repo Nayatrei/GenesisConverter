@@ -318,7 +318,7 @@ async function generateBambuProject3MF({
             pauseEvents: geometryBundle?.plan?.pauseEvents || []
         });
         if (!project) return null;
-        const blob = await createZipFile(project.files);
+        const blob = await createZipFile(project.files, { mimeType: THREE_MF_BLOB_TYPE });
         return { blob, project };
     } finally {
         placedLayers.forEach(disposeLayerGeometryData);
@@ -357,7 +357,10 @@ async function normalizeZipContent(content, encoder) {
 }
 
 // Simple ZIP file creator using JSZip if available, otherwise manual implementation
-export async function createZipFile(files) {
+export async function createZipFile(files, { mimeType = 'application/zip' } = {}) {
+    const blobType = typeof mimeType === 'string' && mimeType.trim()
+        ? mimeType.trim()
+        : 'application/zip';
     // Try to use JSZip if available
     if (window.JSZip) {
         const zip = new window.JSZip();
@@ -365,7 +368,7 @@ export async function createZipFile(files) {
             zip.file(path, content);
         }
         const zipData = await zip.generateAsync({ type: 'uint8array', compression: 'DEFLATE' });
-        return new Blob([zipData], { type: THREE_MF_BLOB_TYPE });
+        return new Blob([zipData], { type: blobType });
     }
 
     // Fallback: create uncompressed ZIP manually
@@ -493,7 +496,7 @@ export async function createZipFile(files) {
     // Comment length
     view.setUint16(pos, 0, true);
 
-    return new Blob([buffer], { type: THREE_MF_BLOB_TYPE });
+    return new Blob([buffer], { type: blobType });
 }
 
 // CRC32 calculation

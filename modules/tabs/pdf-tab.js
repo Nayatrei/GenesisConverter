@@ -1,7 +1,10 @@
 import {
     formatPdfBytes,
+    getPdfImageExportDimensions,
     parsePdfPageRange,
-    sanitizePdfFilename
+    PDF_IMAGE_EXPORT_MAX_TOTAL_BYTES,
+    sanitizePdfFilename,
+    validatePdfImageExportPlan
 } from './pdf-utils.js';
 import {
     estimateSizeBytes,
@@ -11,6 +14,8 @@ import {
     sanitizeFileComponent
 } from '../raster-utils.js';
 import { createZipFile } from '../export3d.js';
+import { createImageToPdfController } from './pdf-image-to-pdf.js?v=20260814c';
+import { createPdfOcrController } from './pdf-ocr.js?v=20260814c';
 
 let pdfLibPromise = null;
 let pdfJsPromise = null;
@@ -22,7 +27,8 @@ const STEP_COUNT = 3;
 const IMAGE_EXPORT_FORMATS = ['png', 'jpg', 'tga'];
 const IMAGE_WIDTH_MIN = 16;
 const IMAGE_WIDTH_MAX = 8192;
-const IMAGE_MAX_EDGE = 8192;
+const PDF_TASKS = ['combine', 'pdf-images', 'images-pdf', 'ocr'];
+const PDF_DOCUMENT_TASKS = new Set(['combine', 'pdf-images']);
 
 async function getPdfLib() {
     if (!pdfLibPromise) {
@@ -49,6 +55,149 @@ export function createPdfTabController({
     downloadBlob
 }) {
     let nextId = 1;
+    let taskNavigationMediaQuery = null;
+    let taskNavigationChangeHandler = null;
+    let taskNavigationListenerBound = false;
+    const imageToPdfController = createImageToPdfController({
+        state,
+        elements,
+        showLoader,
+        downloadBlob
+    });
+    const ocrController = createPdfOcrController({
+        state,
+        elements,
+        showLoader,
+        downloadBlob
+    });
+
+    function getActiveTask() {
+        return PDF_TASKS.includes(state.pdf.activeTask)
+            ? state.pdf.activeTask
+            : 'combine';
+    }
+
+    function moveTaskNavigationToResponsiveHost() {
+        const navigation = elements.pdf.taskNavigation;
+        const targetHost = taskNavigationMediaQuery?.matches
+            ? elements.pdf.taskNavigationSidebarHost
+            : elements.pdf.taskNavigationWorkspaceHost;
+
+        if (navigation && targetHost && navigation.parentElement !== targetHost) {
+            targetHost.append(navigation);
+        }
+    }
+
+    function bindTaskNavigationLocation() {
+        if (taskNavigationListenerBound) {
+            moveTaskNavigationToResponsiveHost();
+            return;
+        }
+
+        taskNavigationListenerBound = true;
+        if (typeof window.matchMedia !== 'function') {
+            moveTaskNavigationToResponsiveHost();
+            return;
+        }
+
+        taskNavigationMediaQuery = window.matchMedia('(min-width: 1024px)');
+        taskNavigationChangeHandler = moveTaskNavigationToResponsiveHost;
+
+        if (typeof taskNavigationMediaQuery.addEventListener === 'function') {
+            taskNavigationMediaQuery.addEventListener('change', taskNavigationChangeHandler);
+        } else {
+            taskNavigationMediaQuery.addListener?.(taskNavigationChangeHandler);
+        }
+
+        moveTaskNavigationToResponsiveHost();
+    }
+
+    function disposeTaskNavigationLocation() {
+        if (taskNavigationMediaQuery && taskNavigationChangeHandler) {
+            if (typeof taskNavigationMediaQuery.removeEventListener === 'function') {
+                taskNavigationMediaQuery.removeEventListener('change', taskNavigationChangeHandler);
+            } else {
+                taskNavigationMediaQuery.removeListener?.(taskNavigationChangeHandler);
+            }
+        }
+
+        taskNavigationMediaQuery = null;
+        taskNavigationChangeHandler = null;
+        taskNavigationListenerBound = false;
+
+        const navigation = elements.pdf.taskNavigation;
+        const workspaceHost = elements.pdf.taskNavigationWorkspaceHost;
+        if (navigation && workspaceHost && navigation.parentElement !== workspaceHost) {
+            workspaceHost.append(navigation);
+        }
+    }
+
+    function setActiveTask(requestedTask) {
+        const task = PDF_TASKS.includes(requestedTask) ? requestedTask : 'combine';
+        state.pdf.activeTask = task;
+        if (PDF_DOCUMENT_TASKS.has(task)) {
+            state.pdf.activeStep = 1;
+        }
+        moveTaskNavigationToResponsiveHost();
+        syncTaskUi();
+        if (task === 'images-pdf') imageToPdfController.render();
+        if (task === 'ocr') ocrController.render();
+
+        if (task === 'combine') {
+            setStatus('Choose pages, then save one combined PDF.', getOutputEntries().length ? 'ready' : 'muted');
+        } else if (task === 'pdf-images') {
+            setStatus('Choose the PDF pages you want to save as images.', getOutputEntries().length ? 'ready' : 'muted');
+        }
+    }
+
+    function syncTaskUi() {
+        const task = getActiveTask();
+        const usesPdfDocuments = PDF_DOCUMENT_TASKS.has(task);
+        state.pdf.activeTask = task;
+
+        if (elements.pdf.guidedShell) {
+            elements.pdf.guidedShell.dataset.activeTask = task;
+        }
+
+        elements.pdf.taskButtons?.forEach((button) => {
+            const active = button.dataset.pdfTask === task;
+            button.classList.toggle('active', active);
+            button.setAttribute('aria-pressed', String(active));
+        });
+
+        elements.pdf.taskPanels?.forEach((panel) => {
+            const panelTask = panel.dataset.pdfTaskPanel;
+            const active = panelTask === 'documents'
+                ? usesPdfDocuments
+                : panelTask === task;
+            panel.classList.toggle('hidden', !active);
+            panel.setAttribute('aria-hidden', String(!active));
+        });
+
+        elements.pdf.documentActionPanels?.forEach((panel) => {
+            panel.classList.toggle('hidden', panel.dataset.pdfDocumentAction !== task);
+        });
+
+        const sidebarMode = usesPdfDocuments ? 'documents' : task;
+        [
+            elements.pdf.documentSidebarMode,
+            elements.pdf.imageSidebarMode,
+            elements.pdf.ocrSidebarMode
+        ].forEach((mode) => {
+            if (!mode) return;
+            const active = mode.dataset.pdfSidebarMode === sidebarMode;
+            mode.classList.toggle('hidden', !active);
+            mode.setAttribute('aria-hidden', String(!active));
+        });
+        if (elements.pdf.sidebar) {
+            elements.pdf.sidebar.dataset.activeTask = task;
+        }
+
+        const pdfTabIsActive = state.activeTab === 'pdf';
+        elements.pdf.mergeFooter?.classList.toggle('hidden', !pdfTabIsActive || !usesPdfDocuments);
+
+        syncStepUi();
+    }
 
     function getReadyItems() {
         return state.pdf.files.filter((item) => item.status === 'ready');
@@ -149,20 +298,54 @@ export function createPdfTabController({
         });
 
         if (!totalFiles) {
-            setStatus('Add a PDF to start a guided finish.');
+            setStatus('Add one or more PDF files to begin.');
         } else if (isReading && !state.pdf.isMerging) {
             setStatus(`Reading ${readyFiles}/${totalFiles} PDF${totalFiles === 1 ? '' : 's'}...`);
         } else if (hasErrors) {
             setStatus('Fix or remove the highlighted PDF before continuing.', 'error');
         } else if (!totalPages) {
             setStatus('Select at least one output page.', 'error');
+        } else if (getActiveTask() === 'pdf-images') {
+            setStatus(`${totalPages} selected page${totalPages === 1 ? '' : 's'} ready to save as images.`, 'ready');
         } else {
-            setStatus(`${totalPages} output page${totalPages === 1 ? '' : 's'} ready.`, 'ready');
+            setStatus(`${totalPages} selected page${totalPages === 1 ? '' : 's'} ready to combine.`, 'ready');
         }
 
         syncFocusedActions();
         syncStepUi();
+        renderCombineSummary();
         renderReview();
+    }
+
+    function renderCombineSummary() {
+        const outputEntries = getOutputEntries();
+        if (elements.pdf.combinePageCount) {
+            elements.pdf.combinePageCount.textContent = String(outputEntries.length);
+        }
+        if (!elements.pdf.combineFileSummary) return;
+
+        elements.pdf.combineFileSummary.textContent = '';
+        const items = state.pdf.files.filter((item) => item.status !== 'error');
+        if (!items.length) {
+            const empty = document.createElement('span');
+            empty.textContent = 'No PDF files added yet.';
+            elements.pdf.combineFileSummary.appendChild(empty);
+            return;
+        }
+
+        items.forEach((item, index) => {
+            const row = document.createElement('div');
+            row.className = 'pdf-combine-summary-row';
+            const name = document.createElement('span');
+            name.textContent = `${index + 1}. ${item.name}`;
+            name.title = item.name;
+            const count = document.createElement('strong');
+            count.textContent = item.status === 'loading'
+                ? 'Reading…'
+                : `${item.selectedIndices.length} page${item.selectedIndices.length === 1 ? '' : 's'}`;
+            row.append(name, count);
+            elements.pdf.combineFileSummary.appendChild(row);
+        });
     }
 
     function renderFileList() {
@@ -330,6 +513,7 @@ export function createPdfTabController({
             const pdfjs = await getPdfJs();
             doc = await pdfjs.getDocument({
                 data: item.bytes.slice(),
+                standardFontDataUrl: new URL('../../vendor/pdfjs/standard_fonts/', import.meta.url).href,
                 isEvalSupported: false,
                 disableAutoFetch: true,
                 disableStream: true
@@ -671,6 +855,8 @@ export function createPdfTabController({
 
     function syncStepUi() {
         const activeStep = Math.max(1, Math.min(STEP_COUNT, state.pdf.activeStep || 1));
+        const activeTask = getActiveTask();
+        const isCombineTask = activeTask === 'combine';
         state.pdf.activeStep = activeStep;
 
         elements.pdf.stepButtons?.forEach((button) => {
@@ -691,17 +877,23 @@ export function createPdfTabController({
         });
 
         if (elements.pdf.backBtn) {
-            elements.pdf.backBtn.classList.toggle('hidden', activeStep === 1);
+            elements.pdf.backBtn.classList.toggle('hidden', !isCombineTask || activeStep === 1);
         }
         if (elements.pdf.nextBtn) {
-            elements.pdf.nextBtn.classList.toggle('hidden', activeStep === STEP_COUNT);
+            elements.pdf.nextBtn.classList.toggle('hidden', !isCombineTask || activeStep === STEP_COUNT);
             elements.pdf.nextBtn.textContent = activeStep === 1
-                ? 'Continue to finishing'
-                : 'Review finished PDF';
+                ? 'Optional: add signature or page numbers'
+                : 'Review combined PDF';
         }
         if (elements.pdf.mergeBtn) {
-            elements.pdf.mergeBtn.classList.toggle('hidden', activeStep !== STEP_COUNT);
+            elements.pdf.mergeBtn.classList.toggle('hidden', !isCombineTask);
+            const label = elements.pdf.mergeBtn.querySelector('span');
+            if (label) label.textContent = 'Save combined PDF';
         }
+
+        elements.pdf.stepButtons?.forEach((button) => {
+            button.classList.toggle('pdf-step-button--optional', !isCombineTask);
+        });
     }
 
     function setActiveFinishTool(toolName) {
@@ -970,11 +1162,7 @@ export function createPdfTabController({
         const swap = entry.rotation === 90 || entry.rotation === 270;
         const baseWidth = swap ? size.height : size.width;
         const baseHeight = swap ? size.width : size.height;
-        const scale = clampImageScale(targetWidth, baseWidth, baseHeight);
-        return {
-            width: Math.max(1, Math.round(baseWidth * scale)),
-            height: Math.max(1, Math.round(baseHeight * scale))
-        };
+        return getPdfImageExportDimensions({ targetWidth, baseWidth, baseHeight });
     }
 
     function setImageExportWidth(value) {
@@ -1251,6 +1439,7 @@ export function createPdfTabController({
             const pdfjs = await getPdfJs();
             doc = await pdfjs.getDocument({
                 data: finished.bytes,
+                standardFontDataUrl: new URL('../../vendor/pdfjs/standard_fonts/', import.meta.url).href,
                 isEvalSupported: false,
                 disableAutoFetch: true,
                 disableStream: true
@@ -1263,21 +1452,46 @@ export function createPdfTabController({
             const pageTotal = doc.numPages;
             const digits = Math.max(2, String(pageTotal).length);
             const files = {};
+            const pagePlans = [];
+
+            for (let pageNumber = 1; pageNumber <= pageTotal; pageNumber += 1) {
+                showLoader(true, {
+                    title: loaderTitle,
+                    subtitle: `Checking page ${pageNumber} of ${pageTotal}`,
+                    progress: 0.32 + ((pageNumber - 1) / Math.max(pageTotal, 1)) * 0.08
+                });
+                const page = await doc.getPage(pageNumber);
+                try {
+                    const base = page.getViewport({ scale: 1 });
+                    pagePlans.push({
+                        pageNumber,
+                        ...getPdfImageExportDimensions({
+                            targetWidth,
+                            baseWidth: base.width,
+                            baseHeight: base.height
+                        })
+                    });
+                } finally {
+                    page.cleanup();
+                }
+            }
+            validatePdfImageExportPlan({ pages: pagePlans, format });
+
+            let actualOutputBytes = 0;
 
             for (let pageNumber = 1; pageNumber <= pageTotal; pageNumber += 1) {
                 showLoader(true, {
                     title: loaderTitle,
                     subtitle: `Rendering page ${pageNumber} of ${pageTotal}`,
-                    progress: 0.32 + ((pageNumber - 1) / Math.max(pageTotal, 1)) * 0.58
+                    progress: 0.4 + ((pageNumber - 1) / Math.max(pageTotal, 1)) * 0.5
                 });
 
                 const page = await doc.getPage(pageNumber);
-                const base = page.getViewport({ scale: 1 });
-                const scale = clampImageScale(targetWidth, base.width, base.height);
-                const viewport = page.getViewport({ scale });
+                const plan = pagePlans[pageNumber - 1];
+                const viewport = page.getViewport({ scale: plan.scale });
                 const canvas = document.createElement('canvas');
-                canvas.width = Math.max(1, Math.round(viewport.width));
-                canvas.height = Math.max(1, Math.round(viewport.height));
+                canvas.width = plan.width;
+                canvas.height = plan.height;
                 const context = canvas.getContext('2d', { alpha: false });
                 if (!context) throw new Error('Canvas rendering is unavailable in this browser.');
                 context.fillStyle = '#ffffff';
@@ -1288,9 +1502,15 @@ export function createPdfTabController({
                 page.cleanup();
 
                 const blob = await exportCanvasToRasterBlob(canvas, format, false);
-                files[`${stem}_page_${String(pageNumber).padStart(digits, '0')}.${extension}`] = blob;
                 canvas.width = 0;
                 canvas.height = 0;
+                actualOutputBytes += blob.size;
+                if (actualOutputBytes > PDF_IMAGE_EXPORT_MAX_TOTAL_BYTES) {
+                    throw new Error(
+                        `The rendered ${formatLabel} files exceed the browser-safe ${formatPdfBytes(PDF_IMAGE_EXPORT_MAX_TOTAL_BYTES)} limit. Reduce the image width or export fewer pages.`
+                    );
+                }
+                files[`${stem}_page_${String(pageNumber).padStart(digits, '0')}.${extension}`] = blob;
             }
 
             const fileNames = Object.keys(files);
@@ -1336,7 +1556,14 @@ export function createPdfTabController({
     }
 
     function bindEvents() {
+        bindTaskNavigationLocation();
+
+        elements.pdf.taskButtons?.forEach((button) => {
+            button.addEventListener('click', () => setActiveTask(button.dataset.pdfTask));
+        });
+
         elements.pdf.dropzone?.addEventListener('click', () => elements.pdf.fileInput?.click());
+        elements.pdf.previewAddBtn?.addEventListener('click', () => elements.pdf.fileInput?.click());
         elements.pdf.dropzone?.addEventListener('keydown', (event) => {
             if (event.key === 'Enter' || event.key === ' ') {
                 event.preventDefault();
@@ -1471,21 +1698,32 @@ export function createPdfTabController({
         });
         elements.pdf.imageExportBtn?.addEventListener('click', exportPagesAsImages);
 
+        imageToPdfController.bindEvents();
+        ocrController.bindEvents();
+
         syncFinishControlsFromState();
-        syncStepUi();
+        syncTaskUi();
         renderImageExportUi();
     }
 
     function onTabActivated() {
         renderFileList();
         syncFinishControlsFromState();
-        syncStepUi();
+        moveTaskNavigationToResponsiveHost();
+        syncTaskUi();
+        imageToPdfController.render();
+        ocrController.render();
     }
 
     return {
         bindEvents,
         onTabActivated,
-        addPdfFiles
+        addPdfFiles,
+        dispose() {
+            disposeTaskNavigationLocation();
+            imageToPdfController.dispose();
+            ocrController.dispose();
+        }
     };
 }
 
@@ -1744,16 +1982,6 @@ function readBoundedNumber(value, min, max, fallback) {
     const parsed = Number(value);
     if (!Number.isFinite(parsed)) return fallback;
     return Math.max(min, Math.min(max, parsed));
-}
-
-function clampImageScale(targetWidth, baseWidth, baseHeight) {
-    const width = readBoundedNumber(targetWidth, IMAGE_WIDTH_MIN, IMAGE_WIDTH_MAX, IMAGE_WIDTH_MIN);
-    let scale = width / Math.max(baseWidth, 1);
-    const longestEdge = Math.max(baseWidth, baseHeight, 1) * scale;
-    if (longestEdge > IMAGE_MAX_EDGE) {
-        scale *= IMAGE_MAX_EDGE / longestEdge;
-    }
-    return Math.max(scale, 1 / Math.max(baseWidth, baseHeight, 1));
 }
 
 function isPdfFile(file) {

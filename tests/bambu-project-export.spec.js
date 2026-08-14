@@ -346,7 +346,8 @@ test('face-down inlay exports complementary front colors with one-color backing'
     });
 
     await expect(page.locator('#status-text')).toHaveText('Preview generated!', { timeout: 30_000 });
-    await page.locator('#obj-ams-print-style').selectOption('face-down');
+    await page.locator('#obj-face-down-toggle').click();
+    await expect(page.locator('#obj-face-down-toggle')).toHaveAttribute('aria-pressed', 'true');
     await expect(page.locator('#obj-preview-canvas')).toHaveAttribute('data-ams-print-style', 'face-down', { timeout: 30_000 });
     await expect(page.locator('#obj-print-orientation-note')).toHaveText('Front preview · prints face-down');
     await expect(page.locator('#layer-stack-list .layer-stack-item.is-base .layer-stack-range')).toHaveText('0.0-2.4mm');

@@ -453,6 +453,33 @@ export function createObjPreview({
         }
     }
 
+    function syncFaceDownToggleFromPlan(plan) {
+        const button = view.objFaceDownToggle;
+        if (!button || !plan) return;
+
+        const requestedFaceDown = plan.requestedAmsPrintStyle === 'face-down';
+        const appliedFaceDown = plan.amsPrintStyle === 'face-down';
+        const blocked = requestedFaceDown && !appliedFaceDown;
+        const stateLabel = button.querySelector('[data-face-down-state]');
+        const warning = (plan.warnings || []).find((item) => item?.type === 'ams-print-style');
+
+        button.classList.toggle('is-active', appliedFaceDown);
+        button.classList.toggle('is-blocked', blocked);
+        button.setAttribute('aria-pressed', String(appliedFaceDown));
+        if (blocked) {
+            const explanation = warning?.message || 'Review the current base, bezel, and magnet settings.';
+            button.setAttribute('aria-label', `Face on Bed could not be applied. ${explanation}`);
+            button.title = explanation;
+        } else if (appliedFaceDown) {
+            button.setAttribute('aria-label', 'Face on Bed is on. Return to the previous raised print style');
+            button.title = 'Colored regions share the first layer at Z=0; click to restore the previous raised style.';
+        } else {
+            button.setAttribute('aria-label', 'Place the colored face flat on the build plate');
+            button.title = 'Build every color flush against the plate, with the base continuing as backing.';
+        }
+        if (stateLabel) stateLabel.textContent = blocked ? 'Blocked' : appliedFaceDown ? 'On' : 'Off';
+    }
+
     function updateStructureWarning(warnings) {
         const activeWarnings = Array.isArray(warnings) ? warnings.filter(Boolean) : [];
         const structureWarnings = activeWarnings.filter((warning) => (
@@ -1142,6 +1169,7 @@ export function createObjPreview({
                 sourceScale: state.sourceRenderScale || 1,
                 bezelPreset: model.objBezelSelect?.value || state.objParams?.bezelPreset || 'off'
             });
+            syncFaceDownToggleFromPlan(plan);
 
             if (!plan || plan.outputLayers.length === 0) {
                 buildBuildPlate(THREERef, bed);
@@ -1327,9 +1355,15 @@ export function createObjPreview({
         syncBedPresetControl();
     }
 
+    function refreshPreflight() {
+        const plan = state.objPreview?.lastPlan;
+        if (plan) updateAmsPreflightFromPlan(plan);
+    }
+
     return {
         render,
         updateLayerHeights,
+        refreshPreflight,
         resize,
         bindControls,
         fitView,

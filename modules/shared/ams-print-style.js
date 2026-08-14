@@ -10,8 +10,42 @@ const STYLE_HELPERS = Object.freeze({
     'full-depth': 'Uses 4mm color bodies so the sidewalls stay colored. This requires the most AMS swaps.'
 });
 
+const FACE_DOWN_STYLE = 'face-down';
+
+function getFaceDownReturnStyle(value) {
+    const normalized = normalizeAmsPrintStyle(value);
+    return normalized === FACE_DOWN_STYLE ? DEFAULT_AMS_PRINT_STYLE : normalized;
+}
+
+function syncFaceDownToggle(controls, styleId) {
+    const button = controls?.objFaceDownToggle;
+    if (!button) return;
+
+    const isFaceDown = styleId === FACE_DOWN_STYLE;
+    const stateLabel = button.querySelector('[data-face-down-state]');
+    button.classList.toggle('is-active', isFaceDown);
+    button.classList.remove('is-blocked');
+    button.setAttribute('aria-pressed', String(isFaceDown));
+    button.setAttribute(
+        'aria-label',
+        isFaceDown
+            ? 'Face on Bed is on. Return to the previous raised print style'
+            : 'Place the colored face flat on the build plate'
+    );
+    button.title = isFaceDown
+        ? 'Colored regions share the first layer at Z=0; click to restore the previous raised style.'
+        : 'Build every color flush against the plate, with the base continuing as backing.';
+    if (stateLabel) stateLabel.textContent = isFaceDown ? 'On' : 'Off';
+}
+
 function setObjParams(target, styleId, preset) {
     if (!target?.objParams) return;
+    const currentStyle = normalizeAmsPrintStyle(target.objParams.amsPrintStyle);
+    if (styleId === FACE_DOWN_STYLE && currentStyle !== FACE_DOWN_STYLE) {
+        target.objParams.faceDownReturnStyle = getFaceDownReturnStyle(currentStyle);
+    } else if (styleId !== FACE_DOWN_STYLE) {
+        target.objParams.faceDownReturnStyle = styleId;
+    }
     target.objParams.amsPrintStyle = styleId;
     target.objParams.baseThickness = preset.baseThickness;
     target.objParams.thickness = preset.colorThickness;
@@ -45,6 +79,7 @@ export function syncAmsPrintStyleControls({ rootState, tabState, controls }) {
     if (controls?.objThicknessValue) {
         controls.objThicknessValue.textContent = String(sourceParams.thickness ?? preset.colorThickness);
     }
+    syncFaceDownToggle(controls, styleId);
     return { styleId, preset };
 }
 
@@ -85,4 +120,19 @@ export function applyAmsPrintStylePreset({ rootState, tabState, controls, styleI
 
     syncAmsPrintStyleControls({ rootState, tabState, controls });
     return { styleId: normalizedStyleId, preset };
+}
+
+export function toggleFaceDownPrintStyle({ rootState, tabState, controls }) {
+    const sourceParams = tabState?.objParams || rootState?.objParams || {};
+    const currentStyle = normalizeAmsPrintStyle(sourceParams.amsPrintStyle);
+    const nextStyle = currentStyle === FACE_DOWN_STYLE
+        ? getFaceDownReturnStyle(sourceParams.faceDownReturnStyle)
+        : FACE_DOWN_STYLE;
+
+    return applyAmsPrintStylePreset({
+        rootState,
+        tabState,
+        controls,
+        styleId: nextStyle
+    });
 }

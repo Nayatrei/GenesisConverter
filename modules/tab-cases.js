@@ -111,13 +111,13 @@ export const TAB_CASES = {
         ])
     },
 
-    // PDF follows a guided three-step workflow. Column 1 owns project files;
-    // column 2 moves from page arrangement to finishing and final review.
+    // PDF exposes independent browser-local conversion tools. The PDF file
+    // queue stays in column 1 while the selected task runs in the workspace.
     pdf: {
         label: 'PDF',
-        eyebrow: 'PDF Project',
-        title: 'Guided Finish',
-        description: 'Arrange pages, add finishing, then review and download.',
+        eyebrow: 'Private PDF tools',
+        title: 'PDF Converter',
+        description: 'Combine PDFs, export pages as images, turn images into a PDF, or read scanned text.',
         accent: '#e36e62',
         accentSoft: 'rgba(227, 110, 98, 0.14)',
         accentRgb: '227, 110, 98',

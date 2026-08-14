@@ -18,6 +18,7 @@ export function createState() {
         thickness: getAmsPrintStylePreset(DEFAULT_AMS_PRINT_STYLE).colorThickness,
         baseThickness: getAmsPrintStylePreset(DEFAULT_AMS_PRINT_STYLE).baseThickness,
         amsPrintStyle: DEFAULT_AMS_PRINT_STYLE,
+        faceDownReturnStyle: DEFAULT_AMS_PRINT_STYLE,
         decimate: 0,
         bedKey: 'x1',
         margin: 5,
@@ -121,12 +122,28 @@ export function createState() {
         // ── PDF tab state ──────────────────────────────────────────────────────
         pdf: {
             files: [],
-            outputName: 'finished.pdf',
+            outputName: 'combined.pdf',
             isMerging: false,
             lastMergedPageCount: 0,
+            activeTask: 'combine',
             activeStep: 1,
             activeFinishTool: 'signature',
             focusedPage: null,
+            imagesToPdf: {
+                items: [],
+                pageSize: 'auto',
+                outputName: 'images.pdf',
+                isExporting: false
+            },
+            ocr: {
+                file: null,
+                fileName: '',
+                language: 'eng',
+                text: '',
+                status: 'idle',
+                progress: 0,
+                isRunning: false
+            },
             imageExport: {
                 format: 'png',
                 targetWidth: 1600

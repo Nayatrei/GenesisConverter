@@ -1,5 +1,5 @@
 import { SLIDER_TOOLTIPS } from '../config.js';
-import { createObjPreview } from '../preview3d.js?v=20260813b';
+import { createObjPreview } from '../preview3d.js?v=20260814h';
 import { createObjExporter } from '../export3d.js?v=20260813b';
 import {
     hasTransparentPixels,
@@ -35,8 +35,9 @@ import {
 import { setMakerWorkflow, updateMakerPreflight } from '../shared/maker-workflow.js?v=20260725a';
 import {
     applyAmsPrintStylePreset,
-    syncAmsPrintStyleControls
-} from '../shared/ams-print-style.js';
+    syncAmsPrintStyleControls,
+    toggleFaceDownPrintStyle
+} from '../shared/ams-print-style.js?v=20260814h';
 
 export function createLogoTabController({
     state,
@@ -580,6 +581,7 @@ export function createLogoTabController({
             le.qualityIndicator.textContent = `${finalQuality.pathCount.toLocaleString()} paths · ${finalQuality.colorCount} colors`;
         }
         updateMakerPreflight(viewControls, finalQuality);
+        objPreview?.refreshPreflight();
     }
 
     // ── 3D preview / exporter ──────────────────────────────────────────────────
@@ -596,7 +598,7 @@ export function createLogoTabController({
     function renderObjModelOnly() {
         objPreview.render();
         if (ls.tracedata) {
-            updateQualityDisplay(assess3DPrintQuality(ls.tracedata, getVisibleLayerIndices()));
+            updateQualityDisplay(assess3DPrintQuality(ls.tracedata, getVisibleLayerIndices));
         }
     }
 
@@ -802,6 +804,7 @@ export function createLogoTabController({
     }
 
     function onTabActivated() {
+        syncAmsPrintStyleControls({ rootState: state, tabState: ls, controls: le });
         if (ls.htmlModeActive) {
             if (!ls.colorsAnalyzed && le.htmlInput?.value.trim()) {
                 setMakerWorkflow(le.workflow, 'layers');
@@ -878,6 +881,17 @@ export function createLogoTabController({
                 renderObjModelOnly();
             });
         }
+        if (le.objFaceDownToggle) {
+            le.objFaceDownToggle.addEventListener('click', () => {
+                if (state.activeTab !== 'logo') return;
+                toggleFaceDownPrintStyle({
+                    rootState: state,
+                    tabState: ls,
+                    controls: le
+                });
+                renderObjModelOnly();
+            });
+        }
         if (le.objBaseThicknessSlider && le.objBaseThicknessValue) {
             le.objBaseThicknessValue.textContent = le.objBaseThicknessSlider.value;
             le.objBaseThicknessSlider.addEventListener('input', () => {
@@ -889,7 +903,7 @@ export function createLogoTabController({
             le.objBaseThicknessSlider.addEventListener('change', () => {
                 if (state.activeTab === 'logo') {
                     objPreview.updateLayerHeights();
-                    updateQualityDisplay(assess3DPrintQuality(ls.tracedata, getVisibleLayerIndices()));
+                    updateQualityDisplay(assess3DPrintQuality(ls.tracedata, getVisibleLayerIndices));
                 }
             });
         }
@@ -904,7 +918,7 @@ export function createLogoTabController({
             le.objThicknessSlider.addEventListener('change', () => {
                 if (state.activeTab === 'logo') {
                     objPreview.updateLayerHeights();
-                    updateQualityDisplay(assess3DPrintQuality(ls.tracedata, getVisibleLayerIndices()));
+                    updateQualityDisplay(assess3DPrintQuality(ls.tracedata, getVisibleLayerIndices));
                 }
             });
         }
