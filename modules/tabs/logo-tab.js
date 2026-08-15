@@ -1,44 +1,45 @@
-import { SLIDER_TOOLTIPS } from '../config.js';
-import { createObjPreview } from '../preview3d.js?v=20260814q';
-import { createObjExporter } from '../export3d.js?v=20260814q';
+import { SLIDER_TOOLTIPS } from '../config.js?v=r-5699d700a3fc7b24';
+import { createObjPreview } from '../preview3d.js?v=r-5699d700a3fc7b24';
+import { createObjExporter } from '../export3d.js?v=r-5699d700a3fc7b24';
 import {
     hasTransparentPixels,
     markTransparentPixels,
     quantizeImageDataToFixedPalette,
     remapQuantizedPaletteToColors,
     stripTransparentPalette
-} from '../shared/image-utils.js';
-import { debounce, layerHasPaths, buildTracedataSubset, createMergedTracedata, assess3DPrintQuality } from '../shared/trace-utils.js?v=20260726a';
-import { saveInitialSliderValues, updateAllSliderDisplays, resetSlidersToInitial } from '../shared/slider-manager.js';
-import { createZoomPanController } from '../shared/zoom-pan.js';
-import { svgToPng } from '../shared/svg-renderer.js';
-import { createPaletteManager } from '../shared/palette-manager.js';
-import { buildWeldedSilhouetteSvgString } from '../shared/silhouette-builder.js';
-import { formatObjScalePercent } from '../obj-scale.js?v=20260814l';
-import { createHtmlEditor, extractDeclaredHtmlColors } from './logo/html-editor.js?v=20260725a';
+} from '../shared/image-utils.js?v=r-5699d700a3fc7b24';
+import { debounce, layerHasPaths, buildTracedataSubset, createMergedTracedata, assess3DPrintQuality } from '../shared/trace-utils.js?v=r-5699d700a3fc7b24';
+import { saveInitialSliderValues, updateAllSliderDisplays, resetSlidersToInitial } from '../shared/slider-manager.js?v=r-5699d700a3fc7b24';
+import { createZoomPanController } from '../shared/zoom-pan.js?v=r-5699d700a3fc7b24';
+import { svgToPng } from '../shared/svg-renderer.js?v=r-5699d700a3fc7b24';
+import { createPaletteManager } from '../shared/palette-manager.js?v=r-5699d700a3fc7b24';
+import { buildWeldedSilhouetteSvgString } from '../shared/silhouette-builder.js?v=r-5699d700a3fc7b24';
+import { formatObjScalePercent } from '../obj-scale.js?v=r-5699d700a3fc7b24';
+import { createHtmlEditor, extractDeclaredHtmlColors } from './logo/html-editor.js?v=r-5699d700a3fc7b24';
 import {
     DEFAULT_LOGO_PRESET_ID,
     LOGO_PRESETS,
     assessLogoPresetFit,
     buildLogoPresetMarkup,
     getLogoPreset
-} from './logo/logo-presets.js?v=20260725j';
-import { createAutoWorkingImageFromSource } from '../raster-utils.js';
-import { canAttemptBambuLaunch } from '../bambu-bridge.js?v=20260725f';
+} from './logo/logo-presets.js?v=r-5699d700a3fc7b24';
+import { createAutoWorkingImageFromSource } from '../raster-utils.js?v=r-5699d700a3fc7b24';
+import { canAttemptBambuLaunch } from '../bambu-bridge.js?v=r-5699d700a3fc7b24';
 import {
     buildTraceOptions,
     cycleTracePreset,
     estimateMeaningfulColorCount,
     getColorCountNoticeMessage,
     readTraceControls
-} from '../shared/trace-controls.js';
-import { setMakerWorkflow, updateMakerPreflight } from '../shared/maker-workflow.js?v=20260725a';
+} from '../shared/trace-controls.js?v=r-5699d700a3fc7b24';
+import { setMakerWorkflow, updateMakerPreflight } from '../shared/maker-workflow.js?v=r-5699d700a3fc7b24';
 import {
     applyAmsPrintStylePreset,
     renderAmsPrintStyleChange,
     syncAmsPrintStyleControls,
     toggleFaceDownPrintStyle
-} from '../shared/ams-print-style.js?v=20260814q';
+} from '../shared/ams-print-style.js?v=r-5699d700a3fc7b24';
+import { yieldToBrowser } from '../shared/bambu-send-progress.js?v=r-5699d700a3fc7b24';
 
 export function createLogoTabController({
     state,
@@ -75,6 +76,8 @@ export function createLogoTabController({
     };
     syncAmsPrintStyleControls({ rootState: state, tabState: ls, controls: le });
     setMakerWorkflow(le.workflow, 'source');
+    let previewGenerationPromise = null;
+    let previewGenerationQueued = false;
 
     function getBuilderValues() {
         return {
@@ -439,7 +442,11 @@ export function createLogoTabController({
     }
 
     async function quantizeColors(options) {
-        showLoader(true);
+        showLoader(true, {
+            title: 'Analyzing logo colors…',
+            subtitle: 'Preparing printable color regions.',
+            progress: 0.08
+        });
         le.statusText.textContent = 'Analyzing colors...';
         disableDownloadButtons();
 
@@ -479,6 +486,11 @@ export function createLogoTabController({
                     }
 
                     if (!ls.quantizedData?.palette) throw new Error('Color analysis failed.');
+                    showLoader(true, {
+                        title: 'Analyzing logo colors…',
+                        subtitle: `Found ${ls.quantizedData.palette.length} candidate colors.`,
+                        progress: 0.18
+                    });
 
                     if (ls.htmlModeActive && declaredHtmlColors.length > 0) {
                         remapQuantizedPaletteToColors(ls.quantizedData, declaredHtmlColors);
@@ -489,9 +501,8 @@ export function createLogoTabController({
                 } catch (error) {
                     console.error('Color analysis error:', error);
                     le.statusText.textContent = `Error: ${error.message}`;
-                    reject(error);
-                } finally {
                     showLoader(false);
+                    reject(error);
                 }
             }, 50);
         });
@@ -504,8 +515,9 @@ export function createLogoTabController({
             || newOptions.mincolorratio !== ls.lastOptions.mincolorratio;
     }
 
-    async function generatePreviewClick() {
+    async function runPreviewGeneration() {
         if (!hasLogoSourceLoaded()) return;
+        resetBambuSendProgress();
         ls.layerThicknessById = {};
         queueAutoBaseSelection();
         setMakerWorkflow(le.workflow, 'layers', { tone: 'processing' });
@@ -525,6 +537,31 @@ export function createLogoTabController({
             setMakerWorkflow(le.workflow, 'layers', { tone: 'error' });
             throw error;
         }
+    }
+
+    function generatePreviewClick() {
+        if (previewGenerationPromise) {
+            previewGenerationQueued = true;
+            return previewGenerationPromise;
+        }
+
+        if (le.generatePreviewBtn) {
+            le.generatePreviewBtn.disabled = true;
+            le.generatePreviewBtn.setAttribute('aria-busy', 'true');
+        }
+        previewGenerationPromise = (async () => {
+            do {
+                previewGenerationQueued = false;
+                await runPreviewGeneration();
+            } while (previewGenerationQueued);
+        })().finally(() => {
+            previewGenerationPromise = null;
+            if (le.generatePreviewBtn) {
+                le.generatePreviewBtn.disabled = false;
+                le.generatePreviewBtn.setAttribute('aria-busy', 'false');
+            }
+        });
+        return previewGenerationPromise;
     }
 
     // ── HTML editor ────────────────────────────────────────────────────────────
@@ -587,12 +624,14 @@ export function createLogoTabController({
 
     // ── 3D preview / exporter ──────────────────────────────────────────────────
 
+    let resetBambuSendProgress = () => true;
     const objPreview = createObjPreview({
         state: ls,
         modelControls,
         viewControls,
         getDataToExport,
         getVisibleLayerIndices,
+        onExportGeometryInvalidated: () => resetBambuSendProgress(),
         ImageTracer: tracer
     });
 
@@ -604,11 +643,28 @@ export function createLogoTabController({
         return renderSucceeded;
     }
 
-    const scheduleObjModelRender = debounce(renderObjModelOnly, 80);
+    const runScheduledObjModelRender = debounce(() => {
+        const renderSucceeded = renderObjModelOnly();
+        if (viewControls.objPreviewCanvas) {
+            viewControls.objPreviewCanvas.dataset.renderState = renderSucceeded ? 'ready' : 'error';
+        }
+    }, 80);
+
+    function scheduleObjModelRender() {
+        resetBambuSendProgress();
+        if (viewControls.objPreviewCanvas) {
+            viewControls.objPreviewCanvas.dataset.renderState = 'building';
+        }
+        runScheduledObjModelRender();
+    }
 
     const objExporter = createObjExporter({
         state: ls,
         modelControls,
+        exportControls: {
+            ...exportElements,
+            objPreviewCanvas: viewControls.objPreviewCanvas
+        },
         statusText: le.statusText,
         getDataToExport,
         ImageTracer: tracer,
@@ -616,12 +672,17 @@ export function createLogoTabController({
         downloadBlob,
         getImageBaseName
     });
+    resetBambuSendProgress = objExporter.resetBambuSendProgress;
 
     // ── Tracing ────────────────────────────────────────────────────────────────
 
     async function traceVectorPaths() {
         if (!ls.quantizedData) return;
-        showLoader(true);
+        showLoader(true, {
+            title: 'Building the 3D logo…',
+            subtitle: 'Tracing printable color paths.',
+            progress: 0.22
+        });
         le.statusText.textContent = 'Tracing vector paths...';
         if (le.generatePreviewBtn) le.generatePreviewBtn.disabled = true;
         setMakerWorkflow(le.workflow, 'model', { tone: 'processing' });
@@ -648,6 +709,12 @@ export function createLogoTabController({
                             ),
                             options.ltres, options.qtres
                         ));
+                        showLoader(true, {
+                            title: 'Building the 3D logo…',
+                            subtitle: `Tracing color ${colornum + 1} of ${ii.palette.length}.`,
+                            progress: 0.22 + (((colornum + 1) / Math.max(1, ii.palette.length)) * 0.34)
+                        });
+                        await yieldToBrowser();
                     }
 
                     if (ls.htmlModeActive) {
@@ -655,6 +722,12 @@ export function createLogoTabController({
                     }
 
                     ls.tracedata = tracedata;
+                    showLoader(true, {
+                        title: 'Building the 3D logo…',
+                        subtitle: 'Joining the printable silhouette.',
+                        progress: 0.62
+                    });
+                    await yieldToBrowser();
                     ls.silhouetteSvgString = buildWeldedSilhouetteSvgString({
                         tracedata: ls.tracedata,
                         layerIndices: getVisibleLayerIndices(),
@@ -670,12 +743,30 @@ export function createLogoTabController({
                     le.outputSection.style.display = 'flex';
                     setTimeout(() => updateSegmentedControlIndicator(), 100);
 
+                    showLoader(true, {
+                        title: 'Building the 3D logo…',
+                        subtitle: 'Rendering color previews.',
+                        progress: 0.72
+                    });
+                    await yieldToBrowser();
                     await renderPreviews();
-                    await updateFilteredPreview();
+                    showLoader(true, {
+                        title: 'Building the 3D logo…',
+                        subtitle: 'Generating print geometry.',
+                        progress: 0.82
+                    });
+                    await yieldToBrowser();
+                    const modelReady = updateFilteredPreview();
+                    if (!modelReady) throw new Error('The 3D preview could not be generated. Adjust the logo settings and try again.');
 
                     updateQualityDisplay(assess3DPrintQuality(ls.tracedata, getVisibleLayerIndices));
                     setMakerWorkflow(le.workflow, 'export');
                     le.statusText.textContent = 'Preview generated!';
+                    showLoader(true, {
+                        title: '3D logo ready',
+                        subtitle: 'Print checks and export controls are ready.',
+                        progress: 1
+                    });
                     enableDownloadButtons();
                     onRasterExportStateChanged();
                     resolve();
@@ -686,7 +777,6 @@ export function createLogoTabController({
                     reject(error);
                 } finally {
                     showLoader(false);
-                    if (le.generatePreviewBtn) le.generatePreviewBtn.disabled = false;
                 }
             }, 50);
         });
@@ -717,10 +807,11 @@ export function createLogoTabController({
     }
 
     function updateFilteredPreview() {
-        objPreview.render();
+        const modelReady = objPreview.render();
         if (ls.tracedata) {
             updateQualityDisplay(assess3DPrintQuality(ls.tracedata, getVisibleLayerIndices));
         }
+        return modelReady;
     }
 
     // ── Download buttons ───────────────────────────────────────────────────────
@@ -739,13 +830,14 @@ export function createLogoTabController({
         const canLaunch = canAttemptBambuLaunch();
         le.bambuOpenBtn.disabled = !ls.tracedata || !canLaunch;
         le.bambuOpenBtn.title = canLaunch
-            ? 'Sends the 3MF directly to the installed Bambu Studio app.'
+            ? 'Prepares the 3MF transfer, then opens Bambu Studio from a second click.'
             : 'Bambu Studio launch is only available on desktop browsers.';
         const meta = document.getElementById('logo-bambu-open-meta');
         if (meta) {
             meta.textContent = canLaunch
-                ? 'One-click 3MF handoff · Bambu Studio required'
+                ? 'Build a 10-minute transfer, then open Bambu Studio'
                 : 'Desktop browsers only';
+            meta.dataset.bambuIdleText = meta.textContent;
         }
     }
 
@@ -772,6 +864,7 @@ export function createLogoTabController({
     // ── Lifecycle ──────────────────────────────────────────────────────────────
 
     function onSourceImageLoaded() {
+        resetBambuSendProgress();
         // A new image always drops HTML mode so the pipeline traces the bitmap next time Logo opens.
         if (ls.htmlModeActive) {
             htmlEditor.setHtmlMode(false);
@@ -786,23 +879,20 @@ export function createLogoTabController({
         const h = le.sourceImage.naturalHeight;
         if (le.originalResolution) le.originalResolution.textContent = `${w}×${h} px`;
         updateResolutionNotice(w, h);
-        onRasterImageLoaded();
         ls.colorsAnalyzed = false;
         setMakerWorkflow(le.workflow, 'layers');
 
         if (state.activeTab !== 'logo') {
-            showLoader(false);
             return;
         }
 
+        onRasterImageLoaded();
         syncWorkspaceView();
         if (le.generatePreviewBtn) le.generatePreviewBtn.disabled = false;
         buildWorkingImageCache();
         saveInitialSliderValues(ls, le);
         syncTraceControlMode();
         void generatePreviewClick().catch(() => {});
-        onTabActivated();
-        showLoader(false);
     }
 
     function onTabActivated() {

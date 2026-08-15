@@ -4,6 +4,9 @@
   "scripts": {
     "start": "node server.js",
     "sync:entrypoints": "node scripts/sync-entrypoints.js",
+    "sync:cache": "node scripts/sync-cache-version.js",
+    "check:cache": "node scripts/sync-cache-version.js --check",
+    "build": "npm run sync:entrypoints && npm run sync:cache",
     "test": "playwright test",
     "test:smoke": "playwright test"
   },

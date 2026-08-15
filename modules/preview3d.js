@@ -1,17 +1,21 @@
-import { OBJ_ZOOM_MIN, OBJ_ZOOM_MAX, BED_PRESETS } from './config.js';
+import { OBJ_ZOOM_MIN, OBJ_ZOOM_MAX, BED_PRESETS } from './config.js?v=r-5699d700a3fc7b24';
 import {
     fitObjScalePlanToGeometryBounds,
     formatObjScalePercent
-} from './obj-scale.js?v=20260814l';
+} from './obj-scale.js?v=r-5699d700a3fc7b24';
 import {
     buildObjGeometryBundle,
     buildObjModelPlan,
     retargetObjModelPlanPrintStyle,
     updateObjModelPlanLayerHeights
-} from './obj-model-plan.js?v=20260814q';
-import { resolveMergedLayerGroups } from './shared/trace-utils.js?v=20260726a';
-import { getGeometryBundleBounds } from './shared/print-validation.js?v=20260725h';
-import { updateMagnetPocketStatus } from './shared/magnet-pocket-controls.js?v=20260730a';
+} from './obj-model-plan.js?v=r-5699d700a3fc7b24';
+import { resolveMergedLayerGroups } from './shared/trace-utils.js?v=r-5699d700a3fc7b24';
+import { getGeometryBundleBounds } from './shared/print-validation.js?v=r-5699d700a3fc7b24';
+import { updateMagnetPocketStatus } from './shared/magnet-pocket-controls.js?v=r-5699d700a3fc7b24';
+import {
+    createObjGeometrySnapshot,
+    objGeometrySnapshotsMatch
+} from './shared/obj-geometry-snapshot.js?v=r-5699d700a3fc7b24';
 
 const BED_CONTACT_EPSILON = 0.005;
 const BED_FIT_TOLERANCE_MM = 0.05;
@@ -62,6 +66,7 @@ export function createObjPreview({
     getDataToExport,
     getVisibleLayerIndices,
     onLayerVisibilityChange,
+    onExportGeometryInvalidated,
     ImageTracer
 }) {
     const tracer = ImageTracer || window.ImageTracer;
@@ -223,6 +228,8 @@ export function createObjPreview({
         state.objPreview.lastTriangleCount = 0;
         state.objPreview.topologySnapshot = null;
         state.objPreview.stylePreparationSnapshot = null;
+        state.objPreview.exportGeometrySnapshot = null;
+        state.objPreview.exportGeometryTransforms = null;
     }
 
     function addMagnetPocketOverlays(plan, THREERef) {
@@ -1044,7 +1051,9 @@ export function createObjPreview({
             render();
             return false;
         }
+        onExportGeometryInvalidated?.();
 
+        const exportGeometryTransforms = new Map();
         update.transitions.forEach((transition) => {
             const mesh = preview.layerMeshes.get(transition.outputLayerId);
             const baseline = mesh?.userData?.objHeightBaseline;
@@ -1055,6 +1064,10 @@ export function createObjPreview({
             const ratio = nextDepth / baselineDepth;
             mesh.scale.z = ratio;
             mesh.position.z = transition.nextStart - (baseline.zStart * ratio);
+            exportGeometryTransforms.set(transition.outputLayerId, {
+                scaleZ: ratio,
+                translateZ: mesh.position.z
+            });
 
             const layerData = preview.lastGeometryBundle?.layers?.get(transition.outputLayerId);
             const updatedLayer = plan.outputLayers.find(
@@ -1079,6 +1092,13 @@ export function createObjPreview({
             }
             : null;
         preview.lastActualBounds = nextBounds;
+        preview.exportGeometryTransforms = exportGeometryTransforms;
+        preview.exportGeometrySnapshot = createObjGeometrySnapshot({
+            state,
+            modelControls: model,
+            visibleSourceLayerIds: getVisibleLayerIndices(),
+            defaultThickness
+        });
 
         const bed = BED_PRESETS[getSelectedBedKey()] || BED_PRESETS.x1;
         const scalePlan = plan.scalePlan;
@@ -1143,6 +1163,7 @@ export function createObjPreview({
         resize();
         const visibleSourceLayerIds = getVisibleLayerIndices();
         if (!state.tracedata || visibleSourceLayerIds.length === 0) {
+            if (preview.exportGeometrySnapshot) onExportGeometryInvalidated?.();
             clearGroup();
             clearBuildPlate();
             setPlaceholder('3D preview will appear after analysis.', true);
@@ -1158,6 +1179,7 @@ export function createObjPreview({
 
         try {
             const renderStartedAt = performance.now();
+            const previousExportSnapshot = preview.exportGeometrySnapshot;
             const reusableStylePlan = styleOnly && stylePreparationMatchesLastRender()
                 ? state.objPreview.lastPlan
                 : null;
@@ -1166,6 +1188,18 @@ export function createObjPreview({
 
             const defaultThickness = model.objThicknessSlider ? Number.parseFloat(model.objThicknessSlider.value) : 4;
             const thickness = Number.isFinite(defaultThickness) ? defaultThickness : 4;
+            const currentExportSnapshot = createObjGeometrySnapshot({
+                state,
+                modelControls: model,
+                visibleSourceLayerIds,
+                defaultThickness: thickness
+            });
+            if (
+                previousExportSnapshot
+                && !objGeometrySnapshotsMatch(previousExportSnapshot, currentExportSnapshot)
+            ) {
+                onExportGeometryInvalidated?.();
+            }
             const bedKey = getSelectedBedKey();
             const bed = BED_PRESETS[bedKey] || BED_PRESETS.x1;
             const marginValue = model.objMarginInput ? Number.parseFloat(model.objMarginInput.value) : 5;
@@ -1255,6 +1289,7 @@ export function createObjPreview({
                 scaleY: scalePlan.scale
             });
             if (fitObjScalePlanToGeometryBounds(scalePlan, actualBounds) < 1) {
+                syncAppliedScalePercent(scalePlan.appliedPercent);
                 actualBounds = getGeometryBundleBounds(geometryBundle, {
                     scaleX: scalePlan.scale,
                     scaleY: scalePlan.scale
@@ -1336,6 +1371,21 @@ export function createObjPreview({
             preview.lastTriangleCount = getBundleTriangleCount(geometryBundle);
             preview.topologySnapshot = createTopologySnapshot();
             preview.stylePreparationSnapshot = createTopologySnapshot({ includePrintStyle: false });
+            // Auto-fit can update the scale control after the initial snapshot.
+            // Capture the final control state so Send can safely reuse this exact
+            // finished preview instead of reporting a false "still updating" error.
+            preview.exportGeometrySnapshot = createObjGeometrySnapshot({
+                state,
+                modelControls: model,
+                visibleSourceLayerIds,
+                defaultThickness: thickness
+            });
+            preview.exportGeometryTransforms = new Map(
+                [...geometryBundle.layers.keys()].map((outputLayerId) => [
+                    outputLayerId,
+                    { scaleZ: 1, translateZ: 0 }
+                ])
+            );
             preview.fullRenderCount = (preview.fullRenderCount || 0) + 1;
             if (view.objPreviewCanvas) {
                 view.objPreviewCanvas.dataset.fullRenderCount = String(preview.fullRenderCount);

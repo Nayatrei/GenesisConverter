@@ -2,8 +2,8 @@ import {
     BAMBU_PROJECT_APP_VERSION,
     BAMBU_PROJECT_3MF_VERSION,
     BAMBU_PROJECT_NOZZLE_DIAMETER
-} from './config.js';
-import { getBambuPrinterTemplate, buildBambuProjectSettings } from './bambu/templates.js?v=20260725h';
+} from './config.js?v=r-5699d700a3fc7b24';
+import { getBambuPrinterTemplate, buildBambuProjectSettings } from './bambu/templates.js?v=r-5699d700a3fc7b24';
 
 const MESH_POSITION_EPSILON = 1e-5;
 
@@ -441,48 +441,34 @@ ${layers}
 </custom_gcodes_per_layer>`;
 }
 
-export function buildBambuProjectFiles({
-    layers,
-    baseName,
-    bedKey = 'x1',
-    nozzleDiameter = BAMBU_PROJECT_NOZZLE_DIAMETER,
-    previewAssets = {},
-    pauseEvents = []
-}) {
+function buildBambuProjectPart({ layerData, index, title }) {
+    const meshData = getGeometryMeshData(layerData.geometry, layerData.translation);
+    if (!meshData) return null;
+
+    if (meshData.boundaryEdgeCount || meshData.nonManifoldEdgeCount) {
+        const name = layerData.displayLabel || `Layer ${index + 1}`;
+        throw new Error(
+            `3MF serialization failed: ${name} has ${meshData.boundaryEdgeCount} open edge(s) `
+            + `and ${meshData.nonManifoldEdgeCount} non-manifold edge(s).`
+        );
+    }
+
+    return {
+        index,
+        name: layerData.displayLabel || `Layer ${index + 1}`,
+        meshData,
+        hexColor: colorToHex(layerData.color),
+        materialIndex: Number.isInteger(layerData.materialIndex)
+            ? Math.max(0, layerData.materialIndex)
+            : index,
+        componentUuid: stableUuid(`${title}|component|${index}`),
+        objectUuid: stableUuid(`${title}|object-model|${index}`)
+    };
+}
+
+function createBambuProjectScaffold({ parts, title, bedKey, nozzleDiameter, pauseEvents }) {
     const template = getBambuPrinterTemplate(bedKey);
-    const title = String(baseName || 'genesis_project');
     const dateStamp = new Date().toISOString().slice(0, 10);
-
-    const parts = [];
-    layers.forEach((layerData, index) => {
-        const meshData = getGeometryMeshData(layerData.geometry, layerData.translation);
-        if (!meshData) {
-            return;
-        }
-
-        if (meshData.boundaryEdgeCount || meshData.nonManifoldEdgeCount) {
-            const name = layerData.displayLabel || `Layer ${index + 1}`;
-            throw new Error(
-                `3MF serialization failed: ${name} has ${meshData.boundaryEdgeCount} open edge(s) `
-                + `and ${meshData.nonManifoldEdgeCount} non-manifold edge(s).`
-            );
-        }
-
-        parts.push({
-            index,
-            name: layerData.displayLabel || `Layer ${index + 1}`,
-            meshData,
-            hexColor: colorToHex(layerData.color),
-            materialIndex: Number.isInteger(layerData.materialIndex)
-                ? Math.max(0, layerData.materialIndex)
-                : index,
-            componentUuid: stableUuid(`${title}|component|${index}`),
-            objectUuid: stableUuid(`${title}|object-model|${index}`)
-        });
-    });
-
-    if (!parts.length) return null;
-
     const filamentColorsByIndex = new Map();
     parts.forEach((part) => {
         if (!filamentColorsByIndex.has(part.materialIndex)) {
@@ -493,7 +479,6 @@ export function buildBambuProjectFiles({
         .sort(([leftIndex], [rightIndex]) => leftIndex - rightIndex)
         .map(([, color]) => color);
     const assemblyObjectId = parts.length + 1;
-
     const projectSettings = buildBambuProjectSettings({
         template,
         title,
@@ -501,7 +486,6 @@ export function buildBambuProjectFiles({
         filamentColors,
         nozzleDiameter
     });
-
     const files = {
         '[Content_Types].xml': buildContentTypesXml(),
         '_rels/.rels': buildRootRelsXml(),
@@ -532,27 +516,26 @@ export function buildBambuProjectFiles({
         'Metadata/cut_information.xml': buildCutInformationXml(assemblyObjectId)
     };
     const customGcodeXml = buildCustomGcodePerLayerXml(pauseEvents);
-    if (customGcodeXml) {
-        files['Metadata/custom_gcode_per_layer.xml'] = customGcodeXml;
-    }
+    if (customGcodeXml) files['Metadata/custom_gcode_per_layer.xml'] = customGcodeXml;
+    return { files, parts, title, template };
+}
 
-    parts.forEach((part, index) => {
-        files[`3D/Objects/object_${index + 1}.model`] = buildObjectModelXml({
-            objectFileId: index + 1,
-            meshData: part.meshData,
-            uuid: part.objectUuid
-        });
+function appendBambuObjectFile(project, part, index) {
+    project.files[`3D/Objects/object_${index + 1}.model`] = buildObjectModelXml({
+        objectFileId: index + 1,
+        meshData: part.meshData,
+        uuid: part.objectUuid
     });
+}
 
+function appendBambuPreviewAssets(files, previewAssets = {}) {
     if (previewAssets.plateLarge) {
         files['Metadata/plate_1.png'] = previewAssets.plateLarge;
         files['Metadata/plate_no_light_1.png'] = previewAssets.plateLarge;
         files['Metadata/top_1.png'] = previewAssets.plateLarge;
         files['Metadata/pick_1.png'] = previewAssets.plateLarge;
     }
-    if (previewAssets.plateSmall) {
-        files['Metadata/plate_1_small.png'] = previewAssets.plateSmall;
-    }
+    if (previewAssets.plateSmall) files['Metadata/plate_1_small.png'] = previewAssets.plateSmall;
     if (previewAssets.thumbnailLarge) {
         files['Auxiliaries/.thumbnails/thumbnail_3mf.png'] = previewAssets.thumbnailLarge;
         files['Auxiliaries/.thumbnails/thumbnail_middle.png'] = previewAssets.thumbnailLarge;
@@ -560,11 +543,86 @@ export function buildBambuProjectFiles({
     if (previewAssets.thumbnailSmall) {
         files['Auxiliaries/.thumbnails/thumbnail_small.png'] = previewAssets.thumbnailSmall;
     }
+}
 
-    return {
-        files,
+export function buildBambuProjectFiles({
+    layers,
+    baseName,
+    bedKey = 'x1',
+    nozzleDiameter = BAMBU_PROJECT_NOZZLE_DIAMETER,
+    previewAssets = {},
+    pauseEvents = []
+}) {
+    const title = String(baseName || 'genesis_project');
+    const parts = [];
+    layers.forEach((layerData, index) => {
+        const part = buildBambuProjectPart({ layerData, index, title });
+        if (part) parts.push(part);
+    });
+    if (!parts.length) return null;
+
+    const project = createBambuProjectScaffold({
         parts,
         title,
-        template
-    };
+        bedKey,
+        nozzleDiameter,
+        pauseEvents
+    });
+    parts.forEach((part, index) => appendBambuObjectFile(project, part, index));
+    appendBambuPreviewAssets(project.files, previewAssets);
+    return project;
+}
+
+/** Cooperative serializer used by the interactive Bambu handoff. */
+export async function buildBambuProjectFilesAsync({
+    layers,
+    baseName,
+    bedKey = 'x1',
+    nozzleDiameter = BAMBU_PROJECT_NOZZLE_DIAMETER,
+    previewAssets = {},
+    pauseEvents = [],
+    onProgress,
+    yieldControl = async () => {}
+}) {
+    const title = String(baseName || 'genesis_project');
+    const parts = [];
+    const layerTotal = Math.max(1, layers.length);
+
+    for (let index = 0; index < layers.length; index += 1) {
+        const part = buildBambuProjectPart({ layerData: layers[index], index, title });
+        if (part) parts.push(part);
+        onProgress?.({
+            phase: 'mesh',
+            completed: index + 1,
+            total: layers.length,
+            ratio: ((index + 1) / layerTotal) * 0.58
+        });
+        await yieldControl();
+    }
+    if (!parts.length) return null;
+
+    const project = createBambuProjectScaffold({
+        parts,
+        title,
+        bedKey,
+        nozzleDiameter,
+        pauseEvents
+    });
+    await yieldControl();
+
+    const partTotal = Math.max(1, parts.length);
+    for (let index = 0; index < parts.length; index += 1) {
+        appendBambuObjectFile(project, parts[index], index);
+        onProgress?.({
+            phase: 'xml',
+            completed: index + 1,
+            total: parts.length,
+            ratio: 0.58 + (((index + 1) / partTotal) * 0.42)
+        });
+        await yieldControl();
+    }
+
+    appendBambuPreviewAssets(project.files, previewAssets);
+    onProgress?.({ phase: 'complete', completed: parts.length, total: parts.length, ratio: 1 });
+    return project;
 }

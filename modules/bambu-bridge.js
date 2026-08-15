@@ -26,7 +26,47 @@ export function canPublishBambuProject() {
     return window.location.protocol === 'http:' || window.location.protocol === 'https:';
 }
 
-export async function publishBambuProject(blob, filename) {
+/**
+ * Checks whether the current host provides the temporary 3MF transfer API.
+ * Static deployments intentionally fail this probe and use the local-download
+ * handoff instead of attempting a POST that can never succeed.
+ */
+export async function probeBambuTransferBackend({ signal, timeoutMs = 3_000 } = {}) {
+    if (!canPublishBambuProject()) return false;
+
+    const controller = new AbortController();
+    let timedOut = false;
+    const abortFromCaller = () => controller.abort(signal?.reason);
+    if (signal?.aborted) abortFromCaller();
+    else signal?.addEventListener('abort', abortFromCaller, { once: true });
+    const timeout = window.setTimeout(() => {
+        timedOut = true;
+        controller.abort();
+    }, Math.max(0, Number(timeoutMs) || 0));
+
+    try {
+        const response = await fetch(new URL('/health', window.location.origin), {
+            method: 'GET',
+            headers: {
+                Accept: 'application/json'
+            },
+            cache: 'no-store',
+            signal: controller.signal
+        });
+        if (!response.ok) return false;
+        const payload = await response.json().catch(() => null);
+        return payload?.ok === true;
+    } catch (error) {
+        if (error?.name === 'AbortError' && signal?.aborted) throw error;
+        if (!timedOut && error?.name === 'AbortError') throw error;
+        return false;
+    } finally {
+        window.clearTimeout(timeout);
+        signal?.removeEventListener('abort', abortFromCaller);
+    }
+}
+
+export async function publishBambuProject(blob, filename, { signal } = {}) {
     if (!canPublishBambuProject()) {
         throw new Error('Direct Bambu transfer requires the hosted Genesis app.');
     }
@@ -35,7 +75,14 @@ export async function publishBambuProject(blob, filename) {
     }
 
     const controller = new AbortController();
-    const timeout = window.setTimeout(() => controller.abort(), 25_000);
+    let timedOut = false;
+    const abortFromCaller = () => controller.abort(signal?.reason);
+    if (signal?.aborted) abortFromCaller();
+    else signal?.addEventListener('abort', abortFromCaller, { once: true });
+    const timeout = window.setTimeout(() => {
+        timedOut = true;
+        controller.abort();
+    }, 25_000);
 
     try {
         const endpoint = new URL('/api/bambu-transfer', window.location.origin);
@@ -65,11 +112,19 @@ export async function publishBambuProject(blob, filename) {
         };
     } catch (error) {
         if (error?.name === 'AbortError') {
+            if (signal?.aborted) {
+                const cancelled = new Error('Bambu transfer cancelled.');
+                cancelled.name = 'AbortError';
+                cancelled.code = 'BAMBU_SEND_CANCELLED';
+                throw cancelled;
+            }
+            if (!timedOut) throw error;
             throw new Error('Bambu transfer timed out.');
         }
         throw error;
     } finally {
         window.clearTimeout(timeout);
+        signal?.removeEventListener('abort', abortFromCaller);
     }
 }
 
@@ -85,11 +140,14 @@ export function canAttemptBambuLaunch() {
 
 /**
  * Triggers the Bambu Studio protocol handler to launch the app.
- * Uses blur/visibility heuristic to detect whether it opened.
+ *
+ * The protocol dispatch intentionally happens synchronously in this call so a
+ * caller can invoke it directly from a trusted click without losing transient
+ * browser user activation. Only the open/blur confirmation is asynchronous.
  */
-export async function launchBambuStudio(fileUrl = '') {
+export function launchBambuStudio(fileUrl = '') {
     if (!canAttemptBambuLaunch()) {
-        return { attempted: false, opened: false };
+        return Promise.resolve({ attempted: false, opened: false });
     }
 
     const platform = getPlatformKey();
@@ -101,8 +159,16 @@ export async function launchBambuStudio(fileUrl = '') {
 
     const protocolHook = getProtocolHook();
     if (protocolHook) {
-        const opened = await Promise.resolve(protocolHook(protocolUrl));
-        return { attempted: true, opened: Boolean(opened), protocolUrl };
+        try {
+            const opened = protocolHook(protocolUrl);
+            return Promise.resolve(opened).then((result) => ({
+                attempted: true,
+                opened: Boolean(result),
+                protocolUrl
+            }));
+        } catch (error) {
+            return Promise.reject(error);
+        }
     }
 
     return new Promise((resolve) => {

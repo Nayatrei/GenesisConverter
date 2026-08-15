@@ -1,4 +1,4 @@
-import { BED_PRESETS } from './config.js';
+import { BED_PRESETS } from './config.js?v=r-5699d700a3fc7b24';
 
 const OBJ_SCALE_MIN = 0.1;
 const OBJ_SCALE_MAX = 200;
@@ -73,6 +73,12 @@ export function fitObjScalePlanToGeometryBounds(scalePlan, bounds) {
     if (!(fitRatio < 1 - 1e-9)) return 1;
 
     scalePlan.scale *= fitRatio;
+    if (Number.isFinite(scalePlan.appliedPercent)) {
+        scalePlan.appliedPercent *= fitRatio;
+    }
+    if (Number.isFinite(scalePlan.maxFitPercent)) {
+        scalePlan.maxFitPercent = Math.min(scalePlan.maxFitPercent, scalePlan.appliedPercent);
+    }
     scalePlan.geometryFitRatio = (scalePlan.geometryFitRatio || 1) * fitRatio;
     scalePlan.wasAutoFitted = true;
     scalePlan.actualFootprintWidth = bounds.width * fitRatio;

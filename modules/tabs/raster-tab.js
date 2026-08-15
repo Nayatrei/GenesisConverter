@@ -7,7 +7,7 @@ import {
     getRasterExtension,
     getScaledDimensions,
     renderRasterBlobFromSource
-} from '../raster-utils.js';
+} from '../raster-utils.js?v=r-5699d700a3fc7b24';
 
 export function createRasterTabController({
     state,

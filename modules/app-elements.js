@@ -340,6 +340,8 @@ export function createElements() {
                 export3mfBtn: document.getElementById('export-3mf-btn'),
                 exportStlBtn: document.getElementById('export-stl-btn'),
                 bambuOpenBtn: document.getElementById('svg-bambu-open-btn'),
+                bambuOpenMeta: document.getElementById('svg-bambu-open-meta'),
+                bambuProgress: document.getElementById('svg-bambu-progress'),
                 exportFooter: document.getElementById('svg-export-footer')
             }
         },
@@ -422,6 +424,8 @@ export function createElements() {
                 export3mfBtn: document.getElementById('logo-export-3mf-btn'),
                 exportStlBtn: document.getElementById('logo-export-stl-btn'),
                 bambuOpenBtn: document.getElementById('logo-bambu-open-btn'),
+                bambuOpenMeta: document.getElementById('logo-bambu-open-meta'),
+                bambuProgress: document.getElementById('logo-bambu-progress'),
                 exportFooter: document.getElementById('logo-export-footer')
             },
             html: {

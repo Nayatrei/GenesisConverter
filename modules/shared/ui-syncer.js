@@ -1,4 +1,4 @@
-import { formatObjScalePercent } from '../obj-scale.js';
+import { formatObjScalePercent } from '../obj-scale.js?v=r-5699d700a3fc7b24';
 
 /**
  * Manages synchronization between AppState and UI elements.

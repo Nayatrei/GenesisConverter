@@ -2,22 +2,43 @@ import {
     buildObjGeometryBundle,
     buildObjModelPlan,
     sanitizeGeometryForPrint
-} from './obj-model-plan.js?v=20260814q';
-import { fitObjScalePlanToGeometryBounds } from './obj-scale.js?v=20260814l';
-import { buildBambuProjectFiles } from './bambu-project.js?v=20260814p';
-import { BAMBU_PROJECT_NOZZLE_DIAMETER } from './config.js';
-import { canvasToBlobAsync, dataUrlToBlob } from './raster-utils.js';
-import { layerHasPaths } from './shared/trace-utils.js?v=20260726a';
-import { svgToPng } from './shared/svg-renderer.js';
-import { getCanonicalBedCenter } from './shared/canonical-3d.js';
+} from './obj-model-plan.js?v=r-5699d700a3fc7b24';
+import { fitObjScalePlanToGeometryBounds } from './obj-scale.js?v=r-5699d700a3fc7b24';
+import {
+    buildBambuProjectFiles,
+    buildBambuProjectFilesAsync
+} from './bambu-project.js?v=r-5699d700a3fc7b24';
+import { BAMBU_PROJECT_NOZZLE_DIAMETER } from './config.js?v=r-5699d700a3fc7b24';
+import { canvasToBlobAsync, dataUrlToBlob } from './raster-utils.js?v=r-5699d700a3fc7b24';
+import { layerHasPaths } from './shared/trace-utils.js?v=r-5699d700a3fc7b24';
+import { svgToPng } from './shared/svg-renderer.js?v=r-5699d700a3fc7b24';
+import { getCanonicalBedCenter } from './shared/canonical-3d.js?v=r-5699d700a3fc7b24';
 import {
     getGeometryBundleBounds,
     validateGeometryBundleForPrint
-} from './shared/print-validation.js?v=20260725h';
-import { launchBambuStudio, publishBambuProject } from './bambu-bridge.js?v=20260725f';
-import { serializeMagnetPocketConfig } from './shared/magnet-pockets.js?v=20260730a';
+} from './shared/print-validation.js?v=r-5699d700a3fc7b24';
+import {
+    createObjGeometrySnapshot,
+    objGeometrySnapshotsMatch
+} from './shared/obj-geometry-snapshot.js?v=r-5699d700a3fc7b24';
+import { waitForBrowserPaint, yieldToBrowser } from './shared/bambu-send-progress.js?v=r-5699d700a3fc7b24';
+import { createBambuSendWorkflow } from './bambu-send-workflow.js?v=r-5699d700a3fc7b24';
 
 const THREE_MF_BLOB_TYPE = 'model/3mf';
+
+function throwIfBambuSendAborted(signal) {
+    if (!signal?.aborted) return;
+    const error = new Error('Bambu send cancelled.');
+    error.name = 'AbortError';
+    error.code = 'BAMBU_SEND_CANCELLED';
+    throw error;
+}
+
+async function yieldDuringBambuSend(signal) {
+    throwIfBambuSendAborted(signal);
+    await yieldToBrowser();
+    throwIfBambuSendAborted(signal);
+}
 
 function cloneLayerGeometryData(layerData) {
     return {
@@ -27,6 +48,25 @@ function cloneLayerGeometryData(layerData) {
             ? layerData.geometryParts.map((geometry) => geometry.clone())
             : []
     };
+}
+
+function cloneGeometryBundleData(geometryBundle) {
+    const cloned = {
+        ...geometryBundle,
+        plan: geometryBundle?.plan
+            ? {
+                ...geometryBundle.plan,
+                scalePlan: geometryBundle.plan.scalePlan
+                    ? { ...geometryBundle.plan.scalePlan }
+                    : geometryBundle.plan.scalePlan
+            }
+            : geometryBundle?.plan,
+        layers: new Map()
+    };
+    geometryBundle?.layers?.forEach((layerData, layerKey) => {
+        cloned.layers.set(layerKey, cloneLayerGeometryData(layerData));
+    });
+    return cloned;
 }
 
 function disposeLayerGeometryData(layerData) {
@@ -299,10 +339,14 @@ async function generateBambuProject3MF({
     bedKey,
     tracer,
     state,
-    getDataToExport
+    getDataToExport,
+    cooperative = false,
+    onProgress,
+    yieldControl = yieldToBrowser
 }) {
     const placedLayers = buildBambuProjectGeometryLayers(geometryBundle, bedKey);
     try {
+        onProgress?.({ phase: 'preview', ratio: 0 });
         const previewAssets = await buildBambuPreviewAssets({
             tracer,
             state,
@@ -310,16 +354,35 @@ async function generateBambuProject3MF({
             bedKey,
             scalePlan: geometryBundle?.plan?.scalePlan
         });
-        const project = buildBambuProjectFiles({
+        onProgress?.({ phase: 'preview', ratio: 1 });
+        if (cooperative) await yieldControl();
+
+        const projectOptions = {
             layers: placedLayers,
             baseName,
             bedKey,
             nozzleDiameter: BAMBU_PROJECT_NOZZLE_DIAMETER,
             previewAssets,
             pauseEvents: geometryBundle?.plan?.pauseEvents || []
-        });
+        };
+        const project = cooperative
+            ? await buildBambuProjectFilesAsync({
+                ...projectOptions,
+                yieldControl,
+                onProgress: (event) => onProgress?.({
+                    ...event,
+                    phase: event.phase === 'mesh' ? 'serialize-mesh' : 'serialize-xml'
+                })
+            })
+            : buildBambuProjectFiles(projectOptions);
         if (!project) return null;
-        const blob = await createZipFile(project.files, { mimeType: THREE_MF_BLOB_TYPE });
+        const blob = await createZipFile(project.files, {
+            mimeType: THREE_MF_BLOB_TYPE,
+            yieldControl: cooperative ? yieldControl : undefined,
+            onProgress: cooperative
+                ? (ratio) => onProgress?.({ phase: 'zip', ratio })
+                : undefined
+        });
         return { blob, project };
     } finally {
         placedLayers.forEach(disposeLayerGeometryData);
@@ -358,7 +421,11 @@ async function normalizeZipContent(content, encoder) {
 }
 
 // Simple ZIP file creator using JSZip if available, otherwise manual implementation
-export async function createZipFile(files, { mimeType = 'application/zip' } = {}) {
+export async function createZipFile(files, {
+    mimeType = 'application/zip',
+    onProgress,
+    yieldControl
+} = {}) {
     const blobType = typeof mimeType === 'string' && mimeType.trim()
         ? mimeType.trim()
         : 'application/zip';
@@ -368,7 +435,11 @@ export async function createZipFile(files, { mimeType = 'application/zip' } = {}
         for (const [path, content] of Object.entries(files)) {
             zip.file(path, content);
         }
-        const zipData = await zip.generateAsync({ type: 'uint8array', compression: 'DEFLATE' });
+        const zipData = await zip.generateAsync(
+            { type: 'uint8array', compression: 'DEFLATE' },
+            ({ percent }) => onProgress?.(Math.max(0, Math.min(1, percent / 100)))
+        );
+        onProgress?.(1);
         return new Blob([zipData], { type: blobType });
     }
 
@@ -378,7 +449,9 @@ export async function createZipFile(files, { mimeType = 'application/zip' } = {}
     let offset = 0;
 
     // Prepare file entries
-    for (const [path, content] of Object.entries(files)) {
+    const sourceEntries = Object.entries(files);
+    for (let entryIndex = 0; entryIndex < sourceEntries.length; entryIndex += 1) {
+        const [path, content] = sourceEntries[entryIndex];
         const data = await normalizeZipContent(content, encoder);
         const pathBytes = encoder.encode(path);
 
@@ -392,6 +465,8 @@ export async function createZipFile(files, { mimeType = 'application/zip' } = {}
 
         // Local file header (30 bytes) + path + data
         offset += 30 + pathBytes.length + data.length;
+        onProgress?.(((entryIndex + 1) / Math.max(1, sourceEntries.length)) * 0.45);
+        if (yieldControl) await yieldControl();
     }
 
     const centralDirOffset = offset;
@@ -411,7 +486,8 @@ export async function createZipFile(files, { mimeType = 'application/zip' } = {}
     let pos = 0;
 
     // Write local file headers and data
-    fileEntries.forEach(entry => {
+    for (let entryIndex = 0; entryIndex < fileEntries.length; entryIndex += 1) {
+        const entry = fileEntries[entryIndex];
         // Local file header signature
         view.setUint32(pos, 0x04034b50, true); pos += 4;
         // Version needed
@@ -438,10 +514,13 @@ export async function createZipFile(files, { mimeType = 'application/zip' } = {}
         uint8.set(entry.pathBytes, pos); pos += entry.pathBytes.length;
         // File data
         uint8.set(entry.data, pos); pos += entry.data.length;
-    });
+        onProgress?.(0.45 + (((entryIndex + 1) / Math.max(1, fileEntries.length)) * 0.35));
+        if (yieldControl) await yieldControl();
+    }
 
     // Write central directory
-    fileEntries.forEach(entry => {
+    for (let entryIndex = 0; entryIndex < fileEntries.length; entryIndex += 1) {
+        const entry = fileEntries[entryIndex];
         // Central file header signature
         view.setUint32(pos, 0x02014b50, true); pos += 4;
         // Version made by
@@ -478,7 +557,9 @@ export async function createZipFile(files, { mimeType = 'application/zip' } = {}
         view.setUint32(pos, entry.offset, true); pos += 4;
         // Filename
         uint8.set(entry.pathBytes, pos); pos += entry.pathBytes.length;
-    });
+        onProgress?.(0.8 + (((entryIndex + 1) / Math.max(1, fileEntries.length)) * 0.18));
+        if (yieldControl) await yieldControl();
+    }
 
     // End of central directory
     view.setUint32(pos, 0x06054b50, true); pos += 4;
@@ -497,6 +578,7 @@ export async function createZipFile(files, { mimeType = 'application/zip' } = {}
     // Comment length
     view.setUint16(pos, 0, true);
 
+    onProgress?.(1);
     return new Blob([buffer], { type: blobType });
 }
 
@@ -527,6 +609,7 @@ function getCRC32Table() {
 export function createObjExporter({
     state,
     modelControls,
+    exportControls,
     statusText,
     getDataToExport,
     ImageTracer,
@@ -542,32 +625,30 @@ export function createObjExporter({
     let cachedGeometryKey = '';
     let cachedTracedata = null;
     let cachedTraceOptions = null;
+    let threeMfDownloadInFlight = false;
 
-    function getGeometryCacheKey(defaultThickness) {
-        const thicknessOverrides = Object.entries(state.layerThicknessById || {})
-            .sort(([left], [right]) => Number(left) - Number(right))
-            .map(([sourceLayerId, thickness]) => `${sourceLayerId}:${thickness}`)
-            .join(',');
-        return [
-            defaultThickness,
-            model.objBaseThicknessSlider?.value ?? state.objParams?.baseThickness ?? 2.4,
-            model.objAmsPrintStyle?.value ?? state.objParams?.amsPrintStyle ?? 'raised-efficient',
-            thicknessOverrides,
-            model.objDecimateSlider?.value ?? 0,
-            model.objBedSelect?.value ?? 'x1',
-            model.objMarginInput?.value ?? 5,
-            model.objScaleSlider?.value ?? 100,
-            model.objBezelSelect?.value ?? state.objParams?.bezelPreset ?? 'off',
-            serializeMagnetPocketConfig(state.objParams?.magnetPocket),
-            JSON.stringify(state.mergeRules || []),
-            state.useBaseLayer ? 'base:on' : 'base:off',
-            state.baseSourceLayerId ?? '',
-            state.sourceRenderScale || 1,
-            state.tracedata?.layers?.length ?? 0,
-            state.tracedata?.layers?.map((layer) => layer?.length || 0).join(',') ?? '',
-            state.tracedata?.palette?.map(c => `${c.r},${c.g},${c.b}`).join(';') ?? '',
-            Array.from(state.hiddenSourceLayerIds || []).sort((a, b) => a - b).join(',')
-        ].join('|');
+    function report3mfDownloadPackageProgress(event) {
+        const ratio = Math.max(0, Math.min(1, Number(event?.ratio) || 0));
+        const phase = event?.phase;
+        const progress = phase === 'preview'
+            ? 0.54 + (ratio * 0.08)
+            : phase === 'serialize-mesh'
+                ? 0.62 + (ratio * 0.12)
+                : phase === 'serialize-xml'
+                    ? 0.74 + (ratio * 0.09)
+                    : 0.83 + (ratio * 0.14);
+        const subtitle = phase === 'preview'
+            ? 'Creating Bambu Studio project previews.'
+            : phase === 'serialize-mesh'
+                ? `Writing mesh ${event.completed || 0} of ${event.total || 0}.`
+                : phase === 'serialize-xml'
+                    ? `Writing object ${event.completed || 0} of ${event.total || 0}.`
+                    : 'Compressing the final Bambu Studio project.';
+        showLoader(true, {
+            title: 'Building AMS-ready 3MF…',
+            subtitle,
+            progress
+        });
     }
 
     function getVisibleLayerIndices() {
@@ -581,7 +662,14 @@ export function createObjExporter({
     }
 
     function buildExportGeometry(defaultThickness) {
-        const key = getGeometryCacheKey(defaultThickness);
+        const visibleSourceLayerIds = getVisibleLayerIndices();
+        const snapshot = createObjGeometrySnapshot({
+            state,
+            modelControls: model,
+            visibleSourceLayerIds,
+            defaultThickness
+        });
+        const key = snapshot.key;
         if (
             cachedGeometry
             && cachedGeometryKey === key
@@ -589,14 +677,7 @@ export function createObjExporter({
             && cachedTraceOptions === state.lastOptions
         ) {
             // Clone cached geometries so callers can dispose without breaking the cache
-            const cloned = {
-                ...cachedGeometry,
-                layers: new Map()
-            };
-            cachedGeometry.layers.forEach((layerData, layerKey) => {
-                cloned.layers.set(layerKey, cloneLayerGeometryData(layerData));
-            });
-            return cloned;
+            return cloneGeometryBundleData(cachedGeometry);
         }
 
         const SVGLoader = window.SVGLoader || window.THREE?.SVGLoader;
@@ -604,7 +685,6 @@ export function createObjExporter({
         const bufferUtils = window.BufferGeometryUtils || THREERef?.BufferGeometryUtils;
         if (!SVGLoader || !THREERef || !bufferUtils) return null;
 
-        const visibleSourceLayerIds = getVisibleLayerIndices();
         if (!visibleSourceLayerIds.length) return null;
 
         const marginValue = model.objMarginInput ? Number.parseFloat(model.objMarginInput.value) : 5;
@@ -714,12 +794,193 @@ export function createObjExporter({
         cachedTraceOptions = state.lastOptions;
 
         // Return cloned geometries so callers can dispose freely
-        const result = { ...geometryBundle, layers: new Map() };
-        geometryBundle.layers.forEach((layerData, layerKey) => {
-            result.layers.set(layerKey, cloneLayerGeometryData(layerData));
-        });
-        return result;
+        return cloneGeometryBundleData(geometryBundle);
     }
+
+    async function buildPreparedPreviewGeometryForSend(defaultThickness, onProgress, signal) {
+        throwIfBambuSendAborted(signal);
+        const visibleSourceLayerIds = getVisibleLayerIndices();
+        const currentSnapshot = createObjGeometrySnapshot({
+            state,
+            modelControls: model,
+            visibleSourceLayerIds,
+            defaultThickness
+        });
+        const preview = state.objPreview;
+        const previewCanvas = exportControls?.objPreviewCanvas;
+        if (
+            !objGeometrySnapshotsMatch(preview?.exportGeometrySnapshot, currentSnapshot)
+            && previewCanvas?.dataset?.renderState === 'building'
+        ) {
+            onProgress?.({
+                stage: 'Waiting for 3D preview',
+                value: 5,
+                detail: 'The updated print orientation is still being built…'
+            });
+            const waitDeadline = performance.now() + 60_000;
+            while (
+                performance.now() < waitDeadline
+                && previewCanvas.dataset.renderState === 'building'
+                && !objGeometrySnapshotsMatch(preview?.exportGeometrySnapshot, currentSnapshot)
+            ) {
+                await new Promise((resolve) => setTimeout(resolve, 50));
+                throwIfBambuSendAborted(signal);
+            }
+        }
+        if (
+            !objGeometrySnapshotsMatch(preview?.exportGeometrySnapshot, currentSnapshot)
+            || !preview?.lastGeometryBundle?.layers?.size
+        ) {
+            const error = new Error('The 3D preview is not ready for this model. Wait for it to finish, then send again.');
+            error.code = 'PREVIEW_NOT_READY';
+            throw error;
+        }
+
+        const THREERef = window.THREE;
+        const bufferUtils = window.BufferGeometryUtils || THREERef?.BufferGeometryUtils;
+        const geometryBundle = cloneGeometryBundleData(preview.lastGeometryBundle);
+        const plan = geometryBundle.plan;
+        const scalePlan = plan?.scalePlan;
+        const bedKey = model.objBedSelect?.value || 'x1';
+        const marginValue = model.objMarginInput ? Number.parseFloat(model.objMarginInput.value) : 5;
+        const margin = Number.isFinite(marginValue) ? Math.max(0, marginValue) : 5;
+
+        try {
+            onProgress?.({ stage: 'Preparing print geometry', value: 10, detail: 'Reusing the finished 3D preview…' });
+            await yieldDuringBambuSend(signal);
+
+            geometryBundle.layers.forEach((layerData, outputLayerId) => {
+                const transform = preview.exportGeometryTransforms?.get(outputLayerId);
+                const scaleZ = Number.isFinite(transform?.scaleZ) ? transform.scaleZ : 1;
+                const translateZ = Number.isFinite(transform?.translateZ) ? transform.translateZ : 0;
+                if (scaleZ === 1 && translateZ === 0) return;
+                layerData.geometry.scale(1, 1, scaleZ);
+                layerData.geometry.translate(0, 0, translateZ);
+                (layerData.geometryParts || []).forEach((partGeometry) => {
+                    partGeometry.scale(1, 1, scaleZ);
+                    partGeometry.translate(0, 0, translateZ);
+                });
+            });
+
+            fitObjScalePlanToGeometryBounds(scalePlan, getGeometryBundleBounds(geometryBundle, {
+                scaleX: scalePlan.scale,
+                scaleY: scalePlan.scale
+            }));
+
+            const layerEntries = [...geometryBundle.layers.values()];
+            const layerTotal = Math.max(1, layerEntries.length);
+            for (let layerIndex = 0; layerIndex < layerEntries.length; layerIndex += 1) {
+                const layerData = layerEntries[layerIndex];
+                layerData.geometry.scale(scalePlan.scale, scalePlan.scale, 1);
+                (layerData.geometryParts || []).forEach((partGeometry) => {
+                    partGeometry.scale(scalePlan.scale, scalePlan.scale, 1);
+                });
+                onProgress?.({
+                    stage: 'Preparing print geometry',
+                    value: 10 + (((layerIndex + 1) / layerTotal) * 8),
+                    detail: `Scaling layer ${layerIndex + 1} of ${layerEntries.length}…`
+                });
+                await yieldDuringBambuSend(signal);
+            }
+
+            const uncenteredBounds = getGeometryBundleBounds(geometryBundle);
+            if (uncenteredBounds.isValid) {
+                geometryBundle.layers.forEach((layerData) => {
+                    layerData.geometry.translate(
+                        -uncenteredBounds.centerX,
+                        -uncenteredBounds.centerY,
+                        -uncenteredBounds.minZ
+                    );
+                    layerData.geometryParts?.forEach((partGeometry) => {
+                        partGeometry.translate(
+                            -uncenteredBounds.centerX,
+                            -uncenteredBounds.centerY,
+                            -uncenteredBounds.minZ
+                        );
+                    });
+                });
+            }
+            onProgress?.({ stage: 'Checking print geometry', value: 20, detail: 'Repairing and checking printable surfaces…' });
+            await yieldDuringBambuSend(signal);
+
+            let completedParts = 0;
+            const totalParts = Math.max(1, layerEntries.reduce(
+                (total, layerData) => total + 1 + (layerData.geometryParts?.length || 0),
+                0
+            ));
+            for (const layerData of layerEntries) {
+                layerData.geometry.computeVertexNormals();
+                const sourceGeometry = layerData.geometry;
+                layerData.geometry = sanitizeGeometryForPrint(sourceGeometry, THREERef, bufferUtils);
+                sourceGeometry.dispose();
+                completedParts += 1;
+                onProgress?.({
+                    stage: 'Checking print geometry',
+                    value: 20 + ((completedParts / totalParts) * 28),
+                    detail: `Checking mesh ${completedParts} of ${totalParts}…`
+                });
+                await yieldDuringBambuSend(signal);
+
+                const cleanedParts = [];
+                for (const partGeometry of layerData.geometryParts || []) {
+                    partGeometry.computeVertexNormals();
+                    const cleanedPart = sanitizeGeometryForPrint(partGeometry, THREERef, bufferUtils);
+                    partGeometry.dispose();
+                    if (cleanedPart) cleanedParts.push(cleanedPart);
+                    completedParts += 1;
+                    onProgress?.({
+                        stage: 'Checking print geometry',
+                        value: 20 + ((completedParts / totalParts) * 28),
+                        detail: `Checking mesh ${completedParts} of ${totalParts}…`
+                    });
+                    await yieldDuringBambuSend(signal);
+                }
+                layerData.geometryParts = cleanedParts;
+            }
+
+            const validation = validateGeometryBundleForPrint(geometryBundle, { bedKey, margin });
+            if (!validation.ok) {
+                throw new Error(`3D print validation failed: ${validation.errors[0]}`);
+            }
+            geometryBundle.validation = validation;
+            plan.printValidation = validation;
+            scalePlan.actualFootprintWidth = validation.bounds.width;
+            scalePlan.actualFootprintDepth = validation.bounds.depth;
+            scalePlan.modelHeight = validation.bounds.height;
+            onProgress?.({ stage: 'Print geometry ready', value: 52, detail: 'Model passed the print checks.' });
+            await yieldDuringBambuSend(signal);
+            return geometryBundle;
+        } catch (error) {
+            geometryBundle.layers.forEach(disposeLayerGeometryData);
+            throw error;
+        }
+    }
+
+    const bambuSendWorkflow = createBambuSendWorkflow({
+        controls: exportControls,
+        statusText,
+        prepareGeometry: buildPreparedPreviewGeometryForSend,
+        packageProject: ({ geometryBundle, baseName, bedKey, onProgress, signal }) => (
+            generateBambuProject3MF({
+                geometryBundle,
+                baseName,
+                bedKey,
+                tracer,
+                state,
+                getDataToExport,
+                cooperative: true,
+                onProgress,
+                yieldControl: () => yieldDuringBambuSend(signal)
+            })
+        ),
+        downloadBlob,
+        getSourceBaseName: getImageBaseName,
+        getBaseName: (geometryBundle, defaultThickness, sourceBaseName) => (
+            `${sourceBaseName || getImageBaseName()}_${Math.round(geometryBundle.plan.maxHeight || defaultThickness)}mm`
+        ),
+        getBedKey: () => model.objBedSelect?.value || 'x1',
+        disposeGeometry: (geometryBundle) => geometryBundle.layers.forEach(disposeLayerGeometryData)
+    });
 
     async function exportAsOBJ() {
         if (!state.tracedata) {
@@ -791,6 +1052,7 @@ export function createObjExporter({
     }
 
     async function exportAs3MF() {
+        if (threeMfDownloadInFlight) return;
         if (!state.tracedata) {
             if (statusText) statusText.textContent = 'Generate preview before exporting 3MF.';
             return;
@@ -804,12 +1066,30 @@ export function createObjExporter({
 
         const thicknessValue = model.objThicknessSlider ? parseFloat(model.objThicknessSlider.value) : 4;
         const defaultThickness = Number.isFinite(thicknessValue) ? thicknessValue : 4;
+        const exportButton = exportControls?.export3mfBtn || null;
+        let result = null;
 
         try {
-            showLoader(true);
+            threeMfDownloadInFlight = true;
+            if (exportButton) {
+                exportButton.disabled = true;
+                exportButton.setAttribute('aria-busy', 'true');
+            }
+            showLoader(true, {
+                title: 'Preparing AMS-ready 3MF…',
+                subtitle: 'Checking the finished 3D preview.',
+                progress: 0.02
+            });
             if (statusText) statusText.textContent = 'Exporting Bambu Studio project...';
+            await waitForBrowserPaint();
 
-            const result = buildExportGeometry(defaultThickness);
+            result = await buildPreparedPreviewGeometryForSend(defaultThickness, (event) => {
+                showLoader(true, {
+                    title: 'Preparing AMS-ready 3MF…',
+                    subtitle: event?.detail || event?.stage || 'Checking print geometry.',
+                    progress: Math.max(0.03, Math.min(0.52, (Number(event?.value) || 0) / 100))
+                });
+            });
             if (!result || result.layers.size === 0) {
                 throw new Error('No geometry generated');
             }
@@ -821,7 +1101,10 @@ export function createObjExporter({
                 bedKey: model.objBedSelect?.value || 'x1',
                 tracer,
                 state,
-                getDataToExport
+                getDataToExport,
+                cooperative: true,
+                onProgress: report3mfDownloadPackageProgress,
+                yieldControl: () => yieldDuringBambuSend()
             });
             if (!exportResult?.blob) {
                 throw new Error('Failed to assemble the Bambu Studio project.');
@@ -829,13 +1112,21 @@ export function createObjExporter({
             const filename = `${baseName}.3mf`;
             downloadBlob(new Blob([exportResult.blob], { type: THREE_MF_BLOB_TYPE }), filename);
             if (statusText) statusText.textContent = 'Bambu Studio project downloaded. Open the .3mf in Bambu Studio.';
-
-            // Cleanup
-            result.layers.forEach(disposeLayerGeometryData);
+            showLoader(true, {
+                title: 'AMS-ready 3MF downloaded',
+                subtitle: filename,
+                progress: 1
+            });
         } catch (error) {
             console.error('3MF export failed:', error);
             if (statusText) statusText.textContent = error.message || 'Failed to export 3MF.';
         } finally {
+            result?.layers?.forEach(disposeLayerGeometryData);
+            threeMfDownloadInFlight = false;
+            if (exportButton) {
+                exportButton.disabled = false;
+                exportButton.setAttribute('aria-busy', 'false');
+            }
             showLoader(false);
         }
     }
@@ -890,7 +1181,7 @@ export function createObjExporter({
         }
     }
 
-    async function exportAndOpenInBambu() {
+    function exportAndOpenInBambu() {
         if (!state.tracedata) {
             if (statusText) statusText.textContent = 'Generate preview before exporting.';
             return;
@@ -905,90 +1196,14 @@ export function createObjExporter({
         const thicknessValue = model.objThicknessSlider ? parseFloat(model.objThicknessSlider.value) : 4;
         const defaultThickness = Number.isFinite(thicknessValue) ? thicknessValue : 4;
 
-        let result = null;
-
-        try {
-            showLoader(true, {
-                title: 'Sending to Bambu Studio',
-                subtitle: 'Preparing the 3MF project…'
-            });
-            if (statusText) statusText.textContent = 'Generating 3MF…';
-
-            result = buildExportGeometry(defaultThickness);
-            if (!result || result.layers.size === 0) {
-                throw new Error('No geometry generated');
-            }
-
-            const baseName = `${getImageBaseName()}_${Math.round(result.plan.maxHeight || defaultThickness)}mm`;
-            const exportResult = await generateBambuProject3MF({
-                geometryBundle: result,
-                baseName,
-                bedKey: model.objBedSelect?.value || 'x1',
-                tracer,
-                state,
-                getDataToExport
-            });
-            if (!exportResult?.blob) {
-                throw new Error('Failed to assemble the Bambu Studio project.');
-            }
-
-            const filename = `${baseName}.3mf`;
-            const projectBlob = exportResult.blob instanceof Blob
-                ? exportResult.blob
-                : new Blob([exportResult.blob], { type: THREE_MF_BLOB_TYPE });
-
-            let transfer;
-            try {
-                showLoader(true, {
-                    title: 'Sending to Bambu Studio',
-                    subtitle: 'Creating a private 10-minute transfer link…'
-                });
-                if (statusText) statusText.textContent = 'Preparing one-click Bambu Studio transfer…';
-                transfer = await publishBambuProject(projectBlob, filename);
-            } catch (transferError) {
-                downloadBlob(projectBlob, filename);
-                if (statusText) {
-                    statusText.textContent = `Direct handoff unavailable. Downloaded ${filename}; opening Bambu Studio…`;
-                }
-                const fallbackLaunch = await launchBambuStudio();
-                if (statusText) {
-                    statusText.textContent = fallbackLaunch.opened
-                        ? `${filename} downloaded. Bambu Studio opened—import the file to continue.`
-                        : `${filename} downloaded. Open it manually in Bambu Studio.`;
-                }
-                return;
-            }
-
-            showLoader(true, {
-                title: 'Opening Bambu Studio',
-                subtitle: 'The model will appear in the slicing workspace.'
-            });
-            if (statusText) statusText.textContent = `Opening ${filename} in Bambu Studio…`;
-
-            const launchResult = await launchBambuStudio(transfer.url);
-            if (launchResult.opened) {
-                if (statusText) {
-                    statusText.textContent = `\u2713 Sent ${filename} to Bambu Studio. Review settings, then slice and print.`;
-                }
-            } else if (launchResult.attempted) {
-                downloadBlob(projectBlob, filename);
-                if (statusText) {
-                    statusText.textContent = `Bambu Studio did not confirm opening. ${filename} was downloaded as a backup.`;
-                }
-            } else {
-                downloadBlob(projectBlob, filename);
-                if (statusText) {
-                    statusText.textContent = `${filename} downloaded. Bambu Studio launch is unavailable on this platform.`;
-                }
-            }
-        } catch (error) {
-            console.error('Export & open in Bambu failed:', error);
-            if (statusText) statusText.textContent = error.message || 'Failed to export 3MF.';
-        } finally {
-            result?.layers?.forEach(disposeLayerGeometryData);
-            showLoader(false);
-        }
+        return bambuSendWorkflow.send(defaultThickness);
     }
 
-    return { exportAsOBJ, exportAs3MF, exportAsSTL, exportAndOpenInBambu };
+    return {
+        exportAsOBJ,
+        exportAs3MF,
+        exportAsSTL,
+        exportAndOpenInBambu,
+        resetBambuSendProgress: bambuSendWorkflow.reset
+    };
 }

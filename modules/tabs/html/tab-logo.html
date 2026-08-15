@@ -370,9 +370,18 @@
                             <line x1="16" y1="16" x2="16" y2="20"/>
                             <rect x="7" y="8" width="10" height="4" rx="0.5" fill="currentColor" stroke="none" opacity="0.3"/>
                         </svg>
-                        <span>Send to Bambu Studio</span>
+                        <span data-bambu-button-label>Prepare Bambu transfer</span>
                     </button>
-                    <div id="logo-bambu-open-meta" class="footer-action-meta">One-click 3MF handoff · Bambu Studio required</div>
+                    <div id="logo-bambu-open-meta" class="footer-action-meta">Build a 10-minute transfer, then open Bambu Studio</div>
+                    <div id="logo-bambu-progress" class="bambu-send-progress" data-state="idle" hidden>
+                        <div class="bambu-send-progress-track" role="progressbar" aria-label="Send to Bambu Studio progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" data-bambu-progress-bar>
+                            <span class="bambu-send-progress-fill"></span>
+                        </div>
+                        <div class="bambu-send-progress-copy">
+                            <span data-bambu-progress-stage role="status" aria-live="polite" aria-atomic="true">Preparing model</span>
+                            <span data-bambu-progress-value>0%</span>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>

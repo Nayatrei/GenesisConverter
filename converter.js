@@ -1,24 +1,29 @@
-import { createBulkTabController } from './modules/tabs/bulk-tab.js?v=20260814q';
-import { createRasterTabController } from './modules/tabs/raster-tab.js';
-import { createSvgTabController } from './modules/tabs/svg-tab.js?v=20260814q';
-import { createLogoTabController } from './modules/tabs/logo-tab.js?v=20260814q';
-import { createPdfTabController } from './modules/tabs/pdf-tab.js?v=20260814q';
+import { createBulkTabController } from './modules/tabs/bulk-tab.js?v=r-5699d700a3fc7b24';
+import { createRasterTabController } from './modules/tabs/raster-tab.js?v=r-5699d700a3fc7b24';
+import { createSvgTabController } from './modules/tabs/svg-tab.js?v=r-5699d700a3fc7b24';
+import { createLogoTabController } from './modules/tabs/logo-tab.js?v=r-5699d700a3fc7b24';
+import { createPdfTabController } from './modules/tabs/pdf-tab.js?v=r-5699d700a3fc7b24';
 import {
     getDataUrlSize,
     getImageFormat,
     IMPORTABLE_IMAGE_PROMPT,
     isImportableImageFile,
     normalizeImageBlob
-} from './modules/raster-utils.js';
-import { createElements } from './modules/app-elements.js?v=20260814e';
-import { createState } from './modules/app-state.js?v=20260814e';
-import { applyTabCase, TAB_CASES } from './modules/tab-cases.js?v=20260814c';
-import { bindMagnetPocketControls } from './modules/shared/magnet-pocket-controls.js?v=20260804b';
+} from './modules/raster-utils.js?v=r-5699d700a3fc7b24';
+import { createElements } from './modules/app-elements.js?v=r-5699d700a3fc7b24';
+import { createState } from './modules/app-state.js?v=r-5699d700a3fc7b24';
+import { applyTabCase, TAB_CASES } from './modules/tab-cases.js?v=r-5699d700a3fc7b24';
+import { bindMagnetPocketControls } from './modules/shared/magnet-pocket-controls.js?v=r-5699d700a3fc7b24';
 
 async function loadTabPartials() {
+    const appVersion = window.__GENESIS_APP_VERSION__
+        || new URL(import.meta.url).searchParams.get('v')
+        || 'dev';
+    const withVersion = (path) => `${path}?v=${encodeURIComponent(appVersion)}`;
     const tabs = ['svg', 'logo', 'raster', 'bulk', 'pdf'];
     await Promise.all(tabs.map(async (name) => {
-        const res = await fetch(`modules/tabs/html/tab-${name}.html?v=20260814q`);
+        const res = await fetch(withVersion(`modules/tabs/html/tab-${name}.html`));
+        if (!res.ok) throw new Error(`Failed to load the ${name} tab (HTTP ${res.status}).`);
         const html = await res.text();
         const tmp = document.createElement('div');
         tmp.innerHTML = html;
@@ -30,13 +35,14 @@ async function loadTabPartials() {
         if (footer && footerSlot) footerSlot.outerHTML = footer.outerHTML;
     }));
 
-    const brandRes = await fetch('modules/partials/footer-brand.html');
+    const brandRes = await fetch(withVersion('modules/partials/footer-brand.html'));
+    if (!brandRes.ok) throw new Error(`Failed to load the footer (HTTP ${brandRes.status}).`);
     const brandHtml = await brandRes.text();
     const brandSlot = document.getElementById('footer-brand-slot');
     if (brandSlot) brandSlot.outerHTML = brandHtml;
 }
 
-document.addEventListener('DOMContentLoaded', async () => {
+async function initializeApplication() {
     await loadTabPartials();
 
     const elements = createElements();
@@ -91,9 +97,14 @@ document.addEventListener('DOMContentLoaded', async () => {
                     ? Math.max(0, Math.min(1, progress))
                     : 0;
 
-                elements.loaderProgressShell.classList.toggle('hidden', !hasProgress);
-                elements.loaderProgressBar.style.width = `${normalizedProgress * 100}%`;
-                elements.loaderProgressMeta.textContent = `${Math.round(normalizedProgress * 100)}%`;
+                elements.loaderProgressShell.classList.remove('hidden');
+                elements.loaderProgressShell.classList.toggle('is-indeterminate', !hasProgress);
+                elements.loaderProgressBar.style.width = hasProgress
+                    ? `${normalizedProgress * 100}%`
+                    : '';
+                elements.loaderProgressMeta.textContent = hasProgress
+                    ? `${Math.round(normalizedProgress * 100)}%`
+                    : 'Working…';
             }
         } else {
             if (elements.loaderTitle) {
@@ -105,6 +116,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
             if (elements.loaderProgressShell) {
                 elements.loaderProgressShell.classList.add('hidden');
+                elements.loaderProgressShell.classList.remove('is-indeterminate');
             }
             if (elements.loaderProgressBar) {
                 elements.loaderProgressBar.style.width = '0%';
@@ -579,6 +591,14 @@ document.addEventListener('DOMContentLoaded', async () => {
         logoTab.bindEvents();
         pdfTab.bindEvents();
 
+        // SVG and Logo own their active 3D pipelines. Other tabs still need one
+        // source-load completion path so the import overlay cannot remain open.
+        elements.sourceImage?.addEventListener('load', () => {
+            if (state.activeTab === 'svg' || state.activeTab === 'logo') return;
+            rasterTab.onSourceImageLoaded();
+            showLoader(false);
+        });
+
         // Named HTML entrypoints canonicalize to each tab's clean slug.
         switchExportTab(getTabFromPathname(), { historyMode: 'replace' });
         rasterTab.setExportScale(state.exportScale);
@@ -591,4 +611,28 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     initialize();
-});
+    window.__GENESIS_APP_EVENTS_BOUND__ = true;
+    const pendingImportFile = window.__GENESIS_PENDING_IMPORT_FILE__;
+    window.__GENESIS_PENDING_IMPORT_FILE__ = null;
+    if (pendingImportFile) {
+        if (elements.fileInput) elements.fileInput.value = '';
+        await handleImportedFile(pendingImportFile);
+    }
+}
+
+let applicationStartPromise = null;
+
+export function startApplication() {
+    if (!applicationStartPromise) applicationStartPromise = initializeApplication();
+    return applicationStartPromise;
+}
+
+function startWhenDomIsReady() {
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', () => void startApplication(), { once: true });
+    } else {
+        void startApplication();
+    }
+}
+
+if (!window.__GENESIS_BOOTSTRAP_MANAGED__) startWhenDomIsReady();

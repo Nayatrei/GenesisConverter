@@ -1,10 +1,10 @@
-import { createDefaultTraceControls } from './shared/trace-controls.js';
+import { createDefaultTraceControls } from './shared/trace-controls.js?v=r-5699d700a3fc7b24';
 import {
     DEFAULT_AMS_PRINT_STYLE,
     OBJ_DEFAULT_ROTATION,
     getAmsPrintStylePreset
-} from './config.js';
-import { createDefaultMagnetPocketConfig } from './shared/magnet-pockets.js';
+} from './config.js?v=r-5699d700a3fc7b24';
+import { createDefaultMagnetPocketConfig } from './shared/magnet-pockets.js?v=r-5699d700a3fc7b24';
 
 /**
  * Returns the initial application state object.

@@ -5,17 +5,17 @@ import {
     PDF_IMAGE_EXPORT_MAX_TOTAL_BYTES,
     sanitizePdfFilename,
     validatePdfImageExportPlan
-} from './pdf-utils.js?v=20260814i';
+} from './pdf-utils.js?v=r-5699d700a3fc7b24';
 import {
     estimateSizeBytes,
     exportCanvasToRasterBlob,
     formatBytes,
     getRasterExtension,
     sanitizeFileComponent
-} from '../raster-utils.js';
-import { createZipFile } from '../export3d.js?v=20260814q';
-import { createImageToPdfController } from './pdf-image-to-pdf.js?v=20260814c';
-import { createPdfOcrController } from './pdf-ocr.js?v=20260814c';
+} from '../raster-utils.js?v=r-5699d700a3fc7b24';
+import { createZipFile } from '../export3d.js?v=r-5699d700a3fc7b24';
+import { createImageToPdfController } from './pdf-image-to-pdf.js?v=r-5699d700a3fc7b24';
+import { createPdfOcrController } from './pdf-ocr.js?v=r-5699d700a3fc7b24';
 
 let pdfLibPromise = null;
 let pdfJsPromise = null;
@@ -32,16 +32,16 @@ const PDF_DOCUMENT_TASKS = new Set(['combine', 'pdf-images']);
 
 async function getPdfLib() {
     if (!pdfLibPromise) {
-        pdfLibPromise = import('../../vendor/pdf-lib/pdf-lib.esm.min.js');
+        pdfLibPromise = import('../../vendor/pdf-lib/pdf-lib.esm.min.js?v=r-5699d700a3fc7b24');
     }
     return pdfLibPromise;
 }
 
 async function getPdfJs() {
     if (!pdfJsPromise) {
-        pdfJsPromise = import('../../vendor/pdfjs/pdf.min.mjs').then((pdfjs) => {
+        pdfJsPromise = import('../../vendor/pdfjs/pdf.min.mjs?v=r-5699d700a3fc7b24').then((pdfjs) => {
             pdfjs.GlobalWorkerOptions.workerSrc =
-                new URL('../../vendor/pdfjs/pdf.worker.min.mjs', import.meta.url).href;
+                new URL('../../vendor/pdfjs/pdf.worker.min.mjs?v=r-5699d700a3fc7b24', import.meta.url).href;
             return pdfjs;
         });
     }

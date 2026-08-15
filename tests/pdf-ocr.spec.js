@@ -285,7 +285,7 @@ test('image OCR uses one injected worker, terminates it, and downloads UTF-8 TXT
     expect(result.output).toContain('--- Page 1 ---');
     expect(result.output).toContain('Hello from OCR');
     expect(result.output).toContain('안녕하세요');
-    expect(result.workerOptions.workerPath).toMatch(/\/vendor\/tesseract\/worker\.min\.js$/);
+    expect(result.workerOptions.workerPath).toMatch(/\/vendor\/tesseract\/worker\.min\.js\?v=r-[a-f0-9]{16}$/);
     expect(result.workerOptions.corePath).toBe(`${new URL(page.url()).origin}/vendor/tesseract/core/`);
     expect(result.workerOptions.langPath).toBe(`${new URL(page.url()).origin}/vendor/tesseract/lang/`);
 

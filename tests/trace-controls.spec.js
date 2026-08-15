@@ -78,6 +78,7 @@ async function uploadSingleSource(page, markup, filename = 'fixture.svg') {
 
 test('ImageTracer color cleanup is deterministic for the same pixels and options', async ({ page }) => {
     await page.goto('/3d-obj');
+    await page.waitForFunction(() => Boolean(window.ImageTracer));
 
     const palettes = await page.evaluate(() => {
         const width = 8;
@@ -164,6 +165,7 @@ test('trace option builder stays monotonic and direct', async ({ page }) => {
 });
 
 test('svg direct-output controls update helpers and generated result', async ({ page }) => {
+    test.slow();
     await page.goto('/3d-obj');
     await uploadSingleSource(page, buildNoisyShapeSvg());
 

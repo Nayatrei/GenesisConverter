@@ -174,3 +174,39 @@ test('per-layer height edits invalidate export geometry without rebuilding the p
         initialBounds.map((bounds) => bounds.depth)
     );
 });
+
+test('Send to Bambu reuses the fast height preview without asking for a rebuild', async ({ page }) => {
+    await page.addInitScript(() => {
+        Object.defineProperty(navigator, 'platform', {
+            configurable: true,
+            get: () => 'MacIntel'
+        });
+        window.__GENESIS_BAMBU_PROTOCOL_HOOK__ = async () => true;
+    });
+    await page.goto('/3d-obj');
+    await uploadSign(page);
+
+    const detailHeight = page.locator('#layer-stack-list .layer-stack-item:not(.is-base) .layer-stack-thickness');
+    await detailHeight.evaluate((input) => {
+        input.value = '1.2';
+        input.dispatchEvent(new Event('change', { bubbles: true }));
+    });
+    await expect(page.locator('#svg-model-size-readout')).toContainText('× 3.6 mm');
+
+    await page.locator('#svg-bambu-open-btn').click();
+    await expect(page.locator('#svg-bambu-progress')).toHaveAttribute('data-state', 'ready', {
+        timeout: 30_000
+    });
+    await page.locator('#svg-bambu-open-btn').click();
+    await expect(page.locator('#status-text')).toContainText('Bambu Studio launch requested for two-layer-sign_4mm.3mf');
+    await expect(page.locator('#status-text')).not.toContainText('preview is not ready');
+
+    await detailHeight.evaluate((input) => {
+        input.value = '1.0';
+        input.dispatchEvent(new Event('change', { bubbles: true }));
+    });
+    await expect(page.locator('#svg-model-size-readout')).toContainText('× 3.4 mm');
+    await expect(page.locator('#svg-bambu-progress')).toBeHidden();
+    await expect(page.locator('#svg-bambu-progress')).toHaveAttribute('data-state', 'idle');
+    await expect(page.locator('#status-text')).not.toContainText('launch requested for two-layer-sign');
+});

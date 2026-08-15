@@ -20,11 +20,11 @@ The frontend is a client-side multi-tab app served by a lightweight Node transfe
 - **OBJ + MTL** — General-purpose 3D model with materials.
 - **STL** — Per-layer binary STL files for manual filament assignment. Named `{image}_{thickness}mm_L{n}_{hex}.stl`.
 
-The 3D and Logo tabs can send the generated 3MF directly into the installed Bambu Studio app on macOS/Windows. The server keeps each handoff file in private temporary storage for 10 minutes, then removes it.
+The 3D and Logo tabs build the 3MF in the browser. When the optional transfer API is available they can prepare a private 10-minute link; on a static host they download the same 3MF locally. A second trusted click opens Bambu Studio on macOS/Windows, with clear instructions to finish the import.
 
 ## Running locally
 
-Run the included Node server so one-click Bambu Studio handoff is available:
+Run the included Node server to enable the optional direct-link handoff. Static hosting continues to work through the local-download fallback:
 
 ```bash
 npm install

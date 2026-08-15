@@ -22,7 +22,7 @@ test('background detector requires broad edge contact', async ({ page }) => {
     await page.goto('/3d-obj');
 
     const result = await page.evaluate(async () => {
-        const { detectBackgroundLayerIndex } = await import('/modules/shared/trace-utils.js?v=20260726a');
+        const { detectBackgroundLayerIndex } = await import('/modules/shared/trace-utils.js?v=layer-visibility-test');
         return {
             detected: detectBackgroundLayerIndex({
                 width: 320,

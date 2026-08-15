@@ -1,4 +1,4 @@
-import { createZipFile } from '../export3d.js?v=20260814q';
+import { createZipFile } from '../export3d.js?v=r-5699d700a3fc7b24';
 import {
     estimateRasterBlobSizeFromSource,
     estimateSizeBytes,
@@ -17,7 +17,7 @@ import {
     loadImageMetricsFromFile,
     renderRasterBlobFromSource,
     sanitizeFileComponent
-} from '../raster-utils.js?v=20260804d';
+} from '../raster-utils.js?v=r-5699d700a3fc7b24';
 
 export function createBulkTabController({
     state,

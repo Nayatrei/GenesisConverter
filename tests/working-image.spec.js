@@ -114,6 +114,8 @@ test('small source keeps full size and avoids oversized notice', async ({ page }
     await expect(page.locator('#status-text')).toHaveText('Preview generated!', { timeout: 30_000 });
     await expect(page.locator('#original-resolution')).toHaveText('500×500 px');
     await expect(page.locator('#resolution-notice')).not.toContainText('Large source detected.');
+    await expect(page.locator('#obj-preview-canvas')).toHaveAttribute('data-full-render-count', '1');
+    await expect(page.locator('#loader-overlay')).toBeHidden();
 });
 
 test('oversized source uses reduced working image while preserving 3D footprint scale', async ({ page }) => {
@@ -135,6 +137,62 @@ test('oversized source uses reduced working image while preserving 3D footprint 
     const footprint = parseFootprint(await page.locator('#obj-size-readout').textContent());
     expect(footprint.width).toBeCloseTo(137.5, 0);
     expect(footprint.depth).toBeCloseTo(112.5, 0);
+});
+
+test('test image completes raised generation and reaches the Bambu handoff', async ({ page, request }) => {
+    test.setTimeout(300_000);
+    await page.addInitScript(() => {
+        Object.defineProperty(navigator, 'platform', {
+            configurable: true,
+            get: () => 'MacIntel'
+        });
+        window.__GENESIS_BAMBU_PROTOCOL_CALLS__ = [];
+        window.__GENESIS_BAMBU_PROTOCOL_HOOK__ = async (url) => {
+            window.__GENESIS_BAMBU_PROTOCOL_CALLS__.push(url);
+            return true;
+        };
+    });
+
+    await page.goto('/3d-obj');
+    await page.locator('#file-input').setInputFiles(path.join(process.cwd(), 'testImage.png'));
+
+    await expect(page.locator('#status-text')).toHaveText('Preview generated!', { timeout: 60_000 });
+    await expect(page.locator('#obj-preview-placeholder')).toBeHidden({ timeout: 60_000 });
+    await expect(page.locator('#obj-ams-print-style')).toHaveValue('raised-efficient');
+    await expect(page.locator('#obj-face-down-toggle')).toHaveAttribute('aria-pressed', 'false');
+    await expect(page.locator('#obj-preview-canvas')).toHaveAttribute(
+        'data-ams-print-style',
+        'raised-efficient'
+    );
+    await expect(page.locator('#svg-model-size-readout')).toHaveAttribute('data-bed-fit', 'fits');
+    const printWidth = Number.parseFloat(
+        await page.locator('#svg-model-size-readout').getAttribute('data-print-width')
+    );
+    expect(printWidth).toBeLessThanOrEqual(246);
+
+    await page.locator('#svg-bambu-open-btn').click();
+    await expect(page.locator('#svg-bambu-progress')).toBeVisible();
+    await expect(page.locator('#svg-bambu-open-btn')).toHaveAttribute('aria-busy', 'true');
+    await expect(page.locator('#svg-bambu-progress')).toHaveAttribute('data-state', 'ready', {
+        timeout: 180_000
+    });
+    expect(await page.evaluate(() => window.__GENESIS_BAMBU_PROTOCOL_CALLS__)).toEqual([]);
+    await page.locator('#svg-bambu-open-btn').click();
+    await expect(page.locator('#svg-bambu-progress [data-bambu-progress-stage]')).toHaveText(
+        'Finish in Bambu Studio'
+    );
+    await expect(page.locator('#status-text')).toContainText('Bambu Studio launch requested for testImage_');
+
+    const protocolCalls = await page.evaluate(() => window.__GENESIS_BAMBU_PROTOCOL_CALLS__);
+    expect(protocolCalls).toHaveLength(1);
+    expect(protocolCalls[0]).toMatch(/^bambustudioopen:\/\/https?:\/\//);
+
+    const transferUrl = protocolCalls[0].slice('bambustudioopen://'.length);
+    const transferResponse = await request.get(transferUrl);
+    expect(transferResponse.ok()).toBe(true);
+    expect(transferResponse.headers()['content-type']).toBe('model/3mf');
+    const transferBody = await transferResponse.body();
+    expect(transferBody.subarray(0, 4)).toEqual(Buffer.from([0x50, 0x4b, 0x03, 0x04]));
 });
 
 test('test image completes face-down generation and reaches the Bambu handoff', async ({ page, request }) => {
@@ -170,12 +228,53 @@ test('test image completes face-down generation and reaches the Bambu handoff', 
     );
     expect(printWidth).toBeLessThanOrEqual(246);
 
+    await page.evaluate(() => {
+        window.__BAMBU_HEARTBEAT__ = { last: performance.now(), maxGap: 0 };
+        window.__BAMBU_FIRST_FEEDBACK__ = null;
+        window.__BAMBU_HEARTBEAT_TIMER__ = setInterval(() => {
+            const now = performance.now();
+            window.__BAMBU_HEARTBEAT__.maxGap = Math.max(
+                window.__BAMBU_HEARTBEAT__.maxGap,
+                now - window.__BAMBU_HEARTBEAT__.last
+            );
+            window.__BAMBU_HEARTBEAT__.last = now;
+        }, 50);
+        const button = document.querySelector('#svg-bambu-open-btn');
+        button?.addEventListener('click', () => {
+            const clickAt = performance.now();
+            requestAnimationFrame(() => {
+                const progress = document.querySelector('#svg-bambu-progress');
+                window.__BAMBU_FIRST_FEEDBACK__ = {
+                    delay: performance.now() - clickAt,
+                    progressVisible: progress ? !progress.hidden : false,
+                    busy: button.getAttribute('aria-busy') === 'true'
+                };
+            });
+        }, { capture: true, once: true });
+    });
     await page.locator('#svg-bambu-open-btn').click();
-    await expect.poll(
-        () => page.locator('#status-text').textContent(),
-        { timeout: 180_000 }
-    ).toMatch(/Sent testImage_|3D print validation failed:/);
-    await expect(page.locator('#status-text')).toContainText('Sent testImage_');
+    await expect(page.locator('#svg-bambu-progress')).toBeVisible();
+    await expect(page.locator('#svg-bambu-open-btn')).toHaveAttribute('aria-busy', 'true');
+    await expect.poll(() => page.evaluate(() => window.__BAMBU_FIRST_FEEDBACK__)).not.toBeNull();
+    const firstFeedback = await page.evaluate(() => window.__BAMBU_FIRST_FEEDBACK__);
+    expect(firstFeedback.progressVisible).toBe(true);
+    expect(firstFeedback.busy).toBe(true);
+    expect(firstFeedback.delay).toBeLessThan(1_000);
+    await expect(page.locator('#svg-bambu-progress')).toHaveAttribute('data-state', 'ready', {
+        timeout: 180_000
+    });
+    expect(await page.evaluate(() => window.__GENESIS_BAMBU_PROTOCOL_CALLS__)).toEqual([]);
+    await page.locator('#svg-bambu-open-btn').click();
+    await expect(page.locator('#svg-bambu-progress [data-bambu-progress-stage]')).toHaveText(
+        'Finish in Bambu Studio'
+    );
+    await expect(page.locator('#status-text')).toContainText('Bambu Studio launch requested for testImage_');
+
+    const heartbeat = await page.evaluate(() => {
+        clearInterval(window.__BAMBU_HEARTBEAT_TIMER__);
+        return window.__BAMBU_HEARTBEAT__;
+    });
+    expect(heartbeat.maxGap).toBeLessThan(2_500);
 
     const protocolCalls = await page.evaluate(() => window.__GENESIS_BAMBU_PROTOCOL_CALLS__);
     expect(protocolCalls).toHaveLength(1);

@@ -1,7 +1,6 @@
 services:
   - type: web
     name: genesis-image-converter
-    env: node
-    buildCommand: npm ci --omit=dev
-    startCommand: npm start
-    healthCheckPath: /health
+    env: static
+    buildCommand: npm ci --omit=dev && npm run build
+    staticPublishPath: .

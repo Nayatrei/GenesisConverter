@@ -13,13 +13,23 @@ const TRANSFER_TTL_MS = 10 * 60 * 1000;
 const RATE_LIMIT_WINDOW_MS = 15 * 60 * 1000;
 const RATE_LIMIT_MAX_UPLOADS = 30;
 const TRANSFER_DIR = path.join(os.tmpdir(), 'genesis-bambu-transfers');
+const RELEASE_VERSION_PATTERN = /^(?:r-[a-f0-9]{16}|\d{8}[a-z])$/;
+const APP_RELEASE_VERSION = (() => {
+    try {
+        const manifest = JSON.parse(fs.readFileSync(path.join(ROOT_DIR, 'app-version.json'), 'utf8'));
+        return typeof manifest?.version === 'string' ? manifest.version : '';
+    } catch {
+        return '';
+    }
+})();
 const transfers = new Map();
 const TAB_ROUTE_FILES = new Map([
     ['/3d-obj', '/3d-obj.html'],
     ['/logo', '/logo.html'],
     ['/raster', '/raster.html'],
     ['/bulk', '/bulk.html'],
-    ['/pdf', '/pdf.html']
+    ['/pdf', '/pdf.html'],
+    ['/svg', '/svg.html']
 ]);
 const uploadHistoryByIp = new Map();
 
@@ -283,9 +293,36 @@ async function serveStaticFile(request, response, pathname) {
         const finalStats = stats.isDirectory() ? await fs.promises.stat(finalPath) : stats;
         const extension = path.extname(finalPath).toLowerCase();
         const isMutableAsset = ['.html', '.css', '.js', '.mjs'].includes(extension);
+        const requestUrl = new URL(request.url, `http://${request.headers.host || 'localhost'}`);
+        const isToolShell = extension === '.html' && path.dirname(finalPath) === ROOT_DIR;
+        const isBootstrapAsset = isToolShell
+            || requestUrl.pathname === '/app-bootstrap.js'
+            || requestUrl.pathname === '/app-version.json';
+        const requestedVersion = requestUrl.searchParams.get('v') || '';
+        const isReleaseVersionedAsset = isMutableAsset && requestedVersion === APP_RELEASE_VERSION;
+        const isStaleReleaseRequest = isMutableAsset
+            && RELEASE_VERSION_PATTERN.test(requestedVersion)
+            && requestedVersion !== APP_RELEASE_VERSION;
+
+        // Never put current bytes behind an old or guessed release URL. That
+        // would permanently poison an immutable CDN cache with a mixed graph.
+        if (isStaleReleaseRequest) {
+            response.writeHead(409, {
+                'Cache-Control': 'no-store',
+                'Content-Type': 'text/plain; charset=utf-8',
+                'X-Content-Type-Options': 'nosniff'
+            });
+            response.end('Release version mismatch. Refresh to load the current app.');
+            return;
+        }
+        const cacheControl = isBootstrapAsset
+            ? 'no-store'
+            : isReleaseVersionedAsset
+                ? 'public, max-age=31536000, immutable'
+                : 'no-cache';
 
         response.writeHead(200, {
-            'Cache-Control': isMutableAsset ? 'no-cache' : 'public, max-age=3600',
+            'Cache-Control': cacheControl,
             'Content-Length': finalStats.size,
             'Content-Type': MIME_TYPES[extension] || 'application/octet-stream',
             'X-Content-Type-Options': 'nosniff'

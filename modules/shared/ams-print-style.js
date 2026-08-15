@@ -2,7 +2,8 @@ import {
     DEFAULT_AMS_PRINT_STYLE,
     getAmsPrintStylePreset,
     normalizeAmsPrintStyle
-} from '../config.js';
+} from '../config.js?v=r-5699d700a3fc7b24';
+import { waitForBrowserPaint } from './bambu-send-progress.js?v=r-5699d700a3fc7b24';
 
 const STYLE_HELPERS = Object.freeze({
     'raised-efficient': '2.4mm base with a 0.6mm color surface. Keeps the raised look while limiting AMS swaps.',
@@ -38,16 +39,6 @@ function syncFaceDownToggle(controls, styleId) {
         ? 'Colored regions share the first layer at Z=0; click to restore the previous raised style.'
         : 'Build every color flush against the plate, with the base continuing as backing.';
     if (stateLabel) stateLabel.textContent = isFaceDown ? 'Active' : 'Off';
-}
-
-function waitForUiPaint() {
-    return new Promise((resolve) => {
-        if (typeof requestAnimationFrame !== 'function') {
-            setTimeout(resolve, 0);
-            return;
-        }
-        requestAnimationFrame(() => requestAnimationFrame(resolve));
-    });
 }
 
 /**
@@ -114,7 +105,7 @@ export async function renderAmsPrintStyleChange({
                 : 'Preparing raised orientation...';
         }
 
-        await waitForUiPaint();
+        await waitForBrowserPaint();
 
         renderSucceeded = render() !== false;
     } catch (error) {

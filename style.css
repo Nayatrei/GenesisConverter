@@ -319,6 +319,18 @@
             transition: width 140ms ease;
         }
 
+        .loader-progress-shell.is-indeterminate .loader-progress-bar {
+            width: 38%;
+            transition: none;
+            animation: loader-progress-sweep 1.15s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+            will-change: transform;
+        }
+
+        @keyframes loader-progress-sweep {
+            from { transform: translate3d(-115%, 0, 0); }
+            to { transform: translate3d(300%, 0, 0); }
+        }
+
         .loader-progress-meta {
             margin-top: 0.45rem;
             text-align: right;
@@ -2461,6 +2473,116 @@ body,
     line-height: 1.35;
     color: #9ca3af;
     text-align: center;
+}
+
+.bambu-send-progress {
+    width: 100%;
+    margin-top: 0.55rem;
+}
+
+.bambu-send-progress[hidden] {
+    display: none;
+}
+
+.bambu-send-progress-track {
+    position: relative;
+    height: 0.3rem;
+    overflow: hidden;
+    border-radius: 999px;
+    background: rgba(148, 163, 184, 0.18);
+}
+
+.bambu-send-progress-fill {
+    display: block;
+    position: relative;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    border-radius: inherit;
+    background: #22c55e;
+    transform: scaleX(var(--bambu-send-progress, 0));
+    transform-origin: left center;
+    transition: transform 220ms ease-out, background-color 160ms ease-out;
+    will-change: transform;
+}
+
+.bambu-send-progress[data-state="working"] .bambu-send-progress-fill::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.46), transparent);
+    animation: bambu-progress-heartbeat 1.25s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+    will-change: transform;
+}
+
+@keyframes bambu-progress-heartbeat {
+    from { transform: translate3d(-110%, 0, 0); }
+    to { transform: translate3d(110%, 0, 0); }
+}
+
+.bambu-send-progress-copy {
+    display: flex;
+    justify-content: space-between;
+    gap: 0.75rem;
+    margin-top: 0.35rem;
+    color: #cbd5e1;
+    font-size: 0.7rem;
+    line-height: 1.35;
+}
+
+.bambu-send-progress-copy [data-bambu-progress-value] {
+    color: #94a3b8;
+    font-variant-numeric: tabular-nums;
+}
+
+.bambu-send-progress[data-state="warning"] .bambu-send-progress-fill {
+    background: #f59e0b;
+}
+
+.bambu-send-progress[data-state="ready"] .bambu-send-progress-fill {
+    background: #38bdf8;
+}
+
+.bambu-send-progress[data-state="error"] .bambu-send-progress-fill {
+    background: #ef4444;
+}
+
+.export-icon-btn.is-sending {
+    cursor: wait;
+}
+
+.export-icon-btn.is-send-ready {
+    border-color: rgba(56, 189, 248, 0.68);
+}
+
+.export-icon-btn.is-send-success {
+    border-color: rgba(34, 197, 94, 0.58);
+}
+
+.export-icon-btn.is-send-warning {
+    border-color: rgba(245, 158, 11, 0.58);
+}
+
+.export-icon-btn.is-send-error {
+    border-color: rgba(239, 68, 68, 0.62);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .loader-progress-shell.is-indeterminate .loader-progress-bar {
+        width: 100%;
+        opacity: 0.55;
+        animation: none;
+        transform: none;
+    }
+
+    .bambu-send-progress-fill {
+        transition: none;
+    }
+
+    .bambu-send-progress[data-state="working"] .bambu-send-progress-fill::after {
+        animation: none;
+        opacity: 0;
+    }
 }
 
 .footer-toggle {

@@ -1,7 +1,7 @@
-import { SLIDER_TOOLTIPS } from '../config.js';
-import { createObjPreview } from '../preview3d.js?v=20260814q';
-import { createObjExporter } from '../export3d.js?v=20260814q';
-import { hasTransparentPixels, markTransparentPixels, stripTransparentPalette } from '../shared/image-utils.js';
+import { SLIDER_TOOLTIPS } from '../config.js?v=r-5699d700a3fc7b24';
+import { createObjPreview } from '../preview3d.js?v=r-5699d700a3fc7b24';
+import { createObjExporter } from '../export3d.js?v=r-5699d700a3fc7b24';
+import { hasTransparentPixels, markTransparentPixels, stripTransparentPalette } from '../shared/image-utils.js?v=r-5699d700a3fc7b24';
 import {
     debounce,
     layerHasPaths,
@@ -9,29 +9,30 @@ import {
     buildTracedataSubset,
     createMergedTracedata,
     assess3DPrintQuality
-} from '../shared/trace-utils.js?v=20260726a';
-import { buildWeldedSilhouetteSvgString } from '../shared/silhouette-builder.js';
-import { saveInitialSliderValues, updateAllSliderDisplays, resetSlidersToInitial } from '../shared/slider-manager.js';
-import { createZoomPanController } from '../shared/zoom-pan.js';
-import { svgToPng } from '../shared/svg-renderer.js';
-import { createPaletteManager } from '../shared/palette-manager.js';
-import { formatObjScalePercent } from '../obj-scale.js?v=20260814l';
-import { createAutoWorkingImageFromSource } from '../raster-utils.js';
-import { canAttemptBambuLaunch } from '../bambu-bridge.js?v=20260725f';
+} from '../shared/trace-utils.js?v=r-5699d700a3fc7b24';
+import { buildWeldedSilhouetteSvgString } from '../shared/silhouette-builder.js?v=r-5699d700a3fc7b24';
+import { saveInitialSliderValues, updateAllSliderDisplays, resetSlidersToInitial } from '../shared/slider-manager.js?v=r-5699d700a3fc7b24';
+import { createZoomPanController } from '../shared/zoom-pan.js?v=r-5699d700a3fc7b24';
+import { svgToPng } from '../shared/svg-renderer.js?v=r-5699d700a3fc7b24';
+import { createPaletteManager } from '../shared/palette-manager.js?v=r-5699d700a3fc7b24';
+import { formatObjScalePercent } from '../obj-scale.js?v=r-5699d700a3fc7b24';
+import { createAutoWorkingImageFromSource } from '../raster-utils.js?v=r-5699d700a3fc7b24';
+import { canAttemptBambuLaunch } from '../bambu-bridge.js?v=r-5699d700a3fc7b24';
 import {
     buildTraceOptions,
     cycleTracePreset,
     estimateMeaningfulColorCount,
     getColorCountNoticeMessage,
     readTraceControls
-} from '../shared/trace-controls.js';
-import { setMakerWorkflow, updateMakerPreflight } from '../shared/maker-workflow.js?v=20260725a';
+} from '../shared/trace-controls.js?v=r-5699d700a3fc7b24';
+import { setMakerWorkflow, updateMakerPreflight } from '../shared/maker-workflow.js?v=r-5699d700a3fc7b24';
 import {
     applyAmsPrintStylePreset,
     renderAmsPrintStyleChange,
     syncAmsPrintStyleControls,
     toggleFaceDownPrintStyle
-} from '../shared/ams-print-style.js?v=20260814q';
+} from '../shared/ams-print-style.js?v=r-5699d700a3fc7b24';
+import { yieldToBrowser } from '../shared/bambu-send-progress.js?v=r-5699d700a3fc7b24';
 
 export function createSvgTabController({
     state,
@@ -64,6 +65,8 @@ export function createSvgTabController({
     };
     syncAmsPrintStyleControls({ rootState: state, tabState: state, controls: elements });
     setMakerWorkflow(elements.workflow, elements.sourceImage?.src ? 'layers' : 'source');
+    let previewGenerationPromise = null;
+    let previewGenerationQueued = false;
 
     // ── Debounced re-trace ─────────────────────────────────────────────────────
 
@@ -181,7 +184,11 @@ export function createSvgTabController({
     }
 
     async function quantizeColors(options) {
-        showLoader(true);
+        showLoader(true, {
+            title: 'Analyzing image colors…',
+            subtitle: 'Preparing printable color regions.',
+            progress: 0.08
+        });
         elements.statusText.textContent = 'Analyzing colors...';
         disableDownloadButtons();
 
@@ -195,6 +202,11 @@ export function createSvgTabController({
 
                     state.quantizedData = tracer.colorquantization(imageData, options);
                     if (!state.quantizedData?.palette) throw new Error('Color analysis failed.');
+                    showLoader(true, {
+                        title: 'Analyzing image colors…',
+                        subtitle: `Found ${state.quantizedData.palette.length} candidate colors.`,
+                        progress: 0.18
+                    });
 
                     if (hasTransparentPixels(imageData)) {
                         markTransparentPixels(state.quantizedData, imageData);
@@ -208,9 +220,8 @@ export function createSvgTabController({
                 } catch (error) {
                     console.error('Color analysis error:', error);
                     elements.statusText.textContent = `Error: ${error.message}`;
-                    reject(error);
-                } finally {
                     showLoader(false);
+                    reject(error);
                 }
             }, 50);
         });
@@ -222,8 +233,9 @@ export function createSvgTabController({
             || newOptions.mincolorratio !== state.lastOptions.mincolorratio;
     }
 
-    async function generatePreviewClick() {
+    async function runPreviewGeneration() {
         if (!elements.sourceImage.src) return;
+        resetBambuSendProgress();
         state.layerThicknessById = {};
         queueAutoBaseSelection();
         setMakerWorkflow(elements.workflow, 'layers', { tone: 'processing' });
@@ -242,6 +254,31 @@ export function createSvgTabController({
             setMakerWorkflow(elements.workflow, 'layers', { tone: 'error' });
             throw error;
         }
+    }
+
+    function generatePreviewClick() {
+        if (previewGenerationPromise) {
+            previewGenerationQueued = true;
+            return previewGenerationPromise;
+        }
+
+        if (elements.generatePreviewBtn) {
+            elements.generatePreviewBtn.disabled = true;
+            elements.generatePreviewBtn.setAttribute('aria-busy', 'true');
+        }
+        previewGenerationPromise = (async () => {
+            do {
+                previewGenerationQueued = false;
+                await runPreviewGeneration();
+            } while (previewGenerationQueued);
+        })().finally(() => {
+            previewGenerationPromise = null;
+            if (elements.generatePreviewBtn) {
+                elements.generatePreviewBtn.disabled = false;
+                elements.generatePreviewBtn.setAttribute('aria-busy', 'false');
+            }
+        });
+        return previewGenerationPromise;
     }
 
     // ── Layer helpers ──────────────────────────────────────────────────────────
@@ -294,6 +331,7 @@ export function createSvgTabController({
 
     // ── 3D preview / exporter ──────────────────────────────────────────────────
 
+    let resetBambuSendProgress = () => true;
     const objPreview = createObjPreview({
         state,
         modelControls,
@@ -319,6 +357,7 @@ export function createSvgTabController({
             await renderPreviews();
             await updateFilteredPreview();
         },
+        onExportGeometryInvalidated: () => resetBambuSendProgress(),
         ImageTracer: tracer
     });
 
@@ -332,11 +371,28 @@ export function createSvgTabController({
 
     // Coalesce rapid 3D-only control changes and leave the 2D filtered preview
     // alone; neither its pixels nor its layer selection changed.
-    const scheduleObjModelRender = debounce(renderObjModelOnly, 80);
+    const runScheduledObjModelRender = debounce(() => {
+        const renderSucceeded = renderObjModelOnly();
+        if (viewControls.objPreviewCanvas) {
+            viewControls.objPreviewCanvas.dataset.renderState = renderSucceeded ? 'ready' : 'error';
+        }
+    }, 80);
+
+    function scheduleObjModelRender() {
+        resetBambuSendProgress();
+        if (viewControls.objPreviewCanvas) {
+            viewControls.objPreviewCanvas.dataset.renderState = 'building';
+        }
+        runScheduledObjModelRender();
+    }
 
     const objExporter = createObjExporter({
         state,
         modelControls,
+        exportControls: {
+            ...exportElements,
+            objPreviewCanvas: viewControls.objPreviewCanvas
+        },
         statusText: elements.statusText,
         getDataToExport,
         ImageTracer: tracer,
@@ -344,12 +400,17 @@ export function createSvgTabController({
         downloadBlob,
         getImageBaseName
     });
+    resetBambuSendProgress = objExporter.resetBambuSendProgress;
 
     // ── Tracing ────────────────────────────────────────────────────────────────
 
     async function traceVectorPaths() {
         if (!state.quantizedData) return;
-        showLoader(true);
+        showLoader(true, {
+            title: 'Building the 3D model…',
+            subtitle: 'Tracing printable color paths.',
+            progress: 0.22
+        });
         elements.statusText.textContent = 'Tracing vector paths...';
         if (elements.generatePreviewBtn) elements.generatePreviewBtn.disabled = true;
         setMakerWorkflow(elements.workflow, 'model', { tone: 'processing' });
@@ -376,11 +437,23 @@ export function createSvgTabController({
                             ),
                             options.ltres, options.qtres
                         ));
+                        showLoader(true, {
+                            title: 'Building the 3D model…',
+                            subtitle: `Tracing color ${colornum + 1} of ${ii.palette.length}.`,
+                            progress: 0.22 + (((colornum + 1) / Math.max(1, ii.palette.length)) * 0.34)
+                        });
+                        await yieldToBrowser();
                     }
 
                     state.tracedata = tracedata;
                     state.hiddenSourceLayerIds.clear();
                     state.backgroundCandidateSourceLayerId = detectBackgroundLayerIndex(tracedata);
+                    showLoader(true, {
+                        title: 'Building the 3D model…',
+                        subtitle: 'Joining the printable silhouette.',
+                        progress: 0.62
+                    });
+                    await yieldToBrowser();
                     state.silhouetteSvgString = buildWeldedSilhouetteSvgString({
                         tracedata: state.tracedata,
                         layerIndices: getVisibleLayerIndices(),
@@ -396,12 +469,30 @@ export function createSvgTabController({
                     elements.outputSection.style.display = 'flex';
                     setTimeout(() => updateSegmentedControlIndicator(), 100);
 
+                    showLoader(true, {
+                        title: 'Building the 3D model…',
+                        subtitle: 'Rendering color previews.',
+                        progress: 0.72
+                    });
+                    await yieldToBrowser();
                     await renderPreviews();
-                    await updateFilteredPreview();
+                    showLoader(true, {
+                        title: 'Building the 3D model…',
+                        subtitle: 'Generating print geometry.',
+                        progress: 0.82
+                    });
+                    await yieldToBrowser();
+                    const modelReady = await updateFilteredPreview();
+                    if (!modelReady) throw new Error('The 3D preview could not be generated. Adjust the image settings and try again.');
 
                     updateQualityDisplay(assess3DPrintQuality(state.tracedata, getVisibleLayerIndices));
                     setMakerWorkflow(elements.workflow, 'export');
                     elements.statusText.textContent = 'Preview generated!';
+                    showLoader(true, {
+                        title: '3D model ready',
+                        subtitle: 'Print checks and export controls are ready.',
+                        progress: 1
+                    });
                     enableDownloadButtons();
                     onRasterExportStateChanged();
                     resolve();
@@ -412,7 +503,6 @@ export function createSvgTabController({
                     reject(error);
                 } finally {
                     showLoader(false);
-                    if (elements.generatePreviewBtn) elements.generatePreviewBtn.disabled = false;
                 }
             }, 50);
         });
@@ -445,11 +535,11 @@ export function createSvgTabController({
     }
 
     async function updateFilteredPreview() {
-        objPreview.render();
+        const modelReady = objPreview.render();
         if (state.tracedata) {
             updateQualityDisplay(assess3DPrintQuality(state.tracedata, getVisibleLayerIndices));
         }
-        if (!state.tracedata || !elements.svgPreviewFiltered) return;
+        if (!state.tracedata || !elements.svgPreviewFiltered) return modelReady;
 
         let dataToShow = state.tracedata;
         let indicesToRender = [];
@@ -482,7 +572,7 @@ export function createSvgTabController({
 
         if (indicesToRender.length === 0) {
             elements.svgPreviewFiltered.style.display = 'none';
-            return;
+            return modelReady;
         }
 
         try {
@@ -495,6 +585,7 @@ export function createSvgTabController({
             console.error('Filtered preview rendering failed:', error);
             elements.svgPreviewFiltered.style.display = 'none';
         }
+        return modelReady;
     }
 
     // ── Download buttons ───────────────────────────────────────────────────────
@@ -516,13 +607,14 @@ export function createSvgTabController({
         const canLaunch = canAttemptBambuLaunch();
         elements.bambuOpenBtn.disabled = !state.tracedata || !canLaunch;
         elements.bambuOpenBtn.title = canLaunch
-            ? 'Sends the 3MF directly to the installed Bambu Studio app.'
+            ? 'Prepares the 3MF transfer, then opens Bambu Studio from a second click.'
             : 'Bambu Studio launch is only available on desktop browsers.';
         const meta = document.getElementById('svg-bambu-open-meta');
         if (meta) {
             meta.textContent = canLaunch
-                ? 'One-click 3MF handoff · Bambu Studio required'
+                ? 'Build a 10-minute transfer, then open Bambu Studio'
                 : 'Desktop browsers only';
+            meta.dataset.bambuIdleText = meta.textContent;
         }
     }
 
@@ -552,27 +644,25 @@ export function createSvgTabController({
     // ── Lifecycle ──────────────────────────────────────────────────────────────
 
     function onSourceImageLoaded() {
+        resetBambuSendProgress();
         const w = elements.sourceImage.naturalWidth;
         const h = elements.sourceImage.naturalHeight;
         if (elements.originalResolution) elements.originalResolution.textContent = `${w}×${h} px`;
         updateResolutionNotice(w, h);
-        onRasterImageLoaded();
         state.colorsAnalyzed = false;
         setMakerWorkflow(elements.workflow, 'layers');
 
         if (state.activeTab !== 'svg') {
-            showLoader(false);
             return;
         }
 
+        onRasterImageLoaded();
         syncWorkspaceView();
         if (elements.generatePreviewBtn) elements.generatePreviewBtn.disabled = false;
         buildWorkingImageCache();
         saveInitialSliderValues(state, elements);
         syncTraceControlUi();
         void generatePreviewClick().catch(() => {});
-        onTabActivated();
-        showLoader(false);
     }
 
     function onTabActivated() {

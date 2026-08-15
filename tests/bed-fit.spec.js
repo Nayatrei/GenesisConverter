@@ -84,3 +84,52 @@ test('oversized 3D models auto-fit to the selected Bambu printer bed', async ({ 
     expect(h2dFootprint.width).toBeLessThanOrEqual(315.0);
     expect(h2dFootprint.depth).toBeLessThanOrEqual(310.0);
 });
+
+test('auto-fit commits the finished preview snapshot before Bambu preparation', async ({ page }) => {
+    test.setTimeout(180_000);
+    await page.addInitScript(() => {
+        Object.defineProperty(navigator, 'platform', {
+            configurable: true,
+            get: () => 'MacIntel'
+        });
+        window.__GENESIS_BAMBU_PROTOCOL_HOOK__ = async () => true;
+    });
+
+    let uploadCount = 0;
+    await page.route('**/api/bambu-transfer?**', async (route) => {
+        uploadCount += 1;
+        await route.fulfill({
+            status: 201,
+            contentType: 'application/json',
+            body: JSON.stringify({
+                url: 'http://127.0.0.1:4173/api/bambu-transfer/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee/auto-fit-snapshot.3mf',
+                expiresAt: new Date(Date.now() + 600_000).toISOString()
+            })
+        });
+    });
+
+    await page.goto('/3d-obj');
+    await page.locator('#file-input').setInputFiles({
+        name: 'auto-fit-snapshot.svg',
+        mimeType: 'image/svg+xml',
+        buffer: Buffer.from(buildOversizedSvg())
+    });
+    await expect(page.locator('#status-text')).toHaveText('Preview generated!', { timeout: 90_000 });
+
+    const canvas = page.locator('#obj-preview-canvas');
+    const priorRenderCount = Number(await canvas.getAttribute('data-full-render-count') || 0);
+    await setRangeValue(page.locator('#obj-scale'), 200);
+    await expect.poll(async () => Number(
+        await canvas.getAttribute('data-full-render-count') || 0
+    ), { timeout: 60_000 }).toBeGreaterThan(priorRenderCount);
+    await expect(canvas).toHaveAttribute('data-render-state', 'ready');
+    await expect(page.locator('#obj-size-readout')).toContainText('auto-fit to Bambu X1/X1C');
+    expect(Number(await page.locator('#obj-scale').inputValue())).toBeLessThan(200);
+
+    await page.locator('#svg-bambu-open-btn').click();
+    await expect(page.locator('#svg-bambu-progress')).toHaveAttribute('data-state', 'ready', {
+        timeout: 30_000
+    });
+    await expect(page.locator('#status-text')).not.toContainText('preview is not ready');
+    expect(uploadCount).toBe(1);
+});
