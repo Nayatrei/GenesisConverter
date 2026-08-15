@@ -2,7 +2,7 @@ import {
     buildObjGeometryBundle,
     buildObjModelPlan,
     sanitizeGeometryForPrint
-} from './obj-model-plan.js?v=20260814o';
+} from './obj-model-plan.js?v=20260814q';
 import { fitObjScalePlanToGeometryBounds } from './obj-scale.js?v=20260814l';
 import { buildBambuProjectFiles } from './bambu-project.js?v=20260814p';
 import { BAMBU_PROJECT_NOZZLE_DIAMETER } from './config.js';

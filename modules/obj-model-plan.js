@@ -521,6 +521,223 @@ export function updateObjModelPlanLayerHeights(plan, state, defaultThickness) {
     };
 }
 
+function cloneLayerForPrintStyle(layer) {
+    return {
+        ...layer,
+        sourceLayerIds: Array.isArray(layer.sourceLayerIds) ? layer.sourceLayerIds.slice() : [],
+        repairActions: Array.isArray(layer.repairActions)
+            ? layer.repairActions.map((action) => ({ ...action }))
+            : [],
+        componentStats: layer.componentStats ? { ...layer.componentStats } : null,
+        geometrySegments: Array.isArray(layer.geometrySegments)
+            ? layer.geometrySegments.map((segment) => ({ ...segment }))
+            : []
+    };
+}
+
+function getLayerSimplifyTolerance(layer) {
+    const segment = Array.isArray(layer?.geometrySegments)
+        ? layer.geometrySegments.find((entry) => Number.isFinite(entry?.simplifyTolerance))
+        : null;
+    return segment?.simplifyTolerance ?? null;
+}
+
+function buildFrontBaseMask(supportBaseMask, detailMasks) {
+    const frontBaseMask = new Uint8Array(supportBaseMask.length);
+    for (let index = 0; index < supportBaseMask.length; index++) {
+        if (!supportBaseMask[index]) continue;
+        let occupiedByDetail = false;
+        for (let maskIndex = 0; maskIndex < detailMasks.length; maskIndex++) {
+            if (detailMasks[maskIndex][index]) {
+                occupiedByDetail = true;
+                break;
+            }
+        }
+        if (!occupiedByDetail) frontBaseMask[index] = 255;
+    }
+    return frontBaseMask;
+}
+
+/**
+ * Reuses the expensive, style-independent mask preparation from the previous
+ * preview. Only the AMS preset's Z layout and extrusion segments are rebuilt.
+ * Export continues to use buildObjModelPlan() as the authoritative cold path.
+ */
+export function retargetObjModelPlanPrintStyle(previousPlan, state, defaultThickness) {
+    if (!previousPlan?.outputLayers?.length || !state?.objParams) return null;
+    if (!previousPlan.useBaseLayer || previousPlan.resolvedBaseOutputLayerId === null) return null;
+    if (previousPlan.bezelSpec?.enabled || previousPlan.magnetPocketResult?.enabled) return null;
+
+    const outputLayers = previousPlan.outputLayers.map(cloneLayerForPrintStyle);
+    const baseLayer = outputLayers.find(
+        (layer) => layer.outputLayerId === previousPlan.resolvedBaseOutputLayerId
+    );
+    if (!baseLayer?.printMask || !(baseLayer.printMask instanceof Uint8Array) || !baseLayer.printMaskSpace) {
+        return null;
+    }
+
+    const detailLayers = outputLayers.filter((layer) => layer.outputLayerId !== baseLayer.outputLayerId);
+    const maskLength = baseLayer.printMask.length;
+    const masksAreReusable = detailLayers.every((layer) => (
+        layer.printMask instanceof Uint8Array
+        && layer.printMask.length === maskLength
+        && layer.printMaskSpace === baseLayer.printMaskSpace
+    ));
+    if (!masksAreReusable) return null;
+
+    const requestedAmsPrintStyle = normalizeAmsPrintStyle(state.objParams.amsPrintStyle);
+    const preset = getAmsPrintStylePreset(requestedAmsPrintStyle);
+    const sourceLayerIds = Array.isArray(previousPlan.visibleSourceLayerIds)
+        ? previousPlan.visibleSourceLayerIds.slice()
+        : outputLayers.flatMap((layer) => layer.sourceLayerIds || []);
+    const thicknessById = ensureLayerThicknessById(state, sourceLayerIds, defaultThickness);
+    const warnings = (previousPlan.warnings || []).filter(
+        (warning) => !String(warning?.type || '').startsWith('ams-')
+    );
+    const requestedBaseThickness = clampThickness(state.objParams.baseThickness, preset.baseThickness);
+    const baseSimplifyTolerance = getLayerSimplifyTolerance(baseLayer);
+
+    baseLayer.isBase = true;
+    baseLayer.thickness = requestedBaseThickness;
+    thicknessById[baseLayer.primarySourceLayerId] = baseLayer.thickness;
+
+    if (requestedAmsPrintStyle === 'face-down') {
+        const minimumBackingThickness = 0.2;
+        const minimumColorDepth = 0.2;
+        const baseThickness = Math.max(
+            requestedBaseThickness,
+            minimumBackingThickness + minimumColorDepth
+        );
+        if (Math.abs(baseThickness - requestedBaseThickness) > 1e-6) {
+            warnings.push({
+                type: 'ams-base-depth',
+                message: `Base thickness increased to ${baseThickness.toFixed(1)}mm so the face-down backing remains printable.`
+            });
+        }
+        baseLayer.thickness = baseThickness;
+        thicknessById[baseLayer.primarySourceLayerId] = baseThickness;
+
+        const requestedColorDepth = clampThickness(defaultThickness, preset.colorThickness);
+        const colorDepth = Math.max(
+            minimumColorDepth,
+            Math.min(requestedColorDepth, Math.max(minimumColorDepth, baseThickness - minimumBackingThickness))
+        );
+        if (Math.abs(colorDepth - requestedColorDepth) > 1e-6) {
+            warnings.push({
+                type: 'ams-color-depth',
+                message: `Color surface reduced to ${colorDepth.toFixed(1)}mm so the backing remains printable.`
+            });
+        }
+
+        const frontBaseMask = buildFrontBaseMask(
+            baseLayer.printMask,
+            detailLayers.map((layer) => layer.printMask)
+        );
+        baseLayer.geometrySegments = [];
+        if (hasMaskPixels(frontBaseMask)) {
+            baseLayer.geometrySegments.push({
+                maskData: frontBaseMask,
+                maskSpace: baseLayer.printMaskSpace,
+                zStart: 0,
+                depth: colorDepth,
+                simplifyTolerance: baseSimplifyTolerance
+            });
+        }
+        if (baseThickness - colorDepth > 0.001) {
+            baseLayer.geometrySegments.push({
+                maskData: baseLayer.printMask,
+                maskSpace: baseLayer.printMaskSpace,
+                zStart: colorDepth,
+                depth: baseThickness - colorDepth,
+                simplifyTolerance: baseSimplifyTolerance
+            });
+        }
+        baseLayer.zStart = 0;
+        baseLayer.zEnd = baseThickness;
+
+        detailLayers.forEach((layer) => {
+            const simplifyTolerance = getLayerSimplifyTolerance(layer);
+            layer.isBase = false;
+            layer.thickness = colorDepth;
+            layer.zStart = 0;
+            layer.zEnd = colorDepth;
+            layer.geometrySegments = [{
+                maskData: layer.printMask,
+                maskSpace: layer.printMaskSpace,
+                zStart: 0,
+                depth: colorDepth,
+                simplifyTolerance
+            }];
+            thicknessById[layer.primarySourceLayerId] = colorDepth;
+        });
+    } else {
+        baseLayer.geometrySegments = [{
+            maskData: baseLayer.printMask,
+            maskSpace: baseLayer.printMaskSpace,
+            zStart: 0,
+            depth: baseLayer.thickness,
+            simplifyTolerance: baseSimplifyTolerance
+        }];
+        baseLayer.zStart = 0;
+        baseLayer.zEnd = baseLayer.thickness;
+
+        detailLayers.forEach((layer) => {
+            const layerDefault = defaultThickness;
+            const nextThickness = clampThickness(
+                hasExplicitThickness(state, layer.primarySourceLayerId)
+                    ? thicknessById[layer.primarySourceLayerId]
+                    : layerDefault,
+                layerDefault
+            );
+            const simplifyTolerance = getLayerSimplifyTolerance(layer);
+            layer.isBase = false;
+            layer.thickness = nextThickness;
+            layer.zStart = baseLayer.thickness;
+            layer.zEnd = baseLayer.thickness + nextThickness;
+            layer.geometrySegments = [{
+                maskData: layer.printMask,
+                maskSpace: layer.printMaskSpace,
+                zStart: layer.zStart,
+                depth: nextThickness,
+                simplifyTolerance
+            }];
+            thicknessById[layer.primarySourceLayerId] = nextThickness;
+        });
+    }
+
+    state.useBaseLayer = true;
+    state.baseSourceLayerId = baseLayer.primarySourceLayerId;
+    state.autoBaseLayerSelectionPending = false;
+
+    const totalHeight = outputLayers.reduce(
+        (maxHeight, layer) => Math.max(maxHeight, layer.zEnd),
+        0
+    );
+    const colorLayerDepth = requestedAmsPrintStyle === 'face-down'
+        ? detailLayers[0]?.thickness || 0
+        : null;
+
+    return {
+        ...previousPlan,
+        outputLayers,
+        visibleSourceLayerIds: sourceLayerIds,
+        thicknessById,
+        requestedAmsPrintStyle,
+        amsPrintStyle: requestedAmsPrintStyle,
+        faceDownOnBed: requestedAmsPrintStyle === 'face-down',
+        baseThickness: baseLayer.thickness,
+        colorLayerDepth,
+        useBaseLayer: true,
+        baseSourceLayerId: baseLayer.primarySourceLayerId,
+        totalHeight,
+        maxHeight: totalHeight,
+        scalePlan: previousPlan.scalePlan
+            ? { ...previousPlan.scalePlan, modelHeight: totalHeight }
+            : previousPlan.scalePlan,
+        warnings
+    };
+}
+
 function migrateLegacyBaseSourceLayerId(state, outputLayers, detectedBaseOutputLayer) {
     if (Number.isInteger(state.baseSourceLayerId)) return;
     const legacyIndex = Number.parseInt(state.baseLayerIndex, 10);
@@ -1584,7 +1801,7 @@ export function buildObjModelPlan({
         thicknessById,
         requestedAmsPrintStyle,
         amsPrintStyle: appliedAmsPrintStyle,
-        previewFlipZ: appliedAmsPrintStyle === 'face-down',
+        faceDownOnBed: appliedAmsPrintStyle === 'face-down',
         baseThickness: resolvedBaseOutputLayer?.thickness || null,
         colorLayerDepth: appliedAmsPrintStyle === 'face-down'
             ? finalizedOutputLayers.find((layer) => !layer.isBase)?.thickness || 0

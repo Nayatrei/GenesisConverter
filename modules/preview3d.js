@@ -6,8 +6,9 @@ import {
 import {
     buildObjGeometryBundle,
     buildObjModelPlan,
+    retargetObjModelPlanPrintStyle,
     updateObjModelPlanLayerHeights
-} from './obj-model-plan.js?v=20260814o';
+} from './obj-model-plan.js?v=20260814q';
 import { resolveMergedLayerGroups } from './shared/trace-utils.js?v=20260726a';
 import { getGeometryBundleBounds } from './shared/print-validation.js?v=20260725h';
 import { updateMagnetPocketStatus } from './shared/magnet-pocket-controls.js?v=20260730a';
@@ -221,6 +222,7 @@ export function createObjPreview({
         state.objPreview.lastActualBounds = null;
         state.objPreview.lastTriangleCount = 0;
         state.objPreview.topologySnapshot = null;
+        state.objPreview.stylePreparationSnapshot = null;
     }
 
     function addMagnetPocketOverlays(plan, THREERef) {
@@ -447,7 +449,7 @@ export function createObjPreview({
         view.preflightStatus.classList.add(fitsOneAms ? 'is-ready' : 'is-review');
         if (fitsOneAms) {
             const styleNote = plan.amsPrintStyle === 'face-down'
-                ? 'The front is shown for inspection; the 3MF places it against the build plate.'
+                ? 'Preview matches the print orientation: the colored face is against the build plate.'
                 : plan.amsPrintStyle === 'full-depth'
                     ? 'Full-depth color keeps colored sidewalls but creates more AMS swap layers.'
                     : 'Thin color surfaces reduce the number of AMS swap layers.';
@@ -469,6 +471,7 @@ export function createObjPreview({
 
         button.classList.toggle('is-active', appliedFaceDown);
         button.classList.toggle('is-blocked', blocked);
+        button.classList.remove('is-error');
         button.setAttribute('aria-pressed', String(appliedFaceDown));
         if (blocked) {
             const explanation = warning?.message || 'Review the current base, bezel, and magnet settings.';
@@ -481,7 +484,7 @@ export function createObjPreview({
             button.setAttribute('aria-label', 'Place the colored face flat on the build plate');
             button.title = 'Build every color flush against the plate, with the base continuing as backing.';
         }
-        if (stateLabel) stateLabel.textContent = blocked ? 'Blocked' : appliedFaceDown ? 'On' : 'Off';
+        if (stateLabel) stateLabel.textContent = blocked ? 'Blocked' : appliedFaceDown ? 'Active' : 'Off';
     }
 
     function updateStructureWarning(warnings) {
@@ -969,26 +972,40 @@ export function createObjPreview({
             });
     }
 
-    function createTopologySnapshot() {
+    function createTopologySnapshot({ includePrintStyle = true } = {}) {
         const visibleSourceLayerIds = getVisibleLayerIndices();
+        const keyParts = [
+            visibleSourceLayerIds.join(','),
+            JSON.stringify(state.mergeRules || []),
+            state.useBaseLayer ? 'base:on' : 'base:off',
+            state.baseSourceLayerId ?? '',
+            model.objDecimateSlider?.value ?? 0,
+            model.objBedSelect?.value ?? 'x1',
+            model.objMarginInput?.value ?? 5,
+            model.objScaleSlider?.value ?? 100,
+            state.sourceRenderScale || 1
+        ];
+        if (includePrintStyle) {
+            keyParts.push(model.objAmsPrintStyle?.value || state.objParams?.amsPrintStyle || 'raised-efficient');
+        }
+        keyParts.push(
+            model.objBezelSelect?.value || state.objParams?.bezelPreset || 'off',
+            JSON.stringify(state.objParams?.magnetPocket || null)
+        );
         return {
             tracedata: state.tracedata,
             lastOptions: state.lastOptions,
-            key: [
-                visibleSourceLayerIds.join(','),
-                JSON.stringify(state.mergeRules || []),
-                state.useBaseLayer ? 'base:on' : 'base:off',
-                state.baseSourceLayerId ?? '',
-                model.objDecimateSlider?.value ?? 0,
-                model.objBedSelect?.value ?? 'x1',
-                model.objMarginInput?.value ?? 5,
-                model.objScaleSlider?.value ?? 100,
-                state.sourceRenderScale || 1,
-                model.objAmsPrintStyle?.value || state.objParams?.amsPrintStyle || 'raised-efficient',
-                model.objBezelSelect?.value || state.objParams?.bezelPreset || 'off',
-                JSON.stringify(state.objParams?.magnetPocket || null)
-            ].join('|')
+            key: keyParts.join('|')
         };
+    }
+
+    function stylePreparationMatchesLastRender() {
+        const previous = state.objPreview.stylePreparationSnapshot;
+        if (!previous) return false;
+        const current = createTopologySnapshot({ includePrintStyle: false });
+        return previous.tracedata === current.tracedata
+            && previous.lastOptions === current.lastOptions
+            && previous.key === current.key;
     }
 
     function topologyMatchesLastRender() {
@@ -1108,20 +1125,20 @@ export function createObjPreview({
         return true;
     }
 
-    function render() {
-        if (!view.objPreviewCanvas) return;
+    function render({ styleOnly = false } = {}) {
+        if (!view.objPreviewCanvas) return false;
         if (!window.THREE || !window.SVGLoader) {
             setPlaceholder('Loading 3D preview...', true);
             scheduleRetry();
-            return;
+            return false;
         }
-        if (!ensureObjPreview()) return;
+        if (!ensureObjPreview()) return false;
 
         const preview = state.objPreview;
         const THREERef = window.THREE;
         const SVGLoader = window.SVGLoader;
         const bufferUtils = window.BufferGeometryUtils || THREERef?.BufferGeometryUtils;
-        if (!preview.group || !preview.viewGroup || !THREERef || !SVGLoader || !bufferUtils) return;
+        if (!preview.group || !preview.viewGroup || !THREERef || !SVGLoader || !bufferUtils) return false;
 
         resize();
         const visibleSourceLayerIds = getVisibleLayerIndices();
@@ -1136,10 +1153,14 @@ export function createObjPreview({
             updateMagnetPocketStatus(model, null);
             if (view.printOrientationNote) view.printOrientationNote.textContent = 'Choose an AMS print style';
             renderFrame();
-            return;
+            return true;
         }
 
         try {
+            const renderStartedAt = performance.now();
+            const reusableStylePlan = styleOnly && stylePreparationMatchesLastRender()
+                ? state.objPreview.lastPlan
+                : null;
             clearGroup();
             clearBuildPlate();
 
@@ -1159,20 +1180,30 @@ export function createObjPreview({
             syncBedPresetControl();
             updateBuildPlateToggleButton();
 
-            const plan = buildObjModelPlan({
-                state,
-                tracer,
-                SVGLoader,
-                THREERef,
-                defaultThickness: thickness,
-                visibleSourceLayerIds,
-                decimatePercent,
-                bedKey,
-                margin,
-                scalePercent: scaleValue,
-                sourceScale: state.sourceRenderScale || 1,
-                bezelPreset: model.objBezelSelect?.value || state.objParams?.bezelPreset || 'off'
-            });
+            const planStartedAt = performance.now();
+            let planBuildMode = 'full';
+            let plan = reusableStylePlan
+                ? retargetObjModelPlanPrintStyle(reusableStylePlan, state, thickness)
+                : null;
+            if (plan) {
+                planBuildMode = 'retarget';
+            } else {
+                plan = buildObjModelPlan({
+                    state,
+                    tracer,
+                    SVGLoader,
+                    THREERef,
+                    defaultThickness: thickness,
+                    visibleSourceLayerIds,
+                    decimatePercent,
+                    bedKey,
+                    margin,
+                    scalePercent: scaleValue,
+                    sourceScale: state.sourceRenderScale || 1,
+                    bezelPreset: model.objBezelSelect?.value || state.objParams?.bezelPreset || 'off'
+                });
+            }
+            const planBuildDuration = performance.now() - planStartedAt;
             syncFaceDownToggleFromPlan(plan);
 
             if (!plan || plan.outputLayers.length === 0) {
@@ -1184,19 +1215,19 @@ export function createObjPreview({
                 updateTriangleEstimate({ decimatePercent });
                 updateMagnetPocketStatus(model, plan?.magnetPocketResult || null);
                 renderFrame();
-                return;
+                return true;
             }
 
             if (view.objPreviewCanvas) {
                 view.objPreviewCanvas.dataset.amsPrintStyle = plan.amsPrintStyle;
-                view.objPreviewCanvas.dataset.previewFace = plan.previewFlipZ ? 'front' : 'print';
+                view.objPreviewCanvas.dataset.previewFace = plan.amsPrintStyle === 'face-down' ? 'bed' : 'print';
             }
             if (view.workflow) {
                 view.workflow.dataset.amsPrintStyle = plan.amsPrintStyle;
             }
             if (view.printOrientationNote) {
-                view.printOrientationNote.textContent = plan.previewFlipZ
-                    ? 'Front preview · prints face-down'
+                view.printOrientationNote.textContent = plan.amsPrintStyle === 'face-down'
+                    ? 'Bed orientation · color face underneath'
                     : 'Raised face · drag to rotate';
             }
 
@@ -1205,7 +1236,9 @@ export function createObjPreview({
                 syncAppliedScalePercent(scalePlan.appliedPercent);
             }
 
+            const geometryStartedAt = performance.now();
             const geometryBundle = buildObjGeometryBundle(plan, { THREERef, bufferUtils });
+            const geometryBuildDuration = performance.now() - geometryStartedAt;
             if (!geometryBundle || geometryBundle.layers.size === 0) {
                 buildBuildPlate(THREERef, bed);
                 setPlaceholder('No printable geometry for current selection.', true);
@@ -1214,7 +1247,7 @@ export function createObjPreview({
                 updateStructureWarning(plan.warnings);
                 updateTriangleEstimate({ decimatePercent });
                 renderFrame();
-                return;
+                return true;
             }
 
             let actualBounds = getGeometryBundleBounds(geometryBundle, {
@@ -1260,10 +1293,6 @@ export function createObjPreview({
                     zStart: layer.zStart,
                     zEnd: layer.zEnd
                 };
-                if (plan.previewFlipZ) {
-                    mesh.scale.z = -1;
-                    mesh.position.z = plan.totalHeight;
-                }
                 mesh.visible = !(hasSelection && displayMode === 'solo' && !isSelected);
                 preview.group.add(mesh);
                 preview.layerMeshes.set(layer.outputLayerId, mesh);
@@ -1306,9 +1335,14 @@ export function createObjPreview({
             preview.lastActualBounds = actualBounds;
             preview.lastTriangleCount = getBundleTriangleCount(geometryBundle);
             preview.topologySnapshot = createTopologySnapshot();
+            preview.stylePreparationSnapshot = createTopologySnapshot({ includePrintStyle: false });
             preview.fullRenderCount = (preview.fullRenderCount || 0) + 1;
             if (view.objPreviewCanvas) {
                 view.objPreviewCanvas.dataset.fullRenderCount = String(preview.fullRenderCount);
+                view.objPreviewCanvas.dataset.planBuildMode = planBuildMode;
+                view.objPreviewCanvas.dataset.planBuildMs = planBuildDuration.toFixed(1);
+                view.objPreviewCanvas.dataset.geometryBuildMs = geometryBuildDuration.toFixed(1);
+                view.objPreviewCanvas.dataset.renderDurationMs = (performance.now() - renderStartedAt).toFixed(1);
             }
 
             setPlaceholder('', false);
@@ -1322,11 +1356,13 @@ export function createObjPreview({
             updateAmsPreflightFromPlan(plan);
             updateMagnetPocketStatus(model, plan.magnetPocketResult);
             renderFrame();
+            return true;
         } catch (error) {
             console.error('3D preview failed:', error);
             setPlaceholder('3D preview failed. Try re-analyzing.', true);
             updateTriangleEstimate();
             updateMagnetPocketStatus(model, null);
+            return false;
         }
     }
 

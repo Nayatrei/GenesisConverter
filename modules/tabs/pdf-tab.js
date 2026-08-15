@@ -13,7 +13,7 @@ import {
     getRasterExtension,
     sanitizeFileComponent
 } from '../raster-utils.js';
-import { createZipFile } from '../export3d.js?v=20260814p';
+import { createZipFile } from '../export3d.js?v=20260814q';
 import { createImageToPdfController } from './pdf-image-to-pdf.js?v=20260814c';
 import { createPdfOcrController } from './pdf-ocr.js?v=20260814c';
 

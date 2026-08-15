@@ -101,7 +101,7 @@ test('Face on Bed reports an incompatible bezel and applies when the conflict is
     await expect(page.locator('#obj-preview-canvas')).toHaveAttribute('data-ams-print-style', 'face-down', { timeout: 30_000 });
     await expect(toggle).toHaveAttribute('aria-pressed', 'true');
     await expect(toggle).not.toHaveClass(/is-blocked/);
-    await expect(toggle.locator('[data-face-down-state]')).toHaveText('On');
+    await expect(toggle.locator('[data-face-down-state]')).toHaveText('Active');
 });
 
 test('Face on Bed shortcut makes every color coplanar and restores the prior style', async ({ page }) => {
@@ -124,12 +124,37 @@ test('Face on Bed shortcut makes every color coplanar and restores the prior sty
     await page.locator('#obj-ams-print-style').selectOption('full-depth');
     await expect(page.locator('#obj-preview-canvas')).toHaveAttribute('data-ams-print-style', 'full-depth', { timeout: 30_000 });
 
+    await page.evaluate(() => {
+        const button = document.getElementById('obj-face-down-toggle');
+        const readState = () => ({
+            busy: button?.getAttribute('aria-busy'),
+            label: button?.querySelector('[data-face-down-state]')?.textContent
+        });
+        window.__faceDownLifecycle = [readState()];
+        window.__faceDownObserver = new MutationObserver(() => {
+            window.__faceDownLifecycle.push(readState());
+        });
+        window.__faceDownObserver.observe(button, {
+            attributes: true,
+            childList: true,
+            subtree: true
+        });
+    });
+
     await toggle.click();
     await expect(toggle).toHaveAttribute('aria-pressed', 'true');
-    await expect(toggle.locator('[data-face-down-state]')).toHaveText('On');
+    await expect(toggle).toHaveAttribute('aria-busy', 'false', { timeout: 30_000 });
+    await expect(toggle.locator('[data-face-down-state]')).toHaveText('Active');
     await expect(page.locator('#obj-ams-print-style')).toHaveValue('face-down');
     await expect(page.locator('#obj-preview-canvas')).toHaveAttribute('data-ams-print-style', 'face-down', { timeout: 30_000 });
-    await expect(page.locator('#obj-preview-canvas')).toHaveAttribute('data-preview-face', 'front');
+    await expect(page.locator('#obj-preview-canvas')).toHaveAttribute('data-preview-face', 'bed');
+    await expect(page.locator('#obj-preview-canvas')).toHaveAttribute('data-render-state', 'ready');
+    await expect(page.locator('#obj-preview-canvas')).toHaveAttribute('data-plan-build-mode', 'retarget');
+    const lifecycle = await page.evaluate(() => {
+        window.__faceDownObserver?.disconnect();
+        return window.__faceDownLifecycle;
+    });
+    expect(lifecycle).toContainEqual({ busy: 'true', label: 'Building' });
     await expect(page.locator('#layer-stack-list .layer-stack-item.is-base .layer-stack-range')).toHaveText('0.0-2.4mm');
     await expect(page.locator('#layer-stack-list .layer-stack-item:not(.is-base) .layer-stack-range')).toHaveText([
         '0.0-0.6mm',
@@ -139,6 +164,7 @@ test('Face on Bed shortcut makes every color coplanar and restores the prior sty
 
     await toggle.click();
     await expect(toggle).toHaveAttribute('aria-pressed', 'false');
+    await expect(toggle).toHaveAttribute('aria-busy', 'false', { timeout: 30_000 });
     await expect(toggle.locator('[data-face-down-state]')).toHaveText('Off');
     await expect(page.locator('#obj-ams-print-style')).toHaveValue('full-depth');
     await expect(page.locator('#obj-preview-canvas')).toHaveAttribute('data-ams-print-style', 'full-depth', { timeout: 30_000 });
@@ -147,4 +173,24 @@ test('Face on Bed shortcut makes every color coplanar and restores the prior sty
         '4.0-8.0mm'
     ]);
     expect(pageErrors).toEqual([]);
+});
+
+test('Logo Face on Bed shares the responsive bed-orientation lifecycle', async ({ page }) => {
+    await page.goto('/3d-obj');
+    await page.locator('.segmented-control-tab[data-tab="logo"]').click();
+
+    const toggle = page.locator('#logo-obj-face-down-toggle');
+    const canvas = page.locator('#logo-obj-preview-canvas');
+    await expect(canvas).toHaveAttribute('data-ams-print-style', 'raised-efficient', { timeout: 30_000 });
+
+    await toggle.click();
+    await expect(toggle).toHaveAttribute('aria-busy', 'false', { timeout: 30_000 });
+    await expect(toggle).toHaveAttribute('aria-pressed', 'true');
+    await expect(toggle.locator('[data-face-down-state]')).toHaveText('Active');
+    await expect(canvas).toHaveAttribute('data-render-state', 'ready');
+    await expect(canvas).toHaveAttribute('data-plan-build-mode', 'retarget');
+    await expect(canvas).toHaveAttribute('data-preview-face', 'bed');
+    await expect(page.locator('#logo-obj-print-orientation-note')).toHaveText(
+        'Bed orientation · color face underneath'
+    );
 });

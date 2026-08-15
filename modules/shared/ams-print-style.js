@@ -11,6 +11,7 @@ const STYLE_HELPERS = Object.freeze({
 });
 
 const FACE_DOWN_STYLE = 'face-down';
+const activeStyleRenderLocks = new WeakSet();
 
 function getFaceDownReturnStyle(value) {
     const normalized = normalizeAmsPrintStyle(value);
@@ -25,6 +26,7 @@ function syncFaceDownToggle(controls, styleId) {
     const stateLabel = button.querySelector('[data-face-down-state]');
     button.classList.toggle('is-active', isFaceDown);
     button.classList.remove('is-blocked');
+    button.classList.remove('is-error');
     button.setAttribute('aria-pressed', String(isFaceDown));
     button.setAttribute(
         'aria-label',
@@ -35,7 +37,120 @@ function syncFaceDownToggle(controls, styleId) {
     button.title = isFaceDown
         ? 'Colored regions share the first layer at Z=0; click to restore the previous raised style.'
         : 'Build every color flush against the plate, with the base continuing as backing.';
-    if (stateLabel) stateLabel.textContent = isFaceDown ? 'On' : 'Off';
+    if (stateLabel) stateLabel.textContent = isFaceDown ? 'Active' : 'Off';
+}
+
+function waitForUiPaint() {
+    return new Promise((resolve) => {
+        if (typeof requestAnimationFrame !== 'function') {
+            setTimeout(resolve, 0);
+            return;
+        }
+        requestAnimationFrame(() => requestAnimationFrame(resolve));
+    });
+}
+
+/**
+ * Lets the style control paint a concrete in-progress state before the
+ * synchronous mask/mesh rebuild begins. The preview canvas exposes the same
+ * lifecycle so callers and browser tests can wait for finished geometry.
+ */
+export async function renderAmsPrintStyleChange({
+    rootState,
+    tabState,
+    controls,
+    apply,
+    render
+}) {
+    if (typeof render !== 'function') return;
+
+    const button = controls?.objFaceDownToggle;
+    const select = controls?.objAmsPrintStyle;
+    const canvas = controls?.objPreviewCanvas;
+    const orientationNote = controls?.printOrientationNote;
+    const stateLabel = button?.querySelector('[data-face-down-state]');
+    const priorOrientationNote = orientationNote?.textContent || '';
+    const lockTarget = rootState && typeof rootState === 'object'
+        ? rootState
+        : tabState && typeof tabState === 'object'
+            ? tabState
+            : null;
+
+    if ((lockTarget && activeStyleRenderLocks.has(lockTarget)) || button?.getAttribute('aria-busy') === 'true') {
+        syncAmsPrintStyleControls({ rootState, tabState, controls });
+        return false;
+    }
+
+    if (lockTarget) activeStyleRenderLocks.add(lockTarget);
+
+    let renderSucceeded = false;
+    let priorAriaLabel = button?.getAttribute('aria-label') || '';
+    let busyAriaLabel = '';
+
+    try {
+        if (typeof apply === 'function') apply();
+        const isFaceDown = normalizeAmsPrintStyle(select?.value) === FACE_DOWN_STYLE;
+        priorAriaLabel = button?.getAttribute('aria-label') || priorAriaLabel;
+        busyAriaLabel = isFaceDown
+            ? 'Building the Face on Bed preview'
+            : 'Building the raised-face preview';
+
+        if (button) {
+            button.classList.remove('is-error');
+            button.classList.add('is-building');
+            button.setAttribute('aria-busy', 'true');
+            button.setAttribute('aria-disabled', 'true');
+            button.setAttribute('aria-label', busyAriaLabel);
+        }
+        if (select) {
+            select.classList.add('is-building');
+            select.setAttribute('aria-disabled', 'true');
+        }
+        if (stateLabel) stateLabel.textContent = 'Building';
+        if (canvas) canvas.dataset.renderState = 'building';
+        if (orientationNote) {
+            orientationNote.textContent = isFaceDown
+                ? 'Preparing bed orientation...'
+                : 'Preparing raised orientation...';
+        }
+
+        await waitForUiPaint();
+
+        renderSucceeded = render() !== false;
+    } catch (error) {
+        console.error('AMS print style preview failed:', error);
+    } finally {
+        if (button) {
+            button.classList.remove('is-building');
+            button.setAttribute('aria-busy', 'false');
+            button.setAttribute('aria-disabled', 'false');
+        }
+        if (select) {
+            select.classList.remove('is-building');
+            select.removeAttribute('aria-disabled');
+        }
+        if (canvas) canvas.dataset.renderState = renderSucceeded ? 'ready' : 'error';
+        if (!renderSucceeded) {
+            button?.classList.add('is-error');
+            button?.setAttribute('aria-label', 'The 3D style preview failed. Re-analyze the image and try again.');
+            if (stateLabel) stateLabel.textContent = 'Error';
+        } else if (stateLabel?.textContent === 'Building') {
+            stateLabel.textContent = button?.classList.contains('is-blocked')
+                ? 'Blocked'
+                : button?.getAttribute('aria-pressed') === 'true'
+                    ? 'Active'
+                    : 'Off';
+        }
+        if (renderSucceeded && button?.getAttribute('aria-label') === busyAriaLabel) {
+            button.setAttribute('aria-label', priorAriaLabel);
+        }
+        if (orientationNote?.textContent?.startsWith('Preparing ')) {
+            orientationNote.textContent = priorOrientationNote;
+        }
+        if (lockTarget) activeStyleRenderLocks.delete(lockTarget);
+    }
+
+    return renderSucceeded;
 }
 
 function setObjParams(target, styleId, preset) {

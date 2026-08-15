@@ -1,4 +1,4 @@
-import { createZipFile } from '../export3d.js?v=20260814p';
+import { createZipFile } from '../export3d.js?v=20260814q';
 import {
     estimateRasterBlobSizeFromSource,
     estimateSizeBytes,

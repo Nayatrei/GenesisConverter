@@ -1,6 +1,6 @@
 import { SLIDER_TOOLTIPS } from '../config.js';
-import { createObjPreview } from '../preview3d.js?v=20260814o';
-import { createObjExporter } from '../export3d.js?v=20260814p';
+import { createObjPreview } from '../preview3d.js?v=20260814q';
+import { createObjExporter } from '../export3d.js?v=20260814q';
 import {
     hasTransparentPixels,
     markTransparentPixels,
@@ -35,9 +35,10 @@ import {
 import { setMakerWorkflow, updateMakerPreflight } from '../shared/maker-workflow.js?v=20260725a';
 import {
     applyAmsPrintStylePreset,
+    renderAmsPrintStyleChange,
     syncAmsPrintStyleControls,
     toggleFaceDownPrintStyle
-} from '../shared/ams-print-style.js?v=20260814h';
+} from '../shared/ams-print-style.js?v=20260814q';
 
 export function createLogoTabController({
     state,
@@ -595,11 +596,12 @@ export function createLogoTabController({
         ImageTracer: tracer
     });
 
-    function renderObjModelOnly() {
-        objPreview.render();
+    function renderObjModelOnly({ styleOnly = false } = {}) {
+        const renderSucceeded = objPreview.render({ styleOnly });
         if (ls.tracedata) {
             updateQualityDisplay(assess3DPrintQuality(ls.tracedata, getVisibleLayerIndices));
         }
+        return renderSucceeded;
     }
 
     const scheduleObjModelRender = debounce(renderObjModelOnly, 80);
@@ -872,24 +874,34 @@ export function createLogoTabController({
         if (le.objAmsPrintStyle) {
             le.objAmsPrintStyle.addEventListener('change', () => {
                 if (state.activeTab !== 'logo') return;
-                applyAmsPrintStylePreset({
+                void renderAmsPrintStyleChange({
                     rootState: state,
                     tabState: ls,
                     controls: le,
-                    styleId: le.objAmsPrintStyle.value
+                    apply: () => applyAmsPrintStylePreset({
+                        rootState: state,
+                        tabState: ls,
+                        controls: le,
+                        styleId: le.objAmsPrintStyle.value
+                    }),
+                    render: () => renderObjModelOnly({ styleOnly: true })
                 });
-                renderObjModelOnly();
             });
         }
         if (le.objFaceDownToggle) {
             le.objFaceDownToggle.addEventListener('click', () => {
                 if (state.activeTab !== 'logo') return;
-                toggleFaceDownPrintStyle({
+                void renderAmsPrintStyleChange({
                     rootState: state,
                     tabState: ls,
-                    controls: le
+                    controls: le,
+                    apply: () => toggleFaceDownPrintStyle({
+                        rootState: state,
+                        tabState: ls,
+                        controls: le
+                    }),
+                    render: () => renderObjModelOnly({ styleOnly: true })
                 });
-                renderObjModelOnly();
             });
         }
         if (le.objBaseThicknessSlider && le.objBaseThicknessValue) {

@@ -10424,7 +10424,7 @@ body.app-shell-v2 .sidebar-sub-icon {
 
 .svg-v2 .obj-face-down-state,
 .logo-v2 .obj-face-down-state {
-    min-width: 1.55rem;
+    min-width: 3.35rem;
     padding: 0.08rem 0.3rem;
     border: 1px solid rgba(148, 163, 184, 0.24);
     border-radius: 999px;
@@ -10435,6 +10435,55 @@ body.app-shell-v2 .sidebar-sub-icon {
     line-height: 1.15;
     text-align: center;
     text-transform: uppercase;
+}
+
+.svg-v2 .obj-face-down-toggle.is-building,
+.logo-v2 .obj-face-down-toggle.is-building {
+    position: relative;
+    overflow: hidden;
+    cursor: wait;
+    opacity: 1;
+    pointer-events: none;
+}
+
+#obj-ams-print-style.is-building {
+    cursor: wait;
+    pointer-events: none;
+}
+
+.svg-v2 .obj-face-down-toggle.is-error,
+.logo-v2 .obj-face-down-toggle.is-error {
+    border-color: rgba(248, 113, 113, 0.55);
+    background: rgba(127, 29, 29, 0.18);
+    color: #fecaca;
+}
+
+.svg-v2 .obj-face-down-toggle.is-building::after,
+.logo-v2 .obj-face-down-toggle.is-building::after {
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    height: 2px;
+    background: #6ea8ff;
+    content: "";
+    opacity: 0.78;
+    transform: scaleX(0.36);
+    transform-origin: left center;
+    animation: face-down-build-progress 900ms cubic-bezier(0.16, 1, 0.3, 1) infinite alternate;
+}
+
+@keyframes face-down-build-progress {
+    from { transform: scaleX(0.18); }
+    to { transform: scaleX(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .svg-v2 .obj-face-down-toggle.is-building::after,
+    .logo-v2 .obj-face-down-toggle.is-building::after {
+        animation: none;
+        transform: scaleX(1);
+    }
 }
 
 .svg-v2 .obj-face-down-toggle.is-active,

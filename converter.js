@@ -1,8 +1,8 @@
-import { createBulkTabController } from './modules/tabs/bulk-tab.js?v=20260814p';
+import { createBulkTabController } from './modules/tabs/bulk-tab.js?v=20260814q';
 import { createRasterTabController } from './modules/tabs/raster-tab.js';
-import { createSvgTabController } from './modules/tabs/svg-tab.js?v=20260814p';
-import { createLogoTabController } from './modules/tabs/logo-tab.js?v=20260814p';
-import { createPdfTabController } from './modules/tabs/pdf-tab.js?v=20260814p';
+import { createSvgTabController } from './modules/tabs/svg-tab.js?v=20260814q';
+import { createLogoTabController } from './modules/tabs/logo-tab.js?v=20260814q';
+import { createPdfTabController } from './modules/tabs/pdf-tab.js?v=20260814q';
 import {
     getDataUrlSize,
     getImageFormat,
@@ -18,7 +18,7 @@ import { bindMagnetPocketControls } from './modules/shared/magnet-pocket-control
 async function loadTabPartials() {
     const tabs = ['svg', 'logo', 'raster', 'bulk', 'pdf'];
     await Promise.all(tabs.map(async (name) => {
-        const res = await fetch(`modules/tabs/html/tab-${name}.html?v=20260814e`);
+        const res = await fetch(`modules/tabs/html/tab-${name}.html?v=20260814q`);
         const html = await res.text();
         const tmp = document.createElement('div');
         tmp.innerHTML = html;

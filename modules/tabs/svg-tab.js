@@ -1,6 +1,6 @@
 import { SLIDER_TOOLTIPS } from '../config.js';
-import { createObjPreview } from '../preview3d.js?v=20260814o';
-import { createObjExporter } from '../export3d.js?v=20260814p';
+import { createObjPreview } from '../preview3d.js?v=20260814q';
+import { createObjExporter } from '../export3d.js?v=20260814q';
 import { hasTransparentPixels, markTransparentPixels, stripTransparentPalette } from '../shared/image-utils.js';
 import {
     debounce,
@@ -28,9 +28,10 @@ import {
 import { setMakerWorkflow, updateMakerPreflight } from '../shared/maker-workflow.js?v=20260725a';
 import {
     applyAmsPrintStylePreset,
+    renderAmsPrintStyleChange,
     syncAmsPrintStyleControls,
     toggleFaceDownPrintStyle
-} from '../shared/ams-print-style.js?v=20260814h';
+} from '../shared/ams-print-style.js?v=20260814q';
 
 export function createSvgTabController({
     state,
@@ -321,11 +322,12 @@ export function createSvgTabController({
         ImageTracer: tracer
     });
 
-    function renderObjModelOnly() {
-        objPreview.render();
+    function renderObjModelOnly({ styleOnly = false } = {}) {
+        const renderSucceeded = objPreview.render({ styleOnly });
         if (state.tracedata) {
             updateQualityDisplay(assess3DPrintQuality(state.tracedata, getVisibleLayerIndices));
         }
+        return renderSucceeded;
     }
 
     // Coalesce rapid 3D-only control changes and leave the 2D filtered preview
@@ -627,24 +629,34 @@ export function createSvgTabController({
         if (elements.objAmsPrintStyle) {
             elements.objAmsPrintStyle.addEventListener('change', () => {
                 if (state.activeTab !== 'svg') return;
-                applyAmsPrintStylePreset({
+                void renderAmsPrintStyleChange({
                     rootState: state,
                     tabState: state,
                     controls: elements,
-                    styleId: elements.objAmsPrintStyle.value
+                    apply: () => applyAmsPrintStylePreset({
+                        rootState: state,
+                        tabState: state,
+                        controls: elements,
+                        styleId: elements.objAmsPrintStyle.value
+                    }),
+                    render: () => renderObjModelOnly({ styleOnly: true })
                 });
-                renderObjModelOnly();
             });
         }
         if (elements.objFaceDownToggle) {
             elements.objFaceDownToggle.addEventListener('click', () => {
                 if (state.activeTab !== 'svg') return;
-                toggleFaceDownPrintStyle({
+                void renderAmsPrintStyleChange({
                     rootState: state,
                     tabState: state,
-                    controls: elements
+                    controls: elements,
+                    apply: () => toggleFaceDownPrintStyle({
+                        rootState: state,
+                        tabState: state,
+                        controls: elements
+                    }),
+                    render: () => renderObjModelOnly({ styleOnly: true })
                 });
-                renderObjModelOnly();
             });
         }
         if (elements.objBaseThicknessSlider && elements.objBaseThicknessValue) {
