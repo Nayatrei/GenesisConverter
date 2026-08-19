@@ -1,11 +1,11 @@
-import { resolveMergedLayerGroups } from './shared/trace-utils.js?v=r-5699d700a3fc7b24';
-import { buildShapesFromTracedataLayers, buildWeldedShapeSet } from './shared/silhouette-builder.js?v=r-5699d700a3fc7b24';
-import { computeObjScalePlan } from './obj-scale.js?v=r-5699d700a3fc7b24';
-import { applyCanonicalRawExtrudeTransform } from './shared/canonical-3d.js?v=r-5699d700a3fc7b24';
+import { resolveMergedLayerGroups } from './shared/trace-utils.js?v=r-c511364b448561eb';
+import { buildShapesFromTracedataLayers, buildWeldedShapeSet } from './shared/silhouette-builder.js?v=r-c511364b448561eb';
+import { computeObjScalePlan } from './obj-scale.js?v=r-c511364b448561eb';
+import { applyCanonicalRawExtrudeTransform } from './shared/canonical-3d.js?v=r-c511364b448561eb';
 import {
     getAmsPrintStylePreset,
     normalizeAmsPrintStyle
-} from './config.js?v=r-5699d700a3fc7b24';
+} from './config.js?v=r-c511364b448561eb';
 import {
     BEZEL_PRESETS,
     DEFAULT_PRINT_PROFILE,
@@ -20,11 +20,11 @@ import {
     resolveBezelMaskSet,
     splitMaskByPrintability,
     traceMaskDataToShapeSet
-} from './shared/print-geometry.js?v=r-5699d700a3fc7b24';
+} from './shared/print-geometry.js?v=r-c511364b448561eb';
 import {
     normalizeMagnetPocketConfig,
     resolveMagnetPocketPlan
-} from './shared/magnet-pockets.js?v=r-5699d700a3fc7b24';
+} from './shared/magnet-pockets.js?v=r-c511364b448561eb';
 
 const DEFAULT_CURVE_SEGMENTS = 6;
 const BOUNDS_POINT_DIVISIONS = 16;

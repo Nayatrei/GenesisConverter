@@ -35,12 +35,10 @@ export async function probeBambuTransferBackend({ signal, timeoutMs = 3_000 } = 
     if (!canPublishBambuProject()) return false;
 
     const controller = new AbortController();
-    let timedOut = false;
     const abortFromCaller = () => controller.abort(signal?.reason);
     if (signal?.aborted) abortFromCaller();
     else signal?.addEventListener('abort', abortFromCaller, { once: true });
     const timeout = window.setTimeout(() => {
-        timedOut = true;
         controller.abort();
     }, Math.max(0, Number(timeoutMs) || 0));
 
@@ -57,8 +55,11 @@ export async function probeBambuTransferBackend({ signal, timeoutMs = 3_000 } = 
         const payload = await response.json().catch(() => null);
         return payload?.ok === true;
     } catch (error) {
+        // Caller cancellation is the only fatal outcome. Every other failure —
+        // including an AbortError raised by an extension, a network switch, or
+        // the local timeout — just means "no transfer backend", so the caller
+        // falls back to the download handoff instead of failing the whole send.
         if (error?.name === 'AbortError' && signal?.aborted) throw error;
-        if (!timedOut && error?.name === 'AbortError') throw error;
         return false;
     } finally {
         window.clearTimeout(timeout);

@@ -12,7 +12,7 @@ const PAGE_SIZES = Object.freeze({
 
 async function getPdfLib() {
     if (!pdfLibPromise) {
-        pdfLibPromise = import('../../vendor/pdf-lib/pdf-lib.esm.min.js?v=r-5699d700a3fc7b24');
+        pdfLibPromise = import('../../vendor/pdf-lib/pdf-lib.esm.min.js?v=r-c511364b448561eb');
     }
     return pdfLibPromise;
 }

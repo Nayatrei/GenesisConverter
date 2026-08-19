@@ -1,7 +1,7 @@
-import { SLIDER_TOOLTIPS } from '../config.js?v=r-5699d700a3fc7b24';
-import { createObjPreview } from '../preview3d.js?v=r-5699d700a3fc7b24';
-import { createObjExporter } from '../export3d.js?v=r-5699d700a3fc7b24';
-import { hasTransparentPixels, markTransparentPixels, stripTransparentPalette } from '../shared/image-utils.js?v=r-5699d700a3fc7b24';
+import { SLIDER_TOOLTIPS } from '../config.js?v=r-c511364b448561eb';
+import { createObjPreview } from '../preview3d.js?v=r-c511364b448561eb';
+import { createObjExporter } from '../export3d.js?v=r-c511364b448561eb';
+import { hasTransparentPixels, markTransparentPixels, stripTransparentPalette } from '../shared/image-utils.js?v=r-c511364b448561eb';
 import {
     debounce,
     layerHasPaths,
@@ -9,30 +9,31 @@ import {
     buildTracedataSubset,
     createMergedTracedata,
     assess3DPrintQuality
-} from '../shared/trace-utils.js?v=r-5699d700a3fc7b24';
-import { buildWeldedSilhouetteSvgString } from '../shared/silhouette-builder.js?v=r-5699d700a3fc7b24';
-import { saveInitialSliderValues, updateAllSliderDisplays, resetSlidersToInitial } from '../shared/slider-manager.js?v=r-5699d700a3fc7b24';
-import { createZoomPanController } from '../shared/zoom-pan.js?v=r-5699d700a3fc7b24';
-import { svgToPng } from '../shared/svg-renderer.js?v=r-5699d700a3fc7b24';
-import { createPaletteManager } from '../shared/palette-manager.js?v=r-5699d700a3fc7b24';
-import { formatObjScalePercent } from '../obj-scale.js?v=r-5699d700a3fc7b24';
-import { createAutoWorkingImageFromSource } from '../raster-utils.js?v=r-5699d700a3fc7b24';
-import { canAttemptBambuLaunch } from '../bambu-bridge.js?v=r-5699d700a3fc7b24';
+} from '../shared/trace-utils.js?v=r-c511364b448561eb';
+import { buildWeldedSilhouetteSvgString } from '../shared/silhouette-builder.js?v=r-c511364b448561eb';
+import { saveInitialSliderValues, updateAllSliderDisplays, resetSlidersToInitial } from '../shared/slider-manager.js?v=r-c511364b448561eb';
+import { createZoomPanController } from '../shared/zoom-pan.js?v=r-c511364b448561eb';
+import { svgToPng } from '../shared/svg-renderer.js?v=r-c511364b448561eb';
+import { createPaletteManager } from '../shared/palette-manager.js?v=r-c511364b448561eb';
+import { formatObjScalePercent } from '../obj-scale.js?v=r-c511364b448561eb';
+import { createAutoWorkingImageFromSource } from '../raster-utils.js?v=r-c511364b448561eb';
+import { canAttemptBambuLaunch } from '../bambu-bridge.js?v=r-c511364b448561eb';
 import {
     buildTraceOptions,
     cycleTracePreset,
     estimateMeaningfulColorCount,
     getColorCountNoticeMessage,
     readTraceControls
-} from '../shared/trace-controls.js?v=r-5699d700a3fc7b24';
-import { setMakerWorkflow, updateMakerPreflight } from '../shared/maker-workflow.js?v=r-5699d700a3fc7b24';
+} from '../shared/trace-controls.js?v=r-c511364b448561eb';
+import { setMakerWorkflow, updateMakerPreflight } from '../shared/maker-workflow.js?v=r-c511364b448561eb';
 import {
     applyAmsPrintStylePreset,
     renderAmsPrintStyleChange,
     syncAmsPrintStyleControls,
     toggleFaceDownPrintStyle
-} from '../shared/ams-print-style.js?v=r-5699d700a3fc7b24';
-import { yieldToBrowser } from '../shared/bambu-send-progress.js?v=r-5699d700a3fc7b24';
+} from '../shared/ams-print-style.js?v=r-c511364b448561eb';
+import { yieldToBrowser } from '../shared/bambu-send-progress.js?v=r-c511364b448561eb';
+import { syncShared3dControls } from '../shared/ui-syncer.js?v=r-c511364b448561eb';
 
 export function createSvgTabController({
     state,
@@ -89,6 +90,14 @@ export function createSvgTabController({
     function syncTraceControlUi() {
         updateAllSliderDisplays(state, elements);
         updateColorCountNotice();
+    }
+
+    // The 3D sidebar nodes are shared with the Logo tab, so repaint them from
+    // this tab's objParams whenever this tab takes over. The model/export path
+    // still reads several of these straight off the DOM.
+    function syncShared3dControlsForTab() {
+        syncShared3dControls({ tabState: state, controls: elements });
+        updateBezelHelperText();
     }
 
     function updateBezelHelperText() {
@@ -249,6 +258,7 @@ export function createSvgTabController({
             }
             state.colorsAnalyzed = true;
             await traceVectorPaths();
+            state.tracedSourceGeneration = state.sourceGeneration;
         } catch (error) {
             state.colorsAnalyzed = false;
             setMakerWorkflow(elements.workflow, 'layers', { tone: 'error' });
@@ -358,6 +368,7 @@ export function createSvgTabController({
             await updateFilteredPreview();
         },
         onExportGeometryInvalidated: () => resetBambuSendProgress(),
+        isTabActive: () => state.activeTab === 'svg',
         ImageTracer: tracer
     });
 
@@ -643,30 +654,69 @@ export function createSvgTabController({
 
     // ── Lifecycle ──────────────────────────────────────────────────────────────
 
+    // Every tab listens to the one shared <img id="source-image">, so this must
+    // bail out before any side effect when another tab owns the import. The
+    // stale results left behind are dropped by onTabActivated's generation check.
     function onSourceImageLoaded() {
+        if (state.activeTab !== 'svg') {
+            return;
+        }
+
         resetBambuSendProgress();
         const w = elements.sourceImage.naturalWidth;
         const h = elements.sourceImage.naturalHeight;
         if (elements.originalResolution) elements.originalResolution.textContent = `${w}×${h} px`;
-        updateResolutionNotice(w, h);
         state.colorsAnalyzed = false;
         setMakerWorkflow(elements.workflow, 'layers');
-
-        if (state.activeTab !== 'svg') {
-            return;
-        }
 
         onRasterImageLoaded();
         syncWorkspaceView();
         if (elements.generatePreviewBtn) elements.generatePreviewBtn.disabled = false;
         buildWorkingImageCache();
+        // Reports the working-image size, so it can only run once the cache for
+        // this image exists.
+        updateResolutionNotice(w, h);
         saveInitialSliderValues(state, elements);
         syncTraceControlUi();
         void generatePreviewClick().catch(() => {});
     }
 
+    // Drops everything traced from a previous source image. Only ever called on
+    // activation, so an inactive tab never races the tab that owns the import.
+    function resetForNewSource() {
+        state.tracedata = null;
+        state.quantizedData = null;
+        state.lastOptions = null;
+        state.silhouetteSvgString = '';
+        state.mergeRules = [];
+        state.layerThicknessById = {};
+        state.colorsAnalyzed = false;
+        state.estimatedColorCount = null;
+        state.selectedLayerIndices.clear();
+        state.selectedFinalLayerIndices.clear();
+        state.hiddenSourceLayerIds.clear();
+        state.backgroundCandidateSourceLayerId = null;
+        state.useBaseLayer = false;
+        state.baseSourceLayerId = null;
+        state.autoBaseLayerSelectionPending = true;
+        state.tracedSourceGeneration = state.sourceGeneration;
+
+        resetBambuSendProgress();
+        disableDownloadButtons();
+        if (elements.qualityIndicator) elements.qualityIndicator.textContent = '';
+        elements.paletteContainer?.replaceChildren();
+        if (elements.paletteRow) elements.paletteRow.style.display = 'none';
+        elements.mergeRulesContainer?.replaceChildren();
+        if (elements.svgPreview) elements.svgPreview.style.display = 'none';
+        if (elements.svgPreviewFiltered) elements.svgPreviewFiltered.style.display = 'none';
+        objPreview.render();
+    }
+
     function onTabActivated() {
-        syncAmsPrintStyleControls({ rootState: state, tabState: state, controls: elements });
+        if (state.tracedSourceGeneration !== state.sourceGeneration) {
+            resetForNewSource();
+        }
+        syncShared3dControlsForTab();
         if (!hasSingleImageLoaded()) {
             setMakerWorkflow(elements.workflow, 'source');
             return;
@@ -675,6 +725,12 @@ export function createSvgTabController({
             setMakerWorkflow(elements.workflow, 'layers');
             if (elements.generatePreviewBtn) elements.generatePreviewBtn.disabled = false;
             buildWorkingImageCache();
+            // The notice is shared with the Logo tab, so re-state it for the
+            // source this tab is about to trace.
+            updateResolutionNotice(
+                elements.sourceImage.naturalWidth,
+                elements.sourceImage.naturalHeight
+            );
             saveInitialSliderValues(state, elements);
             syncTraceControlUi();
             void generatePreviewClick().catch(() => {});
@@ -752,37 +808,36 @@ export function createSvgTabController({
         if (elements.objBaseThicknessSlider && elements.objBaseThicknessValue) {
             elements.objBaseThicknessValue.textContent = elements.objBaseThicknessSlider.value;
             elements.objBaseThicknessSlider.addEventListener('input', () => {
+                if (state.activeTab !== 'svg') return;
                 state.objParams.baseThickness = Number.parseFloat(elements.objBaseThicknessSlider.value);
-                if (state.logo?.objParams) state.logo.objParams.baseThickness = state.objParams.baseThickness;
                 elements.objBaseThicknessValue.textContent = state.objParams.baseThickness;
             });
             elements.objBaseThicknessSlider.addEventListener('change', () => {
-                if (state.activeTab === 'svg') {
-                    objPreview.updateLayerHeights();
-                    updateQualityDisplay(assess3DPrintQuality(state.tracedata, getVisibleLayerIndices));
-                }
+                if (state.activeTab !== 'svg') return;
+                objPreview.updateLayerHeights();
+                updateQualityDisplay(assess3DPrintQuality(state.tracedata, getVisibleLayerIndices));
             });
         }
         if (elements.objThicknessSlider && elements.objThicknessValue) {
             elements.objThicknessValue.textContent = elements.objThicknessSlider.value;
             elements.objThicknessSlider.addEventListener('input', () => {
+                if (state.activeTab !== 'svg') return;
                 state.objParams.thickness = Number.parseFloat(elements.objThicknessSlider.value);
-                if (state.logo?.objParams) state.logo.objParams.thickness = state.objParams.thickness;
                 elements.objThicknessValue.textContent = state.objParams.thickness;
             });
             elements.objThicknessSlider.addEventListener('change', () => {
-                if (state.activeTab === 'svg') {
-                    objPreview.updateLayerHeights();
-                    updateQualityDisplay(assess3DPrintQuality(state.tracedata, getVisibleLayerIndices));
-                }
+                if (state.activeTab !== 'svg') return;
+                objPreview.updateLayerHeights();
+                updateQualityDisplay(assess3DPrintQuality(state.tracedata, getVisibleLayerIndices));
             });
         }
         if (elements.objDecimateSlider && elements.objDecimateValue) {
             elements.objDecimateValue.textContent = elements.objDecimateSlider.value;
             elements.objDecimateSlider.addEventListener('input', () => {
+                if (state.activeTab !== 'svg') return;
                 state.objParams.decimate = Number.parseFloat(elements.objDecimateSlider.value);
                 elements.objDecimateValue.textContent = state.objParams.decimate;
-                if (state.activeTab === 'svg') scheduleObjModelRender();
+                scheduleObjModelRender();
 
                 const tooltipEl = document.getElementById('obj-decimate-tooltip');
                 if (tooltipEl) {
@@ -796,28 +851,32 @@ export function createSvgTabController({
         if (elements.objScaleSlider && elements.objScaleValue) {
             elements.objScaleValue.textContent = formatObjScalePercent(elements.objScaleSlider.value);
             elements.objScaleSlider.addEventListener('input', () => {
+                if (state.activeTab !== 'svg') return;
                 state.objParams.scale = Number.parseFloat(elements.objScaleSlider.value);
                 elements.objScaleValue.textContent = formatObjScalePercent(state.objParams.scale);
-                if (state.activeTab === 'svg') scheduleObjModelRender();
+                scheduleObjModelRender();
             });
         }
         if (elements.objBedSelect) {
             elements.objBedSelect.addEventListener('change', (e) => {
+                if (state.activeTab !== 'svg') return;
                 state.objParams.bedKey = e.target.value;
-                if (state.activeTab === 'svg') scheduleObjModelRender();
+                scheduleObjModelRender();
             });
         }
         if (elements.objMarginInput) {
             elements.objMarginInput.addEventListener('input', (e) => {
+                if (state.activeTab !== 'svg') return;
                 state.objParams.margin = Number.parseFloat(e.target.value);
-                if (state.activeTab === 'svg') scheduleObjModelRender();
+                scheduleObjModelRender();
             });
         }
         if (elements.objBezelSelect) {
             elements.objBezelSelect.addEventListener('change', () => {
+                if (state.activeTab !== 'svg') return;
                 state.objParams.bezelPreset = elements.objBezelSelect.value || 'off';
                 updateBezelHelperText();
-                if (state.activeTab === 'svg') scheduleObjModelRender();
+                scheduleObjModelRender();
 
                 const tooltipEl = document.getElementById('obj-bezel-tooltip');
                 if (tooltipEl) {

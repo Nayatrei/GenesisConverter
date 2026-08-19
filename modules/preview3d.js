@@ -1,21 +1,21 @@
-import { OBJ_ZOOM_MIN, OBJ_ZOOM_MAX, BED_PRESETS } from './config.js?v=r-5699d700a3fc7b24';
+import { OBJ_ZOOM_MIN, OBJ_ZOOM_MAX, BED_PRESETS } from './config.js?v=r-c511364b448561eb';
 import {
     fitObjScalePlanToGeometryBounds,
     formatObjScalePercent
-} from './obj-scale.js?v=r-5699d700a3fc7b24';
+} from './obj-scale.js?v=r-c511364b448561eb';
 import {
     buildObjGeometryBundle,
     buildObjModelPlan,
     retargetObjModelPlanPrintStyle,
     updateObjModelPlanLayerHeights
-} from './obj-model-plan.js?v=r-5699d700a3fc7b24';
-import { resolveMergedLayerGroups } from './shared/trace-utils.js?v=r-5699d700a3fc7b24';
-import { getGeometryBundleBounds } from './shared/print-validation.js?v=r-5699d700a3fc7b24';
-import { updateMagnetPocketStatus } from './shared/magnet-pocket-controls.js?v=r-5699d700a3fc7b24';
+} from './obj-model-plan.js?v=r-c511364b448561eb';
+import { resolveMergedLayerGroups } from './shared/trace-utils.js?v=r-c511364b448561eb';
+import { getGeometryBundleBounds } from './shared/print-validation.js?v=r-c511364b448561eb';
+import { updateMagnetPocketStatus } from './shared/magnet-pocket-controls.js?v=r-c511364b448561eb';
 import {
     createObjGeometrySnapshot,
     objGeometrySnapshotsMatch
-} from './shared/obj-geometry-snapshot.js?v=r-5699d700a3fc7b24';
+} from './shared/obj-geometry-snapshot.js?v=r-c511364b448561eb';
 
 const BED_CONTACT_EPSILON = 0.005;
 const BED_FIT_TOLERANCE_MM = 0.05;
@@ -67,11 +67,15 @@ export function createObjPreview({
     getVisibleLayerIndices,
     onLayerVisibilityChange,
     onExportGeometryInvalidated,
+    isTabActive,
     ImageTracer
 }) {
     const tracer = ImageTracer || window.ImageTracer;
     const model = modelControls || {};
     const view = viewControls || {};
+    // `modelControls` are shared with the other 3D tab, so a background render
+    // must not write back into them.
+    const ownsSharedModelControls = () => (typeof isTabActive === 'function' ? isTabActive() : true);
 
     function ensureObjPreview() {
         if (state.objPreview.renderer) return true;
@@ -91,11 +95,14 @@ export function createObjPreview({
             });
         } catch (err) {
             // WebGL context creation can fail on old hardware, privacy-hardened
-            // browsers, or headless environments. Degrade gracefully: skip 3D
-            // preview but keep 2D analysis and export paths working.
+            // browsers, or headless environments. 2D tracing, SVG, and raster
+            // export keep working, but every 3D output (OBJ/STL/3MF and the
+            // Bambu handoff) now builds from this preview mesh, so those stay
+            // unavailable. The flag lets export3d.js say so instead of reporting
+            // a preview that is merely "not ready yet".
             state.objPreview.webglUnavailable = true;
             console.warn('3D preview unavailable: WebGL context could not be created.', err?.message || err);
-            setPlaceholder('3D preview unavailable — WebGL is required. 2D export still works.', true);
+            setPlaceholder('3D preview unavailable — WebGL is required. 2D exports still work; 3D and Bambu transfer do not.', true);
             return false;
         }
         renderer.setPixelRatio(window.devicePixelRatio || 1);
@@ -352,6 +359,11 @@ export function createObjPreview({
         if (!Number.isFinite(roundedPercent)) return;
 
         state.objParams.scale = roundedPercent;
+        // #obj-scale is one slider shared by both 3D tabs. Auto-fit belongs to
+        // this tab's objParams; only the active tab may push it to the DOM,
+        // otherwise a late background render rewrites the other tab's slider
+        // (and the model path reads that slider straight off the DOM).
+        if (!ownsSharedModelControls()) return;
         if (model.objScaleSlider) model.objScaleSlider.value = String(roundedPercent);
         if (model.objScaleValue) model.objScaleValue.textContent = formatObjScalePercent(roundedPercent);
     }

@@ -1,7 +1,7 @@
 import {
     getMagnetPresets,
     normalizeMagnetPocketConfig
-} from './magnet-pockets.js?v=r-5699d700a3fc7b24';
+} from './magnet-pockets.js?v=r-c511364b448561eb';
 
 function setInputValue(input, value) {
     if (input) input.value = String(value);
@@ -122,9 +122,22 @@ function restoreSupportBaseState(state, snapshot) {
     if (logoSelect) logoSelect.disabled = !snapshot.logo;
 }
 
+// The magnet panel is a deliberately global control: the same pocket spec is
+// meant to follow the user between the 3D and Logo tabs. Each tab still gets
+// its own copy so no other write path can alias the two objParams trees.
 function storeSharedMagnetConfig(state, config) {
-    state.objParams.magnetPocket = config;
-    if (state.logo?.objParams) state.logo.objParams.magnetPocket = config;
+    state.objParams.magnetPocket = { ...config };
+    if (state.logo?.objParams) state.logo.objParams.magnetPocket = { ...config };
+}
+
+/**
+ * Repaints the shared magnet DOM from one tab's stored pocket config. Called
+ * when a tab is activated so the shared controls always show the active tab's
+ * values.
+ */
+export function syncMagnetPocketControls(controls, config) {
+    if (!controls?.magnetPanel) return null;
+    return syncControls(controls, config);
 }
 
 function releaseMagnetExportBlock(button) {

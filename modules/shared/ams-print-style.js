@@ -2,8 +2,8 @@ import {
     DEFAULT_AMS_PRINT_STYLE,
     getAmsPrintStylePreset,
     normalizeAmsPrintStyle
-} from '../config.js?v=r-5699d700a3fc7b24';
-import { waitForBrowserPaint } from './bambu-send-progress.js?v=r-5699d700a3fc7b24';
+} from '../config.js?v=r-c511364b448561eb';
+import { waitForBrowserPaint } from './bambu-send-progress.js?v=r-c511364b448561eb';
 
 const STYLE_HELPERS = Object.freeze({
     'raised-efficient': '2.4mm base with a 0.6mm color surface. Keeps the raised look while limiting AMS swaps.',
@@ -61,10 +61,13 @@ export async function renderAmsPrintStyleChange({
     const orientationNote = controls?.printOrientationNote;
     const stateLabel = button?.querySelector('[data-face-down-state]');
     const priorOrientationNote = orientationNote?.textContent || '';
-    const lockTarget = rootState && typeof rootState === 'object'
-        ? rootState
-        : tabState && typeof tabState === 'object'
-            ? tabState
+    // The lock guards one tab's style render, not the whole app. Preferring the
+    // root state made the SVG and Logo tabs share a lock, so a style change on
+    // one tab could be swallowed while the other was mid-render.
+    const lockTarget = tabState && typeof tabState === 'object'
+        ? tabState
+        : rootState && typeof rootState === 'object'
+            ? rootState
             : null;
 
     if ((lockTarget && activeStyleRenderLocks.has(lockTarget)) || button?.getAttribute('aria-busy') === 'true') {
@@ -192,37 +195,21 @@ export function syncAmsPrintStyleControls({ rootState, tabState, controls }) {
 export function applyAmsPrintStylePreset({ rootState, tabState, controls, styleId }) {
     const normalizedStyleId = normalizeAmsPrintStyle(styleId);
     const preset = getAmsPrintStylePreset(normalizedStyleId);
+    // A print style belongs to the tab whose control was used. Writing it into
+    // every tab's state (and every tab's base-layer checkbox) meant picking a
+    // style on one tab silently re-thicknessed the other tab's model.
+    const target = tabState || rootState;
 
-    setObjParams(rootState, normalizedStyleId, preset);
-    if (rootState?.logo) setObjParams(rootState.logo, normalizedStyleId, preset);
-    if (tabState && tabState !== rootState && tabState !== rootState?.logo) {
-        setObjParams(tabState, normalizedStyleId, preset);
-    }
+    setObjParams(target, normalizedStyleId, preset);
 
-    if (rootState) {
-        rootState.layerThicknessById = {};
-        rootState.useBaseLayer = true;
-        rootState.autoBaseLayerSelectionPending = true;
-    }
-    if (rootState?.logo) {
-        rootState.logo.layerThicknessById = {};
-        rootState.logo.useBaseLayer = true;
-        rootState.logo.autoBaseLayerSelectionPending = true;
-    }
-    if (tabState) {
-        tabState.layerThicknessById = {};
-        tabState.useBaseLayer = true;
-        tabState.autoBaseLayerSelectionPending = true;
+    if (target) {
+        target.layerThicknessById = {};
+        target.useBaseLayer = true;
+        target.autoBaseLayerSelectionPending = true;
     }
 
-    ['use-base-layer', 'logo-use-base-layer'].forEach((id) => {
-        const checkbox = document.getElementById(id);
-        if (checkbox) checkbox.checked = true;
-    });
-    ['base-layer-select', 'logo-base-layer-select'].forEach((id) => {
-        const select = document.getElementById(id);
-        if (select) select.disabled = false;
-    });
+    if (controls?.useBaseLayerCheckbox) controls.useBaseLayerCheckbox.checked = true;
+    if (controls?.baseLayerSelect) controls.baseLayerSelect.disabled = false;
 
     syncAmsPrintStyleControls({ rootState, tabState, controls });
     return { styleId: normalizedStyleId, preset };

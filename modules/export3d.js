@@ -2,27 +2,27 @@ import {
     buildObjGeometryBundle,
     buildObjModelPlan,
     sanitizeGeometryForPrint
-} from './obj-model-plan.js?v=r-5699d700a3fc7b24';
-import { fitObjScalePlanToGeometryBounds } from './obj-scale.js?v=r-5699d700a3fc7b24';
+} from './obj-model-plan.js?v=r-c511364b448561eb';
+import { fitObjScalePlanToGeometryBounds } from './obj-scale.js?v=r-c511364b448561eb';
 import {
     buildBambuProjectFiles,
     buildBambuProjectFilesAsync
-} from './bambu-project.js?v=r-5699d700a3fc7b24';
-import { BAMBU_PROJECT_NOZZLE_DIAMETER } from './config.js?v=r-5699d700a3fc7b24';
-import { canvasToBlobAsync, dataUrlToBlob } from './raster-utils.js?v=r-5699d700a3fc7b24';
-import { layerHasPaths } from './shared/trace-utils.js?v=r-5699d700a3fc7b24';
-import { svgToPng } from './shared/svg-renderer.js?v=r-5699d700a3fc7b24';
-import { getCanonicalBedCenter } from './shared/canonical-3d.js?v=r-5699d700a3fc7b24';
+} from './bambu-project.js?v=r-c511364b448561eb';
+import { BAMBU_PROJECT_NOZZLE_DIAMETER } from './config.js?v=r-c511364b448561eb';
+import { canvasToBlobAsync, dataUrlToBlob } from './raster-utils.js?v=r-c511364b448561eb';
+import { layerHasPaths } from './shared/trace-utils.js?v=r-c511364b448561eb';
+import { svgToPng } from './shared/svg-renderer.js?v=r-c511364b448561eb';
+import { getCanonicalBedCenter } from './shared/canonical-3d.js?v=r-c511364b448561eb';
 import {
     getGeometryBundleBounds,
     validateGeometryBundleForPrint
-} from './shared/print-validation.js?v=r-5699d700a3fc7b24';
+} from './shared/print-validation.js?v=r-c511364b448561eb';
 import {
     createObjGeometrySnapshot,
     objGeometrySnapshotsMatch
-} from './shared/obj-geometry-snapshot.js?v=r-5699d700a3fc7b24';
-import { waitForBrowserPaint, yieldToBrowser } from './shared/bambu-send-progress.js?v=r-5699d700a3fc7b24';
-import { createBambuSendWorkflow } from './bambu-send-workflow.js?v=r-5699d700a3fc7b24';
+} from './shared/obj-geometry-snapshot.js?v=r-c511364b448561eb';
+import { waitForBrowserPaint, yieldToBrowser } from './shared/bambu-send-progress.js?v=r-c511364b448561eb';
+import { createBambuSendWorkflow } from './bambu-send-workflow.js?v=r-c511364b448561eb';
 
 const THREE_MF_BLOB_TYPE = 'model/3mf';
 
@@ -831,6 +831,14 @@ export function createObjExporter({
             !objGeometrySnapshotsMatch(preview?.exportGeometrySnapshot, currentSnapshot)
             || !preview?.lastGeometryBundle?.layers?.size
         ) {
+            // This path reuses the preview mesh, so a browser that cannot create a
+            // WebGL context never produces one. Say that plainly instead of asking
+            // the user to wait for a preview that will never finish.
+            if (preview?.webglUnavailable) {
+                const webglError = new Error('3D transfer requires WebGL, which this browser does not provide. Enable hardware acceleration or use a different browser, then try again.');
+                webglError.code = 'WEBGL_UNAVAILABLE';
+                throw webglError;
+            }
             const error = new Error('The 3D preview is not ready for this model. Wait for it to finish, then send again.');
             error.code = 'PREVIEW_NOT_READY';
             throw error;

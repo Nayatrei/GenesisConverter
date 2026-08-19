@@ -2,11 +2,11 @@ import {
     launchBambuStudio,
     probeBambuTransferBackend,
     publishBambuProject
-} from './bambu-bridge.js?v=r-5699d700a3fc7b24';
+} from './bambu-bridge.js?v=r-c511364b448561eb';
 import {
     createBambuSendProgress,
     waitForBrowserPaint
-} from './shared/bambu-send-progress.js?v=r-5699d700a3fc7b24';
+} from './shared/bambu-send-progress.js?v=r-c511364b448561eb';
 
 const THREE_MF_BLOB_TYPE = 'model/3mf';
 
@@ -154,6 +154,7 @@ export function createBambuSendWorkflow({
             await waitForPaint();
             assertRunActive(run);
 
+            run.step = 'geometry';
             geometryBundle = await prepareGeometry(defaultThickness, (event) => {
                 updateProgress(run, { ...event, buttonText: 'Preparing model…' });
             }, run.controller.signal);
@@ -171,6 +172,7 @@ export function createBambuSendWorkflow({
             });
             updateStatus(run, 'Building the Bambu Studio project…');
 
+            run.step = 'package';
             const exportResult = await packageProject({
                 geometryBundle,
                 baseName,
@@ -198,9 +200,27 @@ export function createBambuSendWorkflow({
             });
             updateStatus(run, 'Checking direct Bambu transfer support…');
 
-            const hasTransferBackend = await probeBambuTransferBackend({
-                signal: run.controller.signal
-            });
+            run.step = 'probe';
+            // The probe only decides which handoff to use. Any failure that is
+            // not a caller cancellation means "no backend here", so it must fall
+            // back to the download instead of failing the whole send — the same
+            // recovery policy the publish step below already uses.
+            let hasTransferBackend = false;
+            try {
+                hasTransferBackend = await probeBambuTransferBackend({
+                    signal: run.controller.signal
+                });
+            } catch (probeError) {
+                if (
+                    run.cancelled
+                    || run.controller.signal.aborted
+                    || probeError?.code === 'BAMBU_SEND_CANCELLED'
+                ) {
+                    throw createCancellationError();
+                }
+                console.warn('Bambu transfer probe failed; using download fallback:', probeError);
+                hasTransferBackend = false;
+            }
             assertRunActive(run);
             if (!hasTransferBackend) {
                 return finishDownloadedHandoff(run, projectBlob, filename);
@@ -214,6 +234,7 @@ export function createBambuSendWorkflow({
             });
             updateStatus(run, 'Uploading a temporary Bambu transfer…');
 
+            run.step = 'upload';
             let transfer;
             try {
                 transfer = await publishBambuProject(projectBlob, filename, {
@@ -247,12 +268,21 @@ export function createBambuSendWorkflow({
             if (run.cancelled || error?.code === 'BAMBU_SEND_CANCELLED') {
                 return false;
             }
-            console.error('Export & open in Bambu failed:', error);
+            // Name the step that failed. A bare "Could not send" hid whether the
+            // geometry, the 3MF packaging, or the network was at fault.
+            const step = run.step || 'prepare';
+            console.error(
+                `Export & open in Bambu failed during ${step}:`,
+                { name: error?.name, code: error?.code, message: error?.message },
+                error
+            );
             const message = error?.message || 'Failed to export 3MF.';
             updateStatus(run, message);
             progress.finish({
                 state: 'error',
-                stage: error?.code === 'PREVIEW_NOT_READY' ? 'Preview still updating' : 'Could not send',
+                stage: error?.code === 'PREVIEW_NOT_READY'
+                    ? 'Preview still updating'
+                    : `Could not send (${step})`,
                 detail: message
             });
             return false;

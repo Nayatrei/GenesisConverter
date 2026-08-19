@@ -1,10 +1,10 @@
-import { createDefaultTraceControls } from './shared/trace-controls.js?v=r-5699d700a3fc7b24';
+import { createDefaultTraceControls } from './shared/trace-controls.js?v=r-c511364b448561eb';
 import {
     DEFAULT_AMS_PRINT_STYLE,
     OBJ_DEFAULT_ROTATION,
     getAmsPrintStylePreset
-} from './config.js?v=r-5699d700a3fc7b24';
-import { createDefaultMagnetPocketConfig } from './shared/magnet-pockets.js?v=r-5699d700a3fc7b24';
+} from './config.js?v=r-c511364b448561eb';
+import { createDefaultMagnetPocketConfig } from './shared/magnet-pockets.js?v=r-c511364b448561eb';
 
 /**
  * Returns the initial application state object.
@@ -12,7 +12,9 @@ import { createDefaultMagnetPocketConfig } from './shared/magnet-pockets.js?v=r-
  * @returns {object}
  */
 export function createState() {
-    const sharedMagnetPocket = createDefaultMagnetPocketConfig();
+    // Each tab owns its own objParams tree. Nothing here may be shared by
+    // reference between the SVG and Logo trees: an aliased sub-object turns a
+    // per-tab edit into a silent cross-tab write.
     const createObjParams = () => ({
         scale: 100,
         thickness: getAmsPrintStylePreset(DEFAULT_AMS_PRINT_STYLE).colorThickness,
@@ -26,7 +28,7 @@ export function createState() {
         showBuildPlate: true,
         layerDisplayMode: 'ghost',
         targetLocked: true,
-        magnetPocket: sharedMagnetPocket
+        magnetPocket: createDefaultMagnetPocketConfig()
     });
 
     const obj3dPreview = () => ({
@@ -64,7 +66,14 @@ export function createState() {
     });
 
     return {
+        // ── Shared source image ────────────────────────────────────────────────
+        // Every tab shares one <img id="source-image">, so each import bumps this
+        // counter. A tab records the generation it traced (tracedSourceGeneration)
+        // and drops its stale results the next time it is activated.
+        sourceGeneration: 0,
+
         // ── SVG tab state ──────────────────────────────────────────────────────
+        tracedSourceGeneration: 0,
         quantizedData: null,
         tracedata: null,
         originalImageUrl: null,
@@ -188,6 +197,7 @@ export function createState() {
 
         // ── Logo tab state (passed as `ls`) ────────────────────────────────────
         logo: {
+            tracedSourceGeneration: 0,
             tracedata: null,
             quantizedData: null,
             lastOptions: null,

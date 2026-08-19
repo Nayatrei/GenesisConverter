@@ -1,103 +1,53 @@
-import { formatObjScalePercent } from '../obj-scale.js?v=r-5699d700a3fc7b24';
+import { formatObjScalePercent } from '../obj-scale.js?v=r-c511364b448561eb';
+import { syncAmsPrintStyleControls } from './ams-print-style.js?v=r-c511364b448561eb';
+import { syncMagnetPocketControls } from './magnet-pocket-controls.js?v=r-c511364b448561eb';
 
 /**
- * Manages synchronization between AppState and UI elements.
- * This ensures that common parameters (like OBJ scale) are consistent
- * across multiple tabs and sidebar sections.
+ * The 3D sidebar (#obj-scale, #obj-thickness, #obj-bed, the magnet panel, …) is
+ * ONE set of DOM nodes handed to both the SVG and the Logo tab controllers,
+ * while each tab owns its own `objParams`. That only stays coherent if the
+ * shared nodes are repainted from the active tab's state every time a tab is
+ * activated — the model/export path still reads several of these values
+ * straight off the DOM, so the DOM is what must follow the active tab.
+ *
+ * Setting `.value` programmatically fires no input/change event, so this never
+ * re-enters the tabs' own handlers.
+ *
+ * @param {object} args
+ * @param {object} args.tabState - the activating tab's state (root state for
+ *   the SVG tab, `state.logo` for the Logo tab).
+ * @param {object} args.controls - that tab's merged element map, which includes
+ *   the shared 3D controls.
  */
-export function createUiSyncer({ state, elements }) {
-    
-    /**
-     * Updates all UI elements related to OBJ parameters to match current state.
-     */
-    function syncObjParamsToUi() {
-        const p = state.objParams;
-        if (!p) return;
+export function syncShared3dControls({ tabState, controls }) {
+    const params = tabState?.objParams;
+    if (!params || !controls) return;
 
-        const el = elements.shared3d;
-        if (!el) return;
+    // Owns amsPrintStyle, baseThickness, thickness, and the Face on Bed toggle.
+    syncAmsPrintStyleControls({ rootState: tabState, tabState, controls });
 
-        if (el.objScaleSlider) el.objScaleSlider.value = p.scale;
-        if (el.objScaleValue) el.objScaleValue.textContent = formatObjScalePercent(p.scale);
-
-        if (el.objAmsPrintStyle) el.objAmsPrintStyle.value = p.amsPrintStyle || 'raised-efficient';
-        if (el.objBaseThicknessSlider) el.objBaseThicknessSlider.value = p.baseThickness;
-        if (el.objBaseThicknessValue) el.objBaseThicknessValue.textContent = p.baseThickness;
-        
-        if (el.objThicknessSlider) el.objThicknessSlider.value = p.thickness;
-        if (el.objThicknessValue) el.objThicknessValue.textContent = p.thickness;
-
-        if (el.objBedSelect) el.objBedSelect.value = p.bedKey;
-        if (el.objMarginInput) el.objMarginInput.value = p.margin;
-        if (el.objBezelSelect) el.objBezelSelect.value = p.bezelPreset || 'off';
+    if (controls.objScaleSlider) {
+        controls.objScaleSlider.value = String(params.scale ?? 100);
+    }
+    if (controls.objScaleValue) {
+        controls.objScaleValue.textContent = formatObjScalePercent(params.scale ?? 100);
+    }
+    if (controls.objDecimateSlider) {
+        controls.objDecimateSlider.value = String(params.decimate ?? 0);
+    }
+    if (controls.objDecimateValue) {
+        controls.objDecimateValue.textContent = String(params.decimate ?? 0);
+    }
+    if (controls.objBedSelect) {
+        controls.objBedSelect.value = params.bedKey || 'x1';
+    }
+    if (controls.objMarginInput) {
+        controls.objMarginInput.value = String(params.margin ?? 5);
+    }
+    if (controls.objBezelSelect) {
+        controls.objBezelSelect.value = params.bezelPreset || 'off';
     }
 
-    /**
-     * Listen for changes on any of the shared UI elements and update state.
-     */
-    function bindShared3dEvents(onUpdate) {
-        const el = elements.shared3d;
-        if (!el) return;
-
-        const wrapUpdate = () => {
-            if (typeof onUpdate === 'function') onUpdate();
-        };
-
-        if (el.objScaleSlider) {
-            el.objScaleSlider.addEventListener('input', () => {
-                state.objParams.scale = Number.parseFloat(el.objScaleSlider.value);
-                if (el.objScaleValue) el.objScaleValue.textContent = formatObjScalePercent(state.objParams.scale);
-                wrapUpdate();
-            });
-        }
-
-        if (el.objAmsPrintStyle) {
-            el.objAmsPrintStyle.addEventListener('change', () => {
-                state.objParams.amsPrintStyle = el.objAmsPrintStyle.value || 'raised-efficient';
-                wrapUpdate();
-            });
-        }
-
-        if (el.objBaseThicknessSlider) {
-            el.objBaseThicknessSlider.addEventListener('input', () => {
-                state.objParams.baseThickness = Number.parseFloat(el.objBaseThicknessSlider.value);
-                if (el.objBaseThicknessValue) el.objBaseThicknessValue.textContent = state.objParams.baseThickness;
-                wrapUpdate();
-            });
-        }
-
-        if (el.objThicknessSlider) {
-            el.objThicknessSlider.addEventListener('input', () => {
-                state.objParams.thickness = Number.parseFloat(el.objThicknessSlider.value);
-                if (el.objThicknessValue) el.objThicknessValue.textContent = state.objParams.thickness;
-                wrapUpdate();
-            });
-        }
-
-        if (el.objBedSelect) {
-            el.objBedSelect.addEventListener('change', () => {
-                state.objParams.bedKey = el.objBedSelect.value;
-                wrapUpdate();
-            });
-        }
-
-        if (el.objMarginInput) {
-            el.objMarginInput.addEventListener('input', () => {
-                state.objParams.margin = Number.parseFloat(el.objMarginInput.value) || 0;
-                wrapUpdate();
-            });
-        }
-
-        if (el.objBezelSelect) {
-            el.objBezelSelect.addEventListener('change', () => {
-                state.objParams.bezelPreset = el.objBezelSelect.value || 'off';
-                wrapUpdate();
-            });
-        }
-    }
-
-    return {
-        syncObjParamsToUi,
-        bindShared3dEvents
-    };
+    const magnetConfig = syncMagnetPocketControls(controls, params.magnetPocket);
+    if (magnetConfig) params.magnetPocket = magnetConfig;
 }

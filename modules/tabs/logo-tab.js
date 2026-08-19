@@ -1,45 +1,46 @@
-import { SLIDER_TOOLTIPS } from '../config.js?v=r-5699d700a3fc7b24';
-import { createObjPreview } from '../preview3d.js?v=r-5699d700a3fc7b24';
-import { createObjExporter } from '../export3d.js?v=r-5699d700a3fc7b24';
+import { SLIDER_TOOLTIPS } from '../config.js?v=r-c511364b448561eb';
+import { createObjPreview } from '../preview3d.js?v=r-c511364b448561eb';
+import { createObjExporter } from '../export3d.js?v=r-c511364b448561eb';
 import {
     hasTransparentPixels,
     markTransparentPixels,
     quantizeImageDataToFixedPalette,
     remapQuantizedPaletteToColors,
     stripTransparentPalette
-} from '../shared/image-utils.js?v=r-5699d700a3fc7b24';
-import { debounce, layerHasPaths, buildTracedataSubset, createMergedTracedata, assess3DPrintQuality } from '../shared/trace-utils.js?v=r-5699d700a3fc7b24';
-import { saveInitialSliderValues, updateAllSliderDisplays, resetSlidersToInitial } from '../shared/slider-manager.js?v=r-5699d700a3fc7b24';
-import { createZoomPanController } from '../shared/zoom-pan.js?v=r-5699d700a3fc7b24';
-import { svgToPng } from '../shared/svg-renderer.js?v=r-5699d700a3fc7b24';
-import { createPaletteManager } from '../shared/palette-manager.js?v=r-5699d700a3fc7b24';
-import { buildWeldedSilhouetteSvgString } from '../shared/silhouette-builder.js?v=r-5699d700a3fc7b24';
-import { formatObjScalePercent } from '../obj-scale.js?v=r-5699d700a3fc7b24';
-import { createHtmlEditor, extractDeclaredHtmlColors } from './logo/html-editor.js?v=r-5699d700a3fc7b24';
+} from '../shared/image-utils.js?v=r-c511364b448561eb';
+import { debounce, layerHasPaths, buildTracedataSubset, createMergedTracedata, assess3DPrintQuality } from '../shared/trace-utils.js?v=r-c511364b448561eb';
+import { saveInitialSliderValues, updateAllSliderDisplays, resetSlidersToInitial } from '../shared/slider-manager.js?v=r-c511364b448561eb';
+import { createZoomPanController } from '../shared/zoom-pan.js?v=r-c511364b448561eb';
+import { svgToPng } from '../shared/svg-renderer.js?v=r-c511364b448561eb';
+import { createPaletteManager } from '../shared/palette-manager.js?v=r-c511364b448561eb';
+import { buildWeldedSilhouetteSvgString } from '../shared/silhouette-builder.js?v=r-c511364b448561eb';
+import { formatObjScalePercent } from '../obj-scale.js?v=r-c511364b448561eb';
+import { createHtmlEditor, extractDeclaredHtmlColors } from './logo/html-editor.js?v=r-c511364b448561eb';
 import {
     DEFAULT_LOGO_PRESET_ID,
     LOGO_PRESETS,
     assessLogoPresetFit,
     buildLogoPresetMarkup,
     getLogoPreset
-} from './logo/logo-presets.js?v=r-5699d700a3fc7b24';
-import { createAutoWorkingImageFromSource } from '../raster-utils.js?v=r-5699d700a3fc7b24';
-import { canAttemptBambuLaunch } from '../bambu-bridge.js?v=r-5699d700a3fc7b24';
+} from './logo/logo-presets.js?v=r-c511364b448561eb';
+import { createAutoWorkingImageFromSource } from '../raster-utils.js?v=r-c511364b448561eb';
+import { canAttemptBambuLaunch } from '../bambu-bridge.js?v=r-c511364b448561eb';
 import {
     buildTraceOptions,
     cycleTracePreset,
     estimateMeaningfulColorCount,
     getColorCountNoticeMessage,
     readTraceControls
-} from '../shared/trace-controls.js?v=r-5699d700a3fc7b24';
-import { setMakerWorkflow, updateMakerPreflight } from '../shared/maker-workflow.js?v=r-5699d700a3fc7b24';
+} from '../shared/trace-controls.js?v=r-c511364b448561eb';
+import { setMakerWorkflow, updateMakerPreflight } from '../shared/maker-workflow.js?v=r-c511364b448561eb';
 import {
     applyAmsPrintStylePreset,
     renderAmsPrintStyleChange,
     syncAmsPrintStyleControls,
     toggleFaceDownPrintStyle
-} from '../shared/ams-print-style.js?v=r-5699d700a3fc7b24';
-import { yieldToBrowser } from '../shared/bambu-send-progress.js?v=r-5699d700a3fc7b24';
+} from '../shared/ams-print-style.js?v=r-c511364b448561eb';
+import { yieldToBrowser } from '../shared/bambu-send-progress.js?v=r-c511364b448561eb';
+import { syncShared3dControls } from '../shared/ui-syncer.js?v=r-c511364b448561eb';
 
 export function createLogoTabController({
     state,
@@ -264,6 +265,14 @@ export function createLogoTabController({
             htmlDeclaredColorCount: ls.htmlDeclaredColors.length
         });
         updateColorCountNotice();
+    }
+
+    // The 3D sidebar nodes are shared with the 3D (SVG) tab, so repaint them
+    // from this tab's objParams whenever this tab takes over. The model/export
+    // path still reads several of these straight off the DOM.
+    function syncShared3dControlsForTab() {
+        syncShared3dControls({ tabState: ls, controls: le });
+        updateBezelHelperText();
     }
 
     function updateBezelHelperText() {
@@ -532,6 +541,7 @@ export function createLogoTabController({
             }
             ls.colorsAnalyzed = true;
             await traceVectorPaths();
+            ls.tracedSourceGeneration = state.sourceGeneration;
         } catch (error) {
             ls.colorsAnalyzed = false;
             setMakerWorkflow(le.workflow, 'layers', { tone: 'error' });
@@ -632,6 +642,7 @@ export function createLogoTabController({
         getDataToExport,
         getVisibleLayerIndices,
         onExportGeometryInvalidated: () => resetBambuSendProgress(),
+        isTabActive: () => state.activeTab === 'logo',
         ImageTracer: tracer
     });
 
@@ -863,7 +874,15 @@ export function createLogoTabController({
 
     // ── Lifecycle ──────────────────────────────────────────────────────────────
 
+    // Every tab listens to the one shared <img id="source-image">, so this must
+    // bail out before any side effect when another tab owns the import. Dropping
+    // HTML mode, mirroring the bitmap, or clearing colorsAnalyzed from here while
+    // another tab is active silently rewrote this tab's workspace.
     function onSourceImageLoaded() {
+        if (state.activeTab !== 'logo') {
+            return;
+        }
+
         resetBambuSendProgress();
         // A new image always drops HTML mode so the pipeline traces the bitmap next time Logo opens.
         if (ls.htmlModeActive) {
@@ -882,10 +901,6 @@ export function createLogoTabController({
         ls.colorsAnalyzed = false;
         setMakerWorkflow(le.workflow, 'layers');
 
-        if (state.activeTab !== 'logo') {
-            return;
-        }
-
         onRasterImageLoaded();
         syncWorkspaceView();
         if (le.generatePreviewBtn) le.generatePreviewBtn.disabled = false;
@@ -895,8 +910,47 @@ export function createLogoTabController({
         void generatePreviewClick().catch(() => {});
     }
 
+    // Drops everything traced from a previous source image. Only ever called on
+    // activation, so an inactive tab never races the tab that owns the import.
+    function resetForNewSource() {
+        ls.tracedata = null;
+        ls.quantizedData = null;
+        ls.lastOptions = null;
+        ls.silhouetteSvgString = '';
+        ls.mergeRules = [];
+        ls.layerThicknessById = {};
+        ls.colorsAnalyzed = false;
+        ls.estimatedColorCount = null;
+        ls.htmlDeclaredColors = [];
+        ls.selectedLayerIndices.clear();
+        ls.selectedFinalLayerIndices.clear();
+        ls.useBaseLayer = false;
+        ls.baseSourceLayerId = null;
+        ls.autoBaseLayerSelectionPending = true;
+        ls.tracedSourceGeneration = state.sourceGeneration;
+
+        resetBambuSendProgress();
+        disableDownloadButtons();
+        if (le.qualityIndicator) le.qualityIndicator.textContent = '';
+        le.paletteContainer?.replaceChildren();
+        if (le.paletteRow) le.paletteRow.style.display = 'none';
+        le.mergeRulesContainer?.replaceChildren();
+        if (le.svgPreview) le.svgPreview.style.display = 'none';
+        // The Logo tab is now showing the newly imported bitmap, not the old trace.
+        if (le.svgSourceMirror && le.sourceImage?.src) {
+            le.svgSourceMirror.src = le.sourceImage.src;
+            le.svgSourceMirror.style.display = '';
+        }
+        objPreview.render();
+    }
+
     function onTabActivated() {
-        syncAmsPrintStyleControls({ rootState: state, tabState: ls, controls: le });
+        // HTML mode owns its own source (the rendered markup), so an import made
+        // on another tab must not disturb it.
+        if (!ls.htmlModeActive && ls.tracedSourceGeneration !== state.sourceGeneration) {
+            resetForNewSource();
+        }
+        syncShared3dControlsForTab();
         if (ls.htmlModeActive) {
             if (!ls.colorsAnalyzed && le.htmlInput?.value.trim()) {
                 setMakerWorkflow(le.workflow, 'layers');
@@ -997,40 +1051,39 @@ export function createLogoTabController({
         if (le.objBaseThicknessSlider && le.objBaseThicknessValue) {
             le.objBaseThicknessValue.textContent = le.objBaseThicknessSlider.value;
             le.objBaseThicknessSlider.addEventListener('input', () => {
+                if (state.activeTab !== 'logo') return;
                 const nextBaseThickness = Number.parseFloat(le.objBaseThicknessSlider.value);
-                state.objParams.baseThickness = nextBaseThickness;
                 ls.objParams.baseThickness = nextBaseThickness;
                 le.objBaseThicknessValue.textContent = nextBaseThickness;
             });
             le.objBaseThicknessSlider.addEventListener('change', () => {
-                if (state.activeTab === 'logo') {
-                    objPreview.updateLayerHeights();
-                    updateQualityDisplay(assess3DPrintQuality(ls.tracedata, getVisibleLayerIndices));
-                }
+                if (state.activeTab !== 'logo') return;
+                objPreview.updateLayerHeights();
+                updateQualityDisplay(assess3DPrintQuality(ls.tracedata, getVisibleLayerIndices));
             });
         }
         if (le.objThicknessSlider && le.objThicknessValue) {
             le.objThicknessValue.textContent = le.objThicknessSlider.value;
             le.objThicknessSlider.addEventListener('input', () => {
+                if (state.activeTab !== 'logo') return;
                 const nextThickness = Number.parseFloat(le.objThicknessSlider.value);
-                state.objParams.thickness = nextThickness;
                 ls.objParams.thickness = nextThickness;
                 le.objThicknessValue.textContent = nextThickness;
             });
             le.objThicknessSlider.addEventListener('change', () => {
-                if (state.activeTab === 'logo') {
-                    objPreview.updateLayerHeights();
-                    updateQualityDisplay(assess3DPrintQuality(ls.tracedata, getVisibleLayerIndices));
-                }
+                if (state.activeTab !== 'logo') return;
+                objPreview.updateLayerHeights();
+                updateQualityDisplay(assess3DPrintQuality(ls.tracedata, getVisibleLayerIndices));
             });
         }
 
         if (le.objDecimateSlider && le.objDecimateValue) {
             le.objDecimateValue.textContent = le.objDecimateSlider.value;
             le.objDecimateSlider.addEventListener('input', () => {
-                state.objParams.decimate = Number.parseFloat(le.objDecimateSlider.value);
-                le.objDecimateValue.textContent = state.objParams.decimate;
-                if (state.activeTab === 'logo') scheduleObjModelRender();
+                if (state.activeTab !== 'logo') return;
+                ls.objParams.decimate = Number.parseFloat(le.objDecimateSlider.value);
+                le.objDecimateValue.textContent = ls.objParams.decimate;
+                scheduleObjModelRender();
 
                 const tooltipEl = document.getElementById('obj-decimate-tooltip');
                 if (tooltipEl) {
@@ -1045,28 +1098,32 @@ export function createLogoTabController({
         if (le.objScaleSlider && le.objScaleValue) {
             le.objScaleValue.textContent = formatObjScalePercent(le.objScaleSlider.value);
             le.objScaleSlider.addEventListener('input', () => {
-                state.objParams.scale = Number.parseFloat(le.objScaleSlider.value);
-                le.objScaleValue.textContent = formatObjScalePercent(state.objParams.scale);
-                if (state.activeTab === 'logo') scheduleObjModelRender();
+                if (state.activeTab !== 'logo') return;
+                ls.objParams.scale = Number.parseFloat(le.objScaleSlider.value);
+                le.objScaleValue.textContent = formatObjScalePercent(ls.objParams.scale);
+                scheduleObjModelRender();
             });
         }
         if (le.objBedSelect) {
             le.objBedSelect.addEventListener('change', (e) => {
-                state.objParams.bedKey = e.target.value;
-                if (state.activeTab === 'logo') scheduleObjModelRender();
+                if (state.activeTab !== 'logo') return;
+                ls.objParams.bedKey = e.target.value;
+                scheduleObjModelRender();
             });
         }
         if (le.objMarginInput) {
             le.objMarginInput.addEventListener('input', (e) => {
-                state.objParams.margin = Number.parseFloat(e.target.value);
-                if (state.activeTab === 'logo') scheduleObjModelRender();
+                if (state.activeTab !== 'logo') return;
+                ls.objParams.margin = Number.parseFloat(e.target.value);
+                scheduleObjModelRender();
             });
         }
         if (le.objBezelSelect) {
             le.objBezelSelect.addEventListener('change', () => {
-                state.objParams.bezelPreset = le.objBezelSelect.value || 'off';
+                if (state.activeTab !== 'logo') return;
+                ls.objParams.bezelPreset = le.objBezelSelect.value || 'off';
                 updateBezelHelperText();
-                if (state.activeTab === 'logo') scheduleObjModelRender();
+                scheduleObjModelRender();
 
                 const tooltipEl = document.getElementById('obj-bezel-tooltip');
                 if (tooltipEl) {
@@ -1076,9 +1133,9 @@ export function createLogoTabController({
                     ls.tooltipTimeout = setTimeout(() => { tooltipEl.style.opacity = '0'; }, 2000);
                 }
             });
-            if (!state.objParams.bezelPreset) state.objParams.bezelPreset = le.objBezelSelect.value || 'off';
-            le.objBezelSelect.value = state.objParams.bezelPreset || 'off';
-            updateBezelHelperText();
+            // State only: the select is shared with the 3D tab, so its value is
+            // owned by whichever tab is active (see syncShared3dControlsForTab).
+            if (!ls.objParams.bezelPreset) ls.objParams.bezelPreset = le.objBezelSelect.value || 'off';
         }
         if (le.exportObjBtn) {
             le.exportObjBtn.addEventListener('click', () => objExporter.exportAsOBJ());

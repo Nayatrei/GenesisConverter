@@ -1,19 +1,19 @@
-import { createBulkTabController } from './modules/tabs/bulk-tab.js?v=r-5699d700a3fc7b24';
-import { createRasterTabController } from './modules/tabs/raster-tab.js?v=r-5699d700a3fc7b24';
-import { createSvgTabController } from './modules/tabs/svg-tab.js?v=r-5699d700a3fc7b24';
-import { createLogoTabController } from './modules/tabs/logo-tab.js?v=r-5699d700a3fc7b24';
-import { createPdfTabController } from './modules/tabs/pdf-tab.js?v=r-5699d700a3fc7b24';
+import { createBulkTabController } from './modules/tabs/bulk-tab.js?v=r-c511364b448561eb';
+import { createRasterTabController } from './modules/tabs/raster-tab.js?v=r-c511364b448561eb';
+import { createSvgTabController } from './modules/tabs/svg-tab.js?v=r-c511364b448561eb';
+import { createLogoTabController } from './modules/tabs/logo-tab.js?v=r-c511364b448561eb';
+import { createPdfTabController } from './modules/tabs/pdf-tab.js?v=r-c511364b448561eb';
 import {
     getDataUrlSize,
     getImageFormat,
     IMPORTABLE_IMAGE_PROMPT,
     isImportableImageFile,
     normalizeImageBlob
-} from './modules/raster-utils.js?v=r-5699d700a3fc7b24';
-import { createElements } from './modules/app-elements.js?v=r-5699d700a3fc7b24';
-import { createState } from './modules/app-state.js?v=r-5699d700a3fc7b24';
-import { applyTabCase, TAB_CASES } from './modules/tab-cases.js?v=r-5699d700a3fc7b24';
-import { bindMagnetPocketControls } from './modules/shared/magnet-pocket-controls.js?v=r-5699d700a3fc7b24';
+} from './modules/raster-utils.js?v=r-c511364b448561eb';
+import { createElements } from './modules/app-elements.js?v=r-c511364b448561eb';
+import { createState } from './modules/app-state.js?v=r-c511364b448561eb';
+import { applyTabCase, TAB_CASES } from './modules/tab-cases.js?v=r-c511364b448561eb';
+import { bindMagnetPocketControls } from './modules/shared/magnet-pocket-controls.js?v=r-c511364b448561eb';
 
 async function loadTabPartials() {
     const appVersion = window.__GENESIS_APP_VERSION__
@@ -47,6 +47,10 @@ async function initializeApplication() {
 
     const elements = createElements();
     const state = createState();
+    // Read-only inspection hook. Each tab owns its own 3D state while sharing
+    // one set of DOM controls, and that ownership is only observable from the
+    // state tree, so browser tests need a handle on it.
+    window.__GENESIS_APP_STATE__ = state;
     const TAB_SLUGS = Object.freeze({
         svg: '3d-obj',
         logo: 'logo',
@@ -372,16 +376,29 @@ async function initializeApplication() {
         syncWorkspaceView();
         updateSegmentedControlIndicator();
 
-        if (target === 'svg' && hasSingleImageLoaded()) {
-            svgTab.onTabActivated();
-        } else if (target === 'logo') {
-            logoTab.onTabActivated();
-        } else if (target === 'raster' && hasSingleImageLoaded()) {
-            rasterTab.onTabActivated();
-        } else if (target === 'pdf') {
-            pdfTab.onTabActivated();
-        } else {
-            bulkTab.onTabActivated();
+        // Explicit per-tab dispatch. The old else-chain fell through to the bulk
+        // tab whenever svg/raster were opened without an image, so switching to
+        // the 3D tab on an empty workspace ran the Bulk tab's activation and
+        // skipped the 3D tab's own (which includes resyncing the shared 3D
+        // controls to this tab's objParams).
+        switch (target) {
+            case 'svg':
+                svgTab.onTabActivated();
+                break;
+            case 'logo':
+                logoTab.onTabActivated();
+                break;
+            case 'raster':
+                rasterTab.onTabActivated();
+                break;
+            case 'pdf':
+                pdfTab.onTabActivated();
+                break;
+            case 'bulk':
+                bulkTab.onTabActivated();
+                break;
+            default:
+                break;
         }
     }
 
@@ -395,8 +412,17 @@ async function initializeApplication() {
             state.originalImageSize = getDataUrlSize(src);
         }
 
+        // Every tab reads the same <img>, so stamp a new generation. Tabs compare
+        // it against their own tracedSourceGeneration on activation and discard
+        // results traced from a previous source.
+        state.sourceGeneration = (state.sourceGeneration || 0) + 1;
+
         elements.sourceImage.src = src;
-        if (elements.logo?.preview?.svgSourceMirror) elements.logo.preview.svgSourceMirror.src = src;
+        // Only the active Logo tab mirrors the import. Copying it while another
+        // tab is active leaked that tab's image into the Logo workspace.
+        if (state.activeTab === 'logo' && elements.logo?.preview?.svgSourceMirror) {
+            elements.logo.preview.svgSourceMirror.src = src;
+        }
     }
 
     function resetImageInfo() {
