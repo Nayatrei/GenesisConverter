@@ -1,8 +1,14 @@
-import { BED_PRESETS } from '../config.js?v=r-c511364b448561eb';
+import { BED_PRESETS } from '../config.js?v=r-641e1c86a51e7186';
 
 const POSITION_EPSILON = 1e-5;
 const TRIANGLE_AREA_EPSILON_SQUARED = 1e-16;
 const BED_TOLERANCE_MM = 0.05;
+// Two same-colour regions that touch at a single diagonal pixel corner weld into
+// one shared vertical edge. The shell stays closed and slicers repair the pinch on
+// import, so a handful of them is a warning. An abnormal share of pinched edges
+// still means the mesh is genuinely broken, so keep an error ceiling.
+const NON_MANIFOLD_EDGE_ERROR_RATIO = 0.001;
+const NON_MANIFOLD_EDGE_ERROR_FLOOR = 8;
 
 function createEmptyBounds() {
     return {
@@ -92,6 +98,7 @@ function getVertexKey(position, vertexIndex) {
 
 function validateLayerMesh(layerData, layerIndex) {
     const errors = [];
+    const warnings = [];
     const geometry = layerData?.geometry;
     const position = geometry?.getAttribute?.('position');
     const index = geometry?.index;
@@ -100,6 +107,7 @@ function validateLayerMesh(layerData, layerIndex) {
     if (!position || position.count < 3) {
         return {
             errors: [`${label} has no printable mesh.`],
+            warnings: [],
             triangleCount: 0,
             boundaryEdgeCount: 0,
             nonManifoldEdgeCount: 0,
@@ -190,7 +198,9 @@ function validateLayerMesh(layerData, layerIndex) {
     let nonManifoldEdgeCount = 0;
     edgeCounts.forEach((count) => {
         if (count === 1) boundaryEdgeCount += 1;
-        if (count !== 2) nonManifoldEdgeCount += 1;
+        // Only an edge shared by three or more faces is non-manifold. Counting
+        // boundary edges here too used to double-report every open edge.
+        if (count > 2) nonManifoldEdgeCount += 1;
     });
 
     if (degenerateTriangleCount > 0) {
@@ -198,8 +208,18 @@ function validateLayerMesh(layerData, layerIndex) {
     }
     if (boundaryEdgeCount > 0) {
         errors.push(`${label} has ${boundaryEdgeCount} open mesh edge${boundaryEdgeCount === 1 ? '' : 's'}.`);
-    } else if (nonManifoldEdgeCount > 0) {
-        errors.push(`${label} has ${nonManifoldEdgeCount} non-manifold edge${nonManifoldEdgeCount === 1 ? '' : 's'}.`);
+    }
+    if (nonManifoldEdgeCount > 0) {
+        const message = `${label} has ${nonManifoldEdgeCount} non-manifold edge${nonManifoldEdgeCount === 1 ? '' : 's'}.`;
+        const errorThreshold = Math.max(
+            NON_MANIFOLD_EDGE_ERROR_FLOOR,
+            Math.ceil(edgeCounts.size * NON_MANIFOLD_EDGE_ERROR_RATIO)
+        );
+        if (nonManifoldEdgeCount > errorThreshold) {
+            errors.push(message);
+        } else {
+            warnings.push(message);
+        }
     }
     if (Math.abs(signedVolume) <= POSITION_EPSILON) {
         errors.push(`${label} has no enclosed printable volume.`);
@@ -207,6 +227,7 @@ function validateLayerMesh(layerData, layerIndex) {
 
     return {
         errors,
+        warnings,
         triangleCount: Math.floor(elementCount / 3),
         boundaryEdgeCount,
         nonManifoldEdgeCount,
@@ -220,6 +241,7 @@ export function validateGeometryBundleForPrint(geometryBundle, {
     margin = 5
 } = {}) {
     const errors = [];
+    const warnings = [];
     const layers = [];
     const bed = BED_PRESETS[bedKey] || BED_PRESETS.x1;
     const safeMargin = Number.isFinite(margin) ? Math.max(0, margin) : 5;
@@ -243,6 +265,7 @@ export function validateGeometryBundleForPrint(geometryBundle, {
                 ...result
             });
             errors.push(...result.errors);
+            warnings.push(...(result.warnings || []));
         });
     });
 
@@ -283,6 +306,7 @@ export function validateGeometryBundleForPrint(geometryBundle, {
     return {
         ok: errors.length === 0,
         errors,
+        warnings,
         bounds,
         bed,
         margin: safeMargin,

@@ -1,6 +1,6 @@
 import {
     BAMBU_PROJECT_NOZZLE_DIAMETER
-} from '../config.js?v=r-c511364b448561eb';
+} from '../config.js?v=r-641e1c86a51e7186';
 
 const DEFAULT_LAYER_HEIGHT = 0.2;
 const DEFAULT_BED_TYPE = 'textured_plate';

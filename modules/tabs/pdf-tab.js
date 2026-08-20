@@ -5,17 +5,17 @@ import {
     PDF_IMAGE_EXPORT_MAX_TOTAL_BYTES,
     sanitizePdfFilename,
     validatePdfImageExportPlan
-} from './pdf-utils.js?v=r-c511364b448561eb';
+} from './pdf-utils.js?v=r-641e1c86a51e7186';
 import {
     estimateSizeBytes,
     exportCanvasToRasterBlob,
     formatBytes,
     getRasterExtension,
     sanitizeFileComponent
-} from '../raster-utils.js?v=r-c511364b448561eb';
-import { createZipFile } from '../export3d.js?v=r-c511364b448561eb';
-import { createImageToPdfController } from './pdf-image-to-pdf.js?v=r-c511364b448561eb';
-import { createPdfOcrController } from './pdf-ocr.js?v=r-c511364b448561eb';
+} from '../raster-utils.js?v=r-641e1c86a51e7186';
+import { createZipFile } from '../export3d.js?v=r-641e1c86a51e7186';
+import { createImageToPdfController } from './pdf-image-to-pdf.js?v=r-641e1c86a51e7186';
+import { createPdfOcrController } from './pdf-ocr.js?v=r-641e1c86a51e7186';
 
 let pdfLibPromise = null;
 let pdfJsPromise = null;
@@ -32,16 +32,16 @@ const PDF_DOCUMENT_TASKS = new Set(['combine', 'pdf-images']);
 
 async function getPdfLib() {
     if (!pdfLibPromise) {
-        pdfLibPromise = import('../../vendor/pdf-lib/pdf-lib.esm.min.js?v=r-c511364b448561eb');
+        pdfLibPromise = import('../../vendor/pdf-lib/pdf-lib.esm.min.js?v=r-641e1c86a51e7186');
     }
     return pdfLibPromise;
 }
 
 async function getPdfJs() {
     if (!pdfJsPromise) {
-        pdfJsPromise = import('../../vendor/pdfjs/pdf.min.mjs?v=r-c511364b448561eb').then((pdfjs) => {
+        pdfJsPromise = import('../../vendor/pdfjs/pdf.min.mjs?v=r-641e1c86a51e7186').then((pdfjs) => {
             pdfjs.GlobalWorkerOptions.workerSrc =
-                new URL('../../vendor/pdfjs/pdf.worker.min.mjs?v=r-c511364b448561eb', import.meta.url).href;
+                new URL('../../vendor/pdfjs/pdf.worker.min.mjs?v=r-641e1c86a51e7186', import.meta.url).href;
             return pdfjs;
         });
     }

@@ -1,19 +1,19 @@
-import { createBulkTabController } from './modules/tabs/bulk-tab.js?v=r-c511364b448561eb';
-import { createRasterTabController } from './modules/tabs/raster-tab.js?v=r-c511364b448561eb';
-import { createSvgTabController } from './modules/tabs/svg-tab.js?v=r-c511364b448561eb';
-import { createLogoTabController } from './modules/tabs/logo-tab.js?v=r-c511364b448561eb';
-import { createPdfTabController } from './modules/tabs/pdf-tab.js?v=r-c511364b448561eb';
+import { createBulkTabController } from './modules/tabs/bulk-tab.js?v=r-641e1c86a51e7186';
+import { createRasterTabController } from './modules/tabs/raster-tab.js?v=r-641e1c86a51e7186';
+import { createSvgTabController } from './modules/tabs/svg-tab.js?v=r-641e1c86a51e7186';
+import { createLogoTabController } from './modules/tabs/logo-tab.js?v=r-641e1c86a51e7186';
+import { createPdfTabController } from './modules/tabs/pdf-tab.js?v=r-641e1c86a51e7186';
 import {
     getDataUrlSize,
     getImageFormat,
     IMPORTABLE_IMAGE_PROMPT,
     isImportableImageFile,
     normalizeImageBlob
-} from './modules/raster-utils.js?v=r-c511364b448561eb';
-import { createElements } from './modules/app-elements.js?v=r-c511364b448561eb';
-import { createState } from './modules/app-state.js?v=r-c511364b448561eb';
-import { applyTabCase, TAB_CASES } from './modules/tab-cases.js?v=r-c511364b448561eb';
-import { bindMagnetPocketControls } from './modules/shared/magnet-pocket-controls.js?v=r-c511364b448561eb';
+} from './modules/raster-utils.js?v=r-641e1c86a51e7186';
+import { createElements } from './modules/app-elements.js?v=r-641e1c86a51e7186';
+import { createState } from './modules/app-state.js?v=r-641e1c86a51e7186';
+import { applyTabCase, TAB_CASES } from './modules/tab-cases.js?v=r-641e1c86a51e7186';
+import { bindMagnetPocketControls } from './modules/shared/magnet-pocket-controls.js?v=r-641e1c86a51e7186';
 
 async function loadTabPartials() {
     const appVersion = window.__GENESIS_APP_VERSION__

@@ -2,27 +2,27 @@ import {
     buildObjGeometryBundle,
     buildObjModelPlan,
     sanitizeGeometryForPrint
-} from './obj-model-plan.js?v=r-c511364b448561eb';
-import { fitObjScalePlanToGeometryBounds } from './obj-scale.js?v=r-c511364b448561eb';
+} from './obj-model-plan.js?v=r-641e1c86a51e7186';
+import { fitObjScalePlanToGeometryBounds } from './obj-scale.js?v=r-641e1c86a51e7186';
 import {
     buildBambuProjectFiles,
     buildBambuProjectFilesAsync
-} from './bambu-project.js?v=r-c511364b448561eb';
-import { BAMBU_PROJECT_NOZZLE_DIAMETER } from './config.js?v=r-c511364b448561eb';
-import { canvasToBlobAsync, dataUrlToBlob } from './raster-utils.js?v=r-c511364b448561eb';
-import { layerHasPaths } from './shared/trace-utils.js?v=r-c511364b448561eb';
-import { svgToPng } from './shared/svg-renderer.js?v=r-c511364b448561eb';
-import { getCanonicalBedCenter } from './shared/canonical-3d.js?v=r-c511364b448561eb';
+} from './bambu-project.js?v=r-641e1c86a51e7186';
+import { BAMBU_PROJECT_NOZZLE_DIAMETER } from './config.js?v=r-641e1c86a51e7186';
+import { canvasToBlobAsync, dataUrlToBlob } from './raster-utils.js?v=r-641e1c86a51e7186';
+import { layerHasPaths } from './shared/trace-utils.js?v=r-641e1c86a51e7186';
+import { svgToPng } from './shared/svg-renderer.js?v=r-641e1c86a51e7186';
+import { getCanonicalBedCenter } from './shared/canonical-3d.js?v=r-641e1c86a51e7186';
 import {
     getGeometryBundleBounds,
     validateGeometryBundleForPrint
-} from './shared/print-validation.js?v=r-c511364b448561eb';
+} from './shared/print-validation.js?v=r-641e1c86a51e7186';
 import {
     createObjGeometrySnapshot,
     objGeometrySnapshotsMatch
-} from './shared/obj-geometry-snapshot.js?v=r-c511364b448561eb';
-import { waitForBrowserPaint, yieldToBrowser } from './shared/bambu-send-progress.js?v=r-c511364b448561eb';
-import { createBambuSendWorkflow } from './bambu-send-workflow.js?v=r-c511364b448561eb';
+} from './shared/obj-geometry-snapshot.js?v=r-641e1c86a51e7186';
+import { waitForBrowserPaint, yieldToBrowser } from './shared/bambu-send-progress.js?v=r-641e1c86a51e7186';
+import { createBambuSendWorkflow } from './bambu-send-workflow.js?v=r-641e1c86a51e7186';
 
 const THREE_MF_BLOB_TYPE = 'model/3mf';
 
@@ -67,6 +67,19 @@ function cloneGeometryBundleData(geometryBundle) {
         cloned.layers.set(layerKey, cloneLayerGeometryData(layerData));
     });
     return cloned;
+}
+
+// Pinched (non-manifold) edges keep the shell closed, so they are reported rather
+// than thrown. Bambu Studio / OrcaSlicer repair them silently on import.
+function describePrintValidationWarnings(validation) {
+    const warningCount = validation?.warnings?.length || 0;
+    if (!warningCount) return '';
+    return `${warningCount} minor mesh pinch${warningCount === 1 ? '' : 'es'} detected — Bambu Studio will auto-repair.`;
+}
+
+function appendPrintValidationWarnings(message, validation) {
+    const warning = describePrintValidationWarnings(validation);
+    return warning ? `${message} ${warning}` : message;
 }
 
 function disposeLayerGeometryData(layerData) {
@@ -778,6 +791,9 @@ export function createObjExporter({
             geometryBundle.layers.forEach(disposeLayerGeometryData);
             throw new Error(`3D print validation failed: ${validation.errors[0]}`);
         }
+        if (validation.warnings?.length) {
+            console.warn(`3D print validation warnings: ${validation.warnings.join(' ')}`);
+        }
         geometryBundle.validation = validation;
         geometryBundle.plan.printValidation = validation;
         geometryBundle.plan.scalePlan.actualFootprintWidth = validation.bounds.width;
@@ -950,12 +966,19 @@ export function createObjExporter({
             if (!validation.ok) {
                 throw new Error(`3D print validation failed: ${validation.errors[0]}`);
             }
+            if (validation.warnings?.length) {
+                console.warn(`3D print validation warnings: ${validation.warnings.join(' ')}`);
+            }
             geometryBundle.validation = validation;
             plan.printValidation = validation;
             scalePlan.actualFootprintWidth = validation.bounds.width;
             scalePlan.actualFootprintDepth = validation.bounds.depth;
             scalePlan.modelHeight = validation.bounds.height;
-            onProgress?.({ stage: 'Print geometry ready', value: 52, detail: 'Model passed the print checks.' });
+            onProgress?.({
+                stage: 'Print geometry ready',
+                value: 52,
+                detail: appendPrintValidationWarnings('Model passed the print checks.', validation)
+            });
             await yieldDuringBambuSend(signal);
             return geometryBundle;
         } catch (error) {
@@ -1047,7 +1070,9 @@ export function createObjExporter({
             }
 
             downloadBlob(new Blob([obj], { type: 'text/plain' }), `${baseName}.obj`);
-            if (statusText) statusText.textContent = 'OBJ export complete.';
+            if (statusText) {
+                statusText.textContent = appendPrintValidationWarnings('OBJ export complete.', result.validation);
+            }
 
             // Cleanup
             result.layers.forEach(disposeLayerGeometryData);
@@ -1119,7 +1144,12 @@ export function createObjExporter({
             }
             const filename = `${baseName}.3mf`;
             downloadBlob(new Blob([exportResult.blob], { type: THREE_MF_BLOB_TYPE }), filename);
-            if (statusText) statusText.textContent = 'Bambu Studio project downloaded. Open the .3mf in Bambu Studio.';
+            if (statusText) {
+                statusText.textContent = appendPrintValidationWarnings(
+                    'Bambu Studio project downloaded. Open the .3mf in Bambu Studio.',
+                    result.validation
+                );
+            }
             showLoader(true, {
                 title: 'AMS-ready 3MF downloaded',
                 subtitle: filename,
@@ -1177,7 +1207,12 @@ export function createObjExporter({
                 }
             });
 
-            if (statusText) statusText.textContent = `Exported ${exportedCount} STL files.`;
+            if (statusText) {
+                statusText.textContent = appendPrintValidationWarnings(
+                    `Exported ${exportedCount} STL files.`,
+                    result.validation
+                );
+            }
 
             // Cleanup
             result.layers.forEach(disposeLayerGeometryData);

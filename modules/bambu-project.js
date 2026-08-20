@@ -2,8 +2,8 @@ import {
     BAMBU_PROJECT_APP_VERSION,
     BAMBU_PROJECT_3MF_VERSION,
     BAMBU_PROJECT_NOZZLE_DIAMETER
-} from './config.js?v=r-c511364b448561eb';
-import { getBambuPrinterTemplate, buildBambuProjectSettings } from './bambu/templates.js?v=r-c511364b448561eb';
+} from './config.js?v=r-641e1c86a51e7186';
+import { getBambuPrinterTemplate, buildBambuProjectSettings } from './bambu/templates.js?v=r-641e1c86a51e7186';
 
 const MESH_POSITION_EPSILON = 1e-5;
 
@@ -445,7 +445,10 @@ function buildBambuProjectPart({ layerData, index, title }) {
     const meshData = getGeometryMeshData(layerData.geometry, layerData.translation);
     if (!meshData) return null;
 
-    if (meshData.boundaryEdgeCount || meshData.nonManifoldEdgeCount) {
+    // Only an open shell is fatal here. A pinched (non-manifold) edge — two same
+    // colour regions meeting at a single diagonal corner — still serializes to a
+    // closed 3MF mesh, and Bambu Studio repairs it on import.
+    if (meshData.boundaryEdgeCount) {
         const name = layerData.displayLabel || `Layer ${index + 1}`;
         throw new Error(
             `3MF serialization failed: ${name} has ${meshData.boundaryEdgeCount} open edge(s) `

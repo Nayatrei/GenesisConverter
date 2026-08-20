@@ -1,11 +1,11 @@
-import { resolveMergedLayerGroups } from './shared/trace-utils.js?v=r-c511364b448561eb';
-import { buildShapesFromTracedataLayers, buildWeldedShapeSet } from './shared/silhouette-builder.js?v=r-c511364b448561eb';
-import { computeObjScalePlan } from './obj-scale.js?v=r-c511364b448561eb';
-import { applyCanonicalRawExtrudeTransform } from './shared/canonical-3d.js?v=r-c511364b448561eb';
+import { resolveMergedLayerGroups } from './shared/trace-utils.js?v=r-641e1c86a51e7186';
+import { buildShapesFromTracedataLayers, buildWeldedShapeSet } from './shared/silhouette-builder.js?v=r-641e1c86a51e7186';
+import { computeObjScalePlan } from './obj-scale.js?v=r-641e1c86a51e7186';
+import { applyCanonicalRawExtrudeTransform } from './shared/canonical-3d.js?v=r-641e1c86a51e7186';
 import {
     getAmsPrintStylePreset,
     normalizeAmsPrintStyle
-} from './config.js?v=r-c511364b448561eb';
+} from './config.js?v=r-641e1c86a51e7186';
 import {
     BEZEL_PRESETS,
     DEFAULT_PRINT_PROFILE,
@@ -20,11 +20,11 @@ import {
     resolveBezelMaskSet,
     splitMaskByPrintability,
     traceMaskDataToShapeSet
-} from './shared/print-geometry.js?v=r-c511364b448561eb';
+} from './shared/print-geometry.js?v=r-641e1c86a51e7186';
 import {
     normalizeMagnetPocketConfig,
     resolveMagnetPocketPlan
-} from './shared/magnet-pockets.js?v=r-c511364b448561eb';
+} from './shared/magnet-pockets.js?v=r-641e1c86a51e7186';
 
 const DEFAULT_CURVE_SEGMENTS = 6;
 const BOUNDS_POINT_DIVISIONS = 16;
@@ -972,6 +972,163 @@ function simplifyExtrusionLoop(points, tolerance) {
     return cleaned.length >= 3 ? cleaned : points.slice();
 }
 
+// Two same-colour regions that touch only at a diagonal pixel corner produce two
+// separate contours that share one grid point. Extruding them and welding vertices
+// (mergeVertices at 1e-5) then fuses that point into a single vertical edge shared
+// by four side walls — a non-manifold pinch. Nudging every repeated contour point
+// into its own polygon by a sub-visible amount keeps the two shells apart.
+const PINCH_QUANTIZE_SCALE = 1e-5;
+const PINCH_SEPARATION_EPSILON = 1e-3;
+const PINCH_SEPARATION_MIN = 1e-4;
+
+function getPinchPointKey(point) {
+    return `${Math.round(point.x / PINCH_QUANTIZE_SCALE)},${Math.round(point.y / PINCH_QUANTIZE_SCALE)}`;
+}
+
+function getInwardOffsetDirection(points, vertexIndex, orientation) {
+    const count = points.length;
+    const current = points[vertexIndex];
+    const previous = points[(vertexIndex - 1 + count) % count];
+    const next = points[(vertexIndex + 1) % count];
+
+    const inX = current.x - previous.x;
+    const inY = current.y - previous.y;
+    const outX = next.x - current.x;
+    const outY = next.y - current.y;
+    const inLength = Math.hypot(inX, inY);
+    const outLength = Math.hypot(outX, outY);
+    if (inLength <= 0 || outLength <= 0) return null;
+
+    // Left-hand normals of both adjacent edges. Their sum bisects the interior
+    // angle and stays inside for reflex corners too, unlike a plain edge bisector.
+    const normalInX = (-inY / inLength) * orientation;
+    const normalInY = (inX / inLength) * orientation;
+    const normalOutX = (-outY / outLength) * orientation;
+    const normalOutY = (outX / outLength) * orientation;
+
+    let dirX = normalInX + normalOutX;
+    let dirY = normalInY + normalOutY;
+    let length = Math.hypot(dirX, dirY);
+    if (length < 1e-9) {
+        // Degenerate spike: fall back to the normal of one adjacent edge, already
+        // oriented by the polygon's signed-area sign.
+        dirX = normalInX;
+        dirY = normalInY;
+        length = Math.hypot(dirX, dirY);
+        if (length < 1e-9) return null;
+    }
+
+    const magnitude = Math.max(
+        PINCH_SEPARATION_MIN,
+        Math.min(PINCH_SEPARATION_EPSILON, Math.min(inLength, outLength) * 0.25)
+    );
+    return {
+        x: (dirX / length) * magnitude,
+        y: (dirY / length) * magnitude
+    };
+}
+
+/**
+ * Pure helper. Given a set of closed 2D contours, returns a new set in which no
+ * coordinate (quantized to PINCH_QUANTIZE_SCALE) is visited more than once. The
+ * first occurrence stays put; every later occurrence — in the same loop or in
+ * another one — moves into its own polygon along the interior angle bisector.
+ * Input arrays and points are never mutated.
+ *
+ * @param {Array<Array<{x:number,y:number}>>} loops
+ * @returns {{loops: Array<Array<{x:number,y:number}>>, separatedCount: number}}
+ */
+export function separatePinchPoints(loops) {
+    const source = Array.isArray(loops) ? loops : [];
+    const result = source.map((loop) => (Array.isArray(loop) ? loop.map((point) => ({ x: point.x, y: point.y })) : []));
+
+    const seen = new Set();
+    const duplicates = [];
+    source.forEach((loop, loopIndex) => {
+        if (!Array.isArray(loop) || loop.length < 3) return;
+        loop.forEach((point, vertexIndex) => {
+            if (!point || !Number.isFinite(point.x) || !Number.isFinite(point.y)) return;
+            const key = getPinchPointKey(point);
+            if (seen.has(key)) {
+                duplicates.push({ loopIndex, vertexIndex });
+                return;
+            }
+            seen.add(key);
+        });
+    });
+
+    let separatedCount = 0;
+    const orientations = new Map();
+    duplicates.forEach(({ loopIndex, vertexIndex }) => {
+        if (!orientations.has(loopIndex)) {
+            orientations.set(loopIndex, computePolygonArea(source[loopIndex]) >= 0 ? 1 : -1);
+        }
+        const offset = getInwardOffsetDirection(source[loopIndex], vertexIndex, orientations.get(loopIndex));
+        if (!offset) return;
+        const target = result[loopIndex][vertexIndex];
+        target.x += offset.x;
+        target.y += offset.y;
+        separatedCount += 1;
+    });
+
+    return { loops: result, separatedCount };
+}
+
+function stripClosingPoint(ring) {
+    const points = (ring || []).map((point) => ({ x: point.x, y: point.y }));
+    if (points.length > 1) {
+        const first = points[0];
+        const last = points[points.length - 1];
+        if (Math.abs(first.x - last.x) < PINCH_QUANTIZE_SCALE && Math.abs(first.y - last.y) < PINCH_QUANTIZE_SCALE) {
+            points.pop();
+        }
+    }
+    return points;
+}
+
+// SVG tracer path counterpart of separatePinchPoints. Returns the original shapes
+// untouched when nothing is pinched, so ordinary artwork is never rebuilt.
+function separateShapePinchPoints(shapes, curveSegments, THREERef) {
+    const list = Array.isArray(shapes) ? shapes.filter(Boolean) : [];
+    if (!list.length || !THREERef?.Shape) return list;
+
+    const divisions = Number.isFinite(curveSegments) && curveSegments > 0 ? curveSegments : 12;
+    const extracted = [];
+    const rings = [];
+    for (const shape of list) {
+        if (typeof shape.extractPoints !== 'function') return list;
+        const points = shape.extractPoints(divisions);
+        const contour = stripClosingPoint(points?.shape);
+        if (contour.length < 3) return list;
+        const holes = (points?.holes || []).map(stripClosingPoint);
+        extracted.push({ contour, holes });
+        rings.push(contour, ...holes);
+    }
+
+    const separation = separatePinchPoints(rings);
+    if (!separation.separatedCount) return list;
+
+    let cursor = 0;
+    const rebuilt = extracted.map(({ holes }) => {
+        const contourPoints = separation.loops[cursor];
+        cursor += 1;
+        const holePoints = holes.map(() => {
+            const ring = separation.loops[cursor];
+            cursor += 1;
+            return ring;
+        });
+        const shape = buildPathFromPoints(contourPoints, THREERef, true);
+        if (!shape) return null;
+        holePoints.forEach((ring) => {
+            const holePath = buildPathFromPoints(ring, THREERef, false);
+            if (holePath) shape.holes.push(holePath);
+        });
+        return shape;
+    }).filter(Boolean);
+
+    return rebuilt.length === list.length ? rebuilt : list;
+}
+
 function extractMaskLoops(maskSpace, maskData) {
     if (!maskSpace || !(maskData instanceof Uint8Array) || !hasMaskPixels(maskData)) return [];
 
@@ -1075,7 +1232,7 @@ function buildMaskExtrusionGeometries({
     const contourTolerance = Number.isFinite(simplifyTolerance) && simplifyTolerance > 0
         ? simplifyTolerance
         : (1.25 / pixelsPerUnit);
-    const loops = extractMaskLoops(maskSpace, maskData).map((loop) => {
+    const tracedLoops = extractMaskLoops(maskSpace, maskData).map((loop) => {
         const sourcePoints = loop.map((point) => ({
             x: maskSpace.originX + (point.x / pixelsPerUnit),
             y: maskSpace.originY + (point.y / pixelsPerUnit)
@@ -1090,7 +1247,15 @@ function buildMaskExtrusionGeometries({
         };
     }).filter((loop) => Math.abs(loop.area) > 1e-9);
 
-    if (!loops.length) return null;
+    if (!tracedLoops.length) return null;
+
+    // Runs after simplifyExtrusionLoop on purpose: contourTolerance is ~25x the
+    // separation epsilon, so a nudge applied earlier would be erased by
+    // Douglas-Peucker, and simplification can create new shared points itself.
+    const separation = separatePinchPoints(tracedLoops.map((loop) => loop.localPoints));
+    const loops = separation.separatedCount
+        ? tracedLoops.map((loop, index) => ({ ...loop, localPoints: separation.loops[index] }))
+        : tracedLoops;
 
     const outers = loops
         .filter((loop) => loop.area > 0)
@@ -1868,7 +2033,7 @@ function createLayerGeometry({ layer, plan, THREERef }) {
         const offsetY = segment.offsetY || 0;
         const zStart = Number.isFinite(segment.zStart) ? segment.zStart : layer.zStart;
 
-        (segment.shapes || []).forEach((shape) => {
+        separateShapePinchPoints(segment.shapes, plan.curveSegments, THREERef).forEach((shape) => {
             const geometry = new THREERef.ExtrudeGeometry(shape, {
                 depth,
                 curveSegments: plan.curveSegments,
