@@ -17,8 +17,9 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800&family=Noto+Sans+KR:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="landing.css?v=r-641e1c86a51e7186">
-    <script src="landing.js?v=r-641e1c86a51e7186" defer></script>
+    <link rel="stylesheet" href="landing.css?v=r-a07fe4380410a7ae">
+    <link rel="stylesheet" href="annotate.css?v=r-a07fe4380410a7ae">
+    <script src="landing.js?v=r-a07fe4380410a7ae" defer></script>
 </head>
 <body>
     <a class="skip-link" href="#tools">도구 선택으로 건너뛰기 / Skip to tools</a>
@@ -168,6 +169,35 @@
                     <div class="pdf-pages incoming"><i></i><i></i><i></i></div>
                     <div class="pdf-merge"><svg viewBox="0 0 32 32"><path d="M7 7h6v6M25 7h-6v6M13 10l3 3 3-3M16 13v12"/></svg></div>
                     <div class="pdf-pages outgoing"><i><b>PDF</b></i></div>
+                </div>
+            </a>
+
+            <a class="tool-card tool-card-annotate" href="/annotate" data-tool-path="/annotate" style="--order: 5">
+                <div class="tool-copy compact-copy">
+                    <div class="tool-heading">
+                        <span class="tool-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5Z"/></svg></span>
+                        <span class="tool-number">06</span>
+                    </div>
+                    <p class="tool-name-en" lang="en">Annotate Image</p>
+                    <h2>이미지에 표시하기</h2>
+                    <p class="tool-description">화살표와 글자로 설명하고, 가릴 부분은 흐리게 처리하세요.</p>
+                    <p class="tool-description-en" lang="en">Draw, label, blur, and frame an image, then export it.</p>
+                    <span class="tool-action">도구 열기 <span aria-hidden="true">·</span> Open tool <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 10h11M11 6l4 4-4 4"/></svg></span>
+                </div>
+                <div class="tool-visual annotate-visual" aria-hidden="true">
+                    <svg class="annotate-visual-art" viewBox="0 0 260 170" role="presentation">
+                        <rect class="annotate-art-plate" x="8" y="10" width="244" height="150" rx="12"/>
+                        <path class="annotate-art-scene" d="M20 132 62 92l26 24 34-40 66 56H20Z"/>
+                        <circle class="annotate-art-scene" cx="176" cy="52" r="12"/>
+                        <g class="annotate-art-pixels">
+                            <rect x="36" y="30" width="10" height="10"/><rect x="46" y="30" width="10" height="10"/><rect x="56" y="30" width="10" height="10"/>
+                            <rect x="36" y="40" width="10" height="10"/><rect x="46" y="40" width="10" height="10"/><rect x="56" y="40" width="10" height="10"/>
+                        </g>
+                        <rect class="annotate-art-mark" x="112" y="66" width="66" height="52" rx="8"/>
+                        <path class="annotate-art-mark" d="M66 142 108 104"/>
+                        <path class="annotate-art-arrow" d="M108 104 96 108l6 8Z"/>
+                        <text class="annotate-art-label" x="34" y="152">NOTE</text>
+                    </svg>
                 </div>
             </a>
         </section>

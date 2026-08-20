@@ -1,0 +1,492 @@
+/*
+ * Annotate tool styles
+ * --------------------
+ * Loaded after style.css so it can lean on the shared claymorphism tokens
+ * (--clay-*) without redefining any of them. Every selector here is scoped to
+ * the Annotate tab, so the file is inert on the other tools.
+ */
+
+.annotate-v2 {
+    --annotate-gap: clamp(0.65rem, 1.4vw, 1rem);
+}
+
+/* ---------------------------------------------------------------- dropzone */
+
+.annotate-v2 .annotate-dropzone {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: clamp(14rem, 40vh, 24rem);
+    padding: clamp(1.25rem, 4vw, 2.5rem);
+    border: 2px dashed var(--clay-border-strong, rgba(120, 110, 160, 0.45));
+    border-radius: var(--clay-radius-lg, 1.5rem);
+    background: var(--clay-surface-2, rgba(255, 255, 255, 0.04));
+    box-shadow: var(--clay-shadow-sm, none);
+    cursor: pointer;
+    transition: border-color 160ms ease, transform 160ms var(--clay-ease-bounce, ease), box-shadow 160ms ease;
+}
+
+.annotate-v2 .annotate-dropzone:hover {
+    border-color: var(--clay-accent, #7c6cf5);
+    transform: translateY(-2px);
+    box-shadow: var(--clay-shadow, none);
+}
+
+.annotate-v2 .annotate-dropzone-inner {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+    text-align: center;
+}
+
+.annotate-v2 .annotate-dropzone-icon {
+    width: 3rem;
+    height: 3rem;
+    color: var(--clay-quiet, #9aa0b5);
+}
+
+.annotate-v2 .annotate-dropzone-title {
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--clay-text, #f4f4f8);
+}
+
+.annotate-v2 .annotate-dropzone-sub {
+    font-size: 0.78rem;
+    color: var(--clay-muted, #a3a8bd);
+}
+
+.annotate-v2 .annotate-dropzone-divider {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    width: 100%;
+    max-width: 14rem;
+    color: var(--clay-quiet, #9aa0b5);
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+}
+
+.annotate-v2 .annotate-dropzone-divider::before,
+.annotate-v2 .annotate-dropzone-divider::after {
+    content: "";
+    flex: 1;
+    height: 1px;
+    background: var(--clay-border, rgba(140, 130, 180, 0.3));
+}
+
+.annotate-v2 .annotate-dropzone-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    padding: 0.55rem 1.1rem;
+    border-radius: var(--clay-radius, 1rem);
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+.annotate-v2 .annotate-dropzone-btn svg {
+    width: 1rem;
+    height: 1rem;
+}
+
+/* ------------------------------------------------------------------ layout */
+
+.annotate-v2 .annotate-layout {
+    display: flex;
+    flex-direction: column;
+    gap: var(--annotate-gap);
+    min-height: 0;
+}
+
+/* ----------------------------------------------------------------- toolbar */
+
+.annotate-v2 .annotate-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.6rem;
+    padding: 0.55rem 0.65rem;
+    border: 1px solid var(--clay-border, rgba(140, 130, 180, 0.3));
+    border-radius: var(--clay-radius, 1rem);
+    background: var(--clay-surface, rgba(255, 255, 255, 0.05));
+    box-shadow: var(--clay-shadow-sm, none);
+}
+
+.annotate-v2 .annotate-tool-group,
+.annotate-v2 .annotate-history {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+}
+
+.annotate-v2 .annotate-tool,
+.annotate-v2 .annotate-history-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.42rem 0.7rem;
+    border: 1px solid transparent;
+    border-radius: var(--clay-radius-sm, 0.7rem);
+    background: var(--clay-surface-2, rgba(255, 255, 255, 0.05));
+    color: var(--clay-muted, #a3a8bd);
+    font-size: 0.76rem;
+    font-weight: 600;
+    line-height: 1;
+    cursor: pointer;
+    transition: color 140ms ease, background 140ms ease, transform 140ms var(--clay-ease-bounce, ease), box-shadow 140ms ease;
+}
+
+.annotate-v2 .annotate-tool svg,
+.annotate-v2 .annotate-history-btn svg {
+    width: 0.95rem;
+    height: 0.95rem;
+}
+
+.annotate-v2 .annotate-tool:hover:not(:disabled),
+.annotate-v2 .annotate-history-btn:hover:not(:disabled) {
+    color: var(--clay-text, #f4f4f8);
+    transform: translateY(-1px);
+    box-shadow: var(--clay-shadow-sm, none);
+}
+
+.annotate-v2 .annotate-tool.active {
+    color: var(--clay-accent-ink, #fff);
+    background: var(--clay-accent, #7c6cf5);
+    border-color: var(--clay-accent-strong, #6a58ee);
+    box-shadow: var(--clay-shadow-pressed, none);
+}
+
+.annotate-v2 .annotate-tool:focus-visible,
+.annotate-v2 .annotate-history-btn:focus-visible,
+.annotate-v2 .annotate-apply-btn:focus-visible {
+    outline: none;
+    box-shadow: var(--clay-focus-ring, 0 0 0 3px rgba(124, 108, 245, 0.5));
+}
+
+.annotate-v2 .annotate-history-btn:disabled {
+    opacity: 0.42;
+    cursor: not-allowed;
+}
+
+/* ----------------------------------------------------------------- options */
+
+.annotate-v2 .annotate-options {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem 1rem;
+    padding: 0.6rem 0.75rem;
+    border: 1px solid var(--clay-border, rgba(140, 130, 180, 0.3));
+    border-radius: var(--clay-radius, 1rem);
+    background: var(--clay-surface-2, rgba(255, 255, 255, 0.04));
+}
+
+.annotate-v2 .annotate-options:empty {
+    display: none;
+}
+
+.annotate-v2 .annotate-option {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+}
+
+.annotate-v2 .annotate-option-label {
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--clay-quiet, #9aa0b5);
+    white-space: nowrap;
+}
+
+.annotate-v2 .annotate-option-value {
+    min-width: 2.6rem;
+    padding: 0.15rem 0.4rem;
+    border: 1px solid var(--clay-border, rgba(140, 130, 180, 0.3));
+    border-radius: 0.5rem;
+    background: var(--clay-bg, rgba(0, 0, 0, 0.25));
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 0.72rem;
+    text-align: center;
+    color: var(--clay-text, #f4f4f8);
+}
+
+.annotate-v2 .annotate-option input[type="range"] {
+    width: clamp(5rem, 12vw, 9rem);
+}
+
+.annotate-v2 .annotate-color {
+    width: 2.1rem;
+    height: 1.8rem;
+    padding: 0;
+    border: 1px solid var(--clay-border-strong, rgba(120, 110, 160, 0.45));
+    border-radius: 0.55rem;
+    background: transparent;
+    cursor: pointer;
+}
+
+.annotate-v2 .annotate-select {
+    padding: 0.3rem 0.5rem;
+    border: 1px solid var(--clay-border, rgba(140, 130, 180, 0.3));
+    border-radius: 0.55rem;
+    background: var(--clay-bg, rgba(0, 0, 0, 0.25));
+    color: var(--clay-text, #f4f4f8);
+    font-size: 0.76rem;
+}
+
+.annotate-v2 .annotate-option-check {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.76rem;
+    font-weight: 600;
+    color: var(--clay-muted, #a3a8bd);
+    cursor: pointer;
+}
+
+.annotate-v2 .annotate-apply-btn {
+    padding: 0.38rem 0.85rem;
+    border: 1px solid var(--clay-accent-strong, #6a58ee);
+    border-radius: var(--clay-radius-sm, 0.7rem);
+    background: var(--clay-accent-soft, rgba(124, 108, 245, 0.18));
+    color: var(--clay-text, #f4f4f8);
+    font-size: 0.76rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background 140ms ease, transform 140ms var(--clay-ease-bounce, ease);
+}
+
+.annotate-v2 .annotate-apply-btn:hover {
+    background: var(--clay-accent, #7c6cf5);
+    color: var(--clay-accent-ink, #fff);
+    transform: translateY(-1px);
+}
+
+/* ------------------------------------------------------------------- stage */
+
+.annotate-v2 .annotate-stage {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    min-height: 0;
+}
+
+.annotate-v2 .annotate-canvas-frame {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: clamp(0.5rem, 1.5vw, 1rem);
+    border: 1px solid var(--clay-border, rgba(140, 130, 180, 0.3));
+    border-radius: var(--clay-radius-lg, 1.5rem);
+    background:
+        repeating-conic-gradient(rgba(255, 255, 255, 0.06) 0% 25%, transparent 0% 50%) 50% / 20px 20px,
+        var(--clay-bg, rgba(0, 0, 0, 0.25));
+    box-shadow: var(--clay-shadow-sm, none);
+    overflow: auto;
+}
+
+.annotate-v2 .annotate-canvas {
+    display: block;
+    /* width/height both auto so the min/max algorithm keeps the canvas ratio
+     * intact when max-height is the constraint that bites. */
+    max-width: 100%;
+    max-height: min(62vh, 40rem);
+    width: auto;
+    height: auto;
+    border-radius: 0.35rem;
+    background: transparent;
+    cursor: crosshair;
+    touch-action: none;
+}
+
+.annotate-v2 .annotate-canvas[data-tool="text"] {
+    cursor: text;
+}
+
+.annotate-v2 .annotate-canvas[data-tool="frame"] {
+    cursor: pointer;
+}
+
+.annotate-v2 .annotate-text-input {
+    position: absolute;
+    z-index: 5;
+    min-width: 8rem;
+    max-width: 70%;
+    padding: 0.15rem 0.35rem;
+    border: 1px dashed var(--clay-accent, #7c6cf5);
+    border-radius: 0.35rem;
+    background: rgba(15, 16, 26, 0.82);
+    font-family: "Plus Jakarta Sans", "Inter", system-ui, sans-serif;
+    font-weight: 600;
+    line-height: 1.15;
+    outline: none;
+}
+
+.annotate-v2 .annotate-status-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    font-size: 0.75rem;
+    color: var(--clay-muted, #a3a8bd);
+}
+
+.annotate-v2 .annotate-count {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    color: var(--clay-quiet, #9aa0b5);
+}
+
+/* ------------------------------------------------------------ export shelf */
+
+.annotate-dl-footer:not(.hidden) {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    padding: clamp(0.75rem, 2vw, 1.15rem);
+    border-top: 1px solid var(--clay-border, rgba(140, 130, 180, 0.3));
+    background: var(--clay-surface, rgba(255, 255, 255, 0.05));
+}
+
+.annotate-dl-footer .annotate-dl-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.6rem;
+    align-items: end;
+}
+
+.annotate-dl-footer .annotate-dl-item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+    text-align: center;
+}
+
+.annotate-dl-footer .annotate-dl-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.45rem;
+    width: 100%;
+    padding: 0.6rem 0.8rem;
+    border-radius: var(--clay-radius, 1rem);
+    font-size: 0.85rem;
+    font-weight: 700;
+}
+
+.annotate-dl-footer .annotate-dl-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.annotate-dl-footer .annotate-dl-hint,
+.annotate-dl-footer .annotate-export-note {
+    font-size: 0.7rem;
+    color: var(--clay-quiet, #9aa0b5);
+}
+
+.annotate-dl-footer .annotate-export-note {
+    text-align: center;
+}
+
+@media (max-width: 640px) {
+    .annotate-dl-footer .annotate-dl-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .annotate-v2 .annotate-tool span {
+        display: none;
+    }
+
+    .annotate-v2 .annotate-tool {
+        padding: 0.45rem 0.55rem;
+    }
+}
+
+/* ------------------------------------------------- landing page tool card */
+/* The landing grid gives every card an explicit span, so the Annotate card
+ * carries its own here instead of editing landing.css. */
+
+.tool-card-annotate {
+    grid-column: span 12;
+    grid-template-columns: minmax(18rem, 0.6fr) minmax(24rem, 1.4fr);
+}
+
+.tool-card-annotate .tool-icon {
+    color: #61519C;
+    background: var(--clay-lilac, #EAE4FB);
+}
+
+.annotate-visual {
+    padding: clamp(1.25rem, 3vw, 2.25rem);
+}
+
+.annotate-visual-art {
+    width: min(100%, 24rem);
+    height: auto;
+}
+
+.annotate-art-plate {
+    fill: var(--clay-surface, #fff);
+    stroke: rgba(93, 77, 157, 0.18);
+    stroke-width: 2;
+}
+
+.annotate-art-scene {
+    fill: rgba(93, 77, 157, 0.16);
+}
+
+.annotate-art-pixels rect {
+    fill: rgba(93, 77, 157, 0.28);
+}
+
+.annotate-art-pixels rect:nth-child(2n) {
+    fill: rgba(93, 77, 157, 0.16);
+}
+
+.annotate-art-mark {
+    fill: none;
+    stroke: #E0607A;
+    stroke-width: 3.5;
+    stroke-linecap: round;
+}
+
+.annotate-art-arrow {
+    fill: #E0607A;
+}
+
+.annotate-art-label {
+    font-family: "Geist", "Noto Sans KR", system-ui, sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    fill: #E0607A;
+}
+
+@media (max-width: 1240px) and (min-width: 881px) {
+    .tool-card-annotate {
+        grid-column: span 6;
+        grid-template-columns: minmax(0, 1fr);
+        grid-template-rows: auto 1fr;
+    }
+
+    .annotate-visual {
+        min-height: 17rem;
+        padding: 2rem 1.5rem;
+    }
+}
+
+@media (max-width: 880px) {
+    .tool-card-annotate {
+        display: flex;
+        flex-direction: column;
+        width: 100%;
+        min-height: 0;
+    }
+}

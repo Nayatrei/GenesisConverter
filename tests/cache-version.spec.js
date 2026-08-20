@@ -3,7 +3,15 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 const ROOT = path.resolve(__dirname, '..');
-const TOOL_ENTRYPOINTS = ['3d-obj.html', 'logo.html', 'raster.html', 'bulk.html', 'pdf.html', 'svg.html'];
+const TOOL_ENTRYPOINTS = [
+    '3d-obj.html',
+    'logo.html',
+    'raster.html',
+    'annotate.html',
+    'bulk.html',
+    'pdf.html',
+    'svg.html'
+];
 const RELEASE_VERSION_PATTERN = /^r-[a-f0-9]{16}$/;
 
 function walkJsFiles(directory) {

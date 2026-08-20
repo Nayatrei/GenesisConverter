@@ -27,6 +27,7 @@ const TAB_ROUTE_FILES = new Map([
     ['/3d-obj', '/3d-obj.html'],
     ['/logo', '/logo.html'],
     ['/raster', '/raster.html'],
+    ['/annotate', '/annotate.html'],
     ['/bulk', '/bulk.html'],
     ['/pdf', '/pdf.html'],
     ['/svg', '/svg.html']

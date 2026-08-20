@@ -13862,3 +13862,796 @@ body.app-shell-v2 .pdf-choose-main .pdf-preview-empty {
     flex: 1 1 auto;
     min-height: 0;
 }
+
+/* ════════════════════════════════════════════════════════════════════════
+   RASTER EDIT HUB — transform toolbar, crop overlay, colour adjustments
+   Everything the "Resize Image" tab gained when it became a single-image
+   convert + edit hub. Built on the clay tokens so it sits inside the same
+   soft-shadow language as the rest of the suite; the `.raster-v2` blocks
+   below re-tune padding for the shell/core treatment that tab uses.
+   ════════════════════════════════════════════════════════════════════════ */
+
+/* ── Transform toolbar ─────────────────────────────────────────────────── */
+.raster-edit-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.raster-edit-group {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px;
+    background: var(--clay-surface-2);
+    border: 1px solid var(--clay-border);
+    border-radius: 999px;
+    box-shadow: var(--clay-shadow-sm);
+}
+
+.raster-edit-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    min-width: 34px;
+    height: 34px;
+    padding: 0 10px;
+    border: 1px solid transparent;
+    border-radius: 999px;
+    background: transparent;
+    color: var(--clay-muted);
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    cursor: pointer;
+    transition: background 200ms ease, color 200ms ease, transform 200ms var(--clay-ease-bounce), box-shadow 200ms ease;
+}
+
+.raster-edit-btn svg {
+    width: 16px;
+    height: 16px;
+    flex-shrink: 0;
+}
+
+.raster-edit-btn-wide {
+    padding: 0 12px;
+}
+
+.raster-edit-btn:hover {
+    background: var(--clay-surface);
+    color: var(--clay-text);
+    transform: translateY(-1px);
+    box-shadow: var(--clay-shadow-sm);
+}
+
+.raster-edit-btn:active {
+    transform: translateY(0);
+    box-shadow: var(--clay-shadow-pressed);
+}
+
+.raster-edit-btn:focus-visible {
+    outline: none;
+    box-shadow: var(--clay-focus-ring);
+}
+
+.raster-edit-btn.active {
+    background: var(--clay-accent-soft);
+    border-color: rgba(42, 167, 155, 0.4);
+    color: var(--clay-accent-ink);
+    box-shadow: var(--clay-shadow-pressed);
+}
+
+/* ── Crop overlay ──────────────────────────────────────────────────────── */
+.raster-crop-overlay {
+    position: absolute;
+    z-index: 3;
+    touch-action: none;
+    cursor: crosshair;
+    overflow: hidden;
+}
+
+.raster-crop-overlay.hidden {
+    display: none;
+}
+
+.raster-crop-box {
+    position: absolute;
+    box-sizing: border-box;
+    border: 1.5px solid rgb(255 255 255 / 0.95);
+    border-radius: 4px;
+    cursor: move;
+    /* The huge spread shadow is the scrim: everything outside the box dims,
+       and the overlay's own overflow clip keeps it inside the canvas. */
+    box-shadow: 0 0 0 9999px rgba(51, 47, 58, 0.5), 0 2px 10px rgba(51, 47, 58, 0.3);
+}
+
+/* Rule-of-thirds guides */
+.raster-crop-box::before,
+.raster-crop-box::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    opacity: 0.45;
+}
+
+.raster-crop-box::before {
+    background-image: linear-gradient(to right, transparent 33.33%, rgb(255 255 255 / 0.7) 33.33%, rgb(255 255 255 / 0.7) calc(33.33% + 1px), transparent calc(33.33% + 1px), transparent 66.66%, rgb(255 255 255 / 0.7) 66.66%, rgb(255 255 255 / 0.7) calc(66.66% + 1px), transparent calc(66.66% + 1px));
+}
+
+.raster-crop-box::after {
+    background-image: linear-gradient(to bottom, transparent 33.33%, rgb(255 255 255 / 0.7) 33.33%, rgb(255 255 255 / 0.7) calc(33.33% + 1px), transparent calc(33.33% + 1px), transparent 66.66%, rgb(255 255 255 / 0.7) 66.66%, rgb(255 255 255 / 0.7) calc(66.66% + 1px), transparent calc(66.66% + 1px));
+}
+
+.raster-crop-handle {
+    position: absolute;
+    width: 16px;
+    height: 16px;
+    margin: -8px 0 0 -8px;
+    border-radius: 50%;
+    background: var(--clay-surface);
+    border: 2px solid var(--clay-accent);
+    box-shadow: 0 2px 6px rgba(51, 47, 58, 0.35);
+    z-index: 1;
+}
+
+.raster-crop-handle[data-handle="nw"] { top: 0; left: 0; cursor: nwse-resize; }
+.raster-crop-handle[data-handle="n"]  { top: 0; left: 50%; cursor: ns-resize; }
+.raster-crop-handle[data-handle="ne"] { top: 0; left: 100%; cursor: nesw-resize; }
+.raster-crop-handle[data-handle="e"]  { top: 50%; left: 100%; cursor: ew-resize; }
+.raster-crop-handle[data-handle="se"] { top: 100%; left: 100%; cursor: nwse-resize; }
+.raster-crop-handle[data-handle="s"]  { top: 100%; left: 50%; cursor: ns-resize; }
+.raster-crop-handle[data-handle="sw"] { top: 100%; left: 0; cursor: nesw-resize; }
+.raster-crop-handle[data-handle="w"]  { top: 50%; left: 0; cursor: ew-resize; }
+
+.raster-crop-readout {
+    position: absolute;
+    left: 50%;
+    bottom: 6px;
+    transform: translateX(-50%);
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: rgba(51, 47, 58, 0.72);
+    color: #ffffff;
+    font-size: 11px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+    pointer-events: none;
+    z-index: 2;
+}
+
+/* ── Crop action bar ───────────────────────────────────────────────────── */
+.raster-crop-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    padding: 8px 10px;
+    background: var(--clay-surface-2);
+    border: 1px solid var(--clay-border);
+    border-radius: var(--clay-radius-sm);
+    box-shadow: var(--clay-shadow-sm);
+}
+
+.raster-crop-actions.hidden {
+    display: none;
+}
+
+.raster-crop-hint {
+    flex: 1 1 160px;
+    min-width: 0;
+    font-size: 12px;
+    color: var(--clay-muted);
+}
+
+.raster-crop-btn {
+    padding: 7px 14px;
+    border: 1px solid var(--clay-border);
+    border-radius: 999px;
+    background: var(--clay-surface);
+    color: var(--clay-muted);
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: transform 200ms var(--clay-ease-bounce), box-shadow 200ms ease, color 200ms ease;
+    box-shadow: var(--clay-shadow-sm);
+}
+
+.raster-crop-btn:hover {
+    color: var(--clay-text);
+    transform: translateY(-1px);
+    box-shadow: var(--clay-shadow);
+}
+
+.raster-crop-btn:active {
+    transform: translateY(0);
+    box-shadow: var(--clay-shadow-pressed);
+}
+
+.raster-crop-btn-primary {
+    background: var(--clay-gradient-accent);
+    border-color: rgba(42, 167, 155, 0.45);
+    color: #ffffff;
+}
+
+.raster-crop-btn-primary:hover {
+    color: #ffffff;
+}
+
+/* ── Colour adjustments ────────────────────────────────────────────────── */
+.raster-adjust-block .raster-control-header {
+    justify-content: space-between;
+    gap: 10px;
+}
+
+.raster-adjust-reset {
+    padding: 5px 12px;
+    border: 1px solid var(--clay-border);
+    border-radius: 999px;
+    background: var(--clay-surface-2);
+    color: var(--clay-muted);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: color 200ms ease, box-shadow 200ms ease, transform 200ms var(--clay-ease-bounce);
+}
+
+.raster-adjust-reset:hover:not(:disabled) {
+    color: var(--clay-accent-ink);
+    transform: translateY(-1px);
+    box-shadow: var(--clay-shadow-sm);
+}
+
+.raster-adjust-reset:disabled {
+    opacity: 0.45;
+    cursor: default;
+}
+
+.raster-preset-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.raster-preset-chip {
+    flex: 1 1 auto;
+    min-width: 0;
+    padding: 7px 10px;
+    border: 1px solid var(--clay-border);
+    border-radius: 999px;
+    background: var(--clay-surface-2);
+    color: var(--clay-muted);
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background 240ms ease, color 240ms ease, border-color 240ms ease, transform 240ms var(--clay-ease-bounce);
+}
+
+.raster-preset-chip:hover {
+    color: var(--clay-text);
+    border-color: var(--clay-border-strong);
+    transform: translateY(-1px);
+}
+
+.raster-preset-chip:focus-visible {
+    outline: none;
+    box-shadow: var(--clay-focus-ring);
+}
+
+.raster-preset-chip.active {
+    background: var(--clay-gradient-accent);
+    border-color: rgba(42, 167, 155, 0.45);
+    color: #ffffff;
+    box-shadow: 2px 2px 8px rgba(42, 167, 155, 0.3), inset 0 1px 1px rgb(255 255 255 / 0.3);
+}
+
+.raster-adjust-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px 18px;
+}
+
+.raster-adjust-row {
+    display: grid;
+    grid-template-columns: minmax(64px, auto) minmax(0, 1fr) 38px;
+    align-items: center;
+    gap: 8px;
+}
+
+.raster-adjust-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--clay-muted);
+    white-space: nowrap;
+}
+
+.raster-adjust-slider {
+    width: 100%;
+    min-width: 0;
+    cursor: pointer;
+}
+
+.raster-adjust-value {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--clay-quiet);
+    font-variant-numeric: tabular-nums;
+    text-align: right;
+}
+
+.raster-adjust-value.is-active {
+    color: var(--clay-accent-ink);
+}
+
+/* ── Four export formats (JPG · PNG · WEBP · TGA) ──────────────────────── */
+.raster-fmt-cards {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.raster-dl-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+/* ── RGB composite channel chip ────────────────────────────────────────── */
+.raster-channel-seg .rgba-channel-tab.active.rgb {
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.18), rgba(34, 197, 94, 0.18), rgba(42, 167, 155, 0.2));
+    color: var(--clay-text);
+}
+
+/* ── raster-v2 shell/core alignment for the new blocks ─────────────────── */
+.raster-v2 .raster-edit-toolbar {
+    padding: 0 0.25rem;
+}
+
+.raster-v2 .raster-preset-row,
+.raster-v2 .raster-adjust-grid {
+    padding: 0.5rem 1.25rem;
+}
+
+.raster-v2 .raster-adjust-grid {
+    padding-bottom: 1.25rem;
+}
+
+.raster-v2 .raster-crop-actions {
+    background: var(--bulk-shell-bg);
+    border: 1px solid var(--bulk-hairline);
+    border-radius: 18px;
+}
+
+.raster-v2 .raster-preset-chip {
+    background: rgba(93, 77, 157, 0.03);
+    border: 1px solid var(--bulk-hairline);
+    color: var(--bulk-text-secondary);
+    transition: background 300ms var(--bulk-ease), color 300ms var(--bulk-ease), border-color 300ms var(--bulk-ease), transform 300ms var(--bulk-ease);
+}
+
+.raster-v2 .raster-preset-chip.active {
+    background: linear-gradient(135deg, rgba(42, 167, 155, 0.25), rgba(42, 167, 155, 0.06));
+    border-color: rgba(42, 167, 155, 0.45);
+    color: var(--bulk-text-primary);
+    box-shadow: 0 0 24px -4px var(--bulk-accent-glow);
+}
+
+.raster-v2 .raster-adjust-label {
+    color: var(--bulk-text-muted);
+}
+
+.raster-v2 .raster-adjust-value {
+    color: var(--bulk-text-secondary);
+    font-family: var(--bulk-display-font);
+}
+
+.raster-v2 .raster-adjust-value.is-active {
+    color: var(--clay-accent-ink);
+}
+
+/* ── Narrow layouts ────────────────────────────────────────────────────── */
+@media (max-width: 900px) {
+    .raster-adjust-grid {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}
+
+@media (max-width: 768px) {
+    .raster-edit-toolbar {
+        justify-content: center;
+    }
+
+    .raster-fmt-cards,
+    .raster-v2 .raster-fmt-cards {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .raster-dl-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .raster-crop-hint {
+        flex-basis: 100%;
+    }
+}
+
+/* The 480px stack above this section predates the four-format grid, so it has
+   to be restated here to outrank the 768px rule. */
+@media (max-width: 480px) {
+    .raster-dl-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .raster-fmt-cards,
+    .raster-v2 .raster-fmt-cards {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* ════════════════════════════════════════════════════════════════════════
+   BULK BATCH DECK — WEBP tab, batch transforms, batch colour, live preview
+   Everything the "Resize Bulk Images" tab gained when it grew a shared edit
+   state: a fourth export format, a rotate/flip toolbar, the eight shared
+   colour sliders, and a downscaled preview of the currently selected file.
+   Built on the same clay tokens as the RASTER EDIT HUB section above, with
+   the `.bulk-v2` scope the rest of this tab already uses.
+
+   This section also carries two cross-tab layout fixes that landed with it:
+   the PDF format cards (now four) and the top segmented control (now six).
+   ════════════════════════════════════════════════════════════════════════ */
+
+/* ── Four export formats (JPG · PNG · WEBP · TGA) ──────────────────────── */
+.bulk-format-tabs,
+.bulk-v2 .bulk-format-tabs {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.bulk-v2 .bulk-format-tab {
+    /* WEBP is the longest label; let it shrink rather than overflow the pill. */
+    padding: 0 0.35rem;
+    font-size: 0.8125rem;
+    letter-spacing: 0.04em;
+}
+
+/* ── Batch edit card ───────────────────────────────────────────────────── */
+.bulk-v2 .bulk-batch-card {
+    gap: 0.85rem;
+}
+
+.bulk-v2 .bulk-batch-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.bulk-v2 .bulk-edit-readout {
+    padding: 0.2rem 0.6rem;
+    border: 1px solid var(--bulk-hairline);
+    border-radius: 999px;
+    background: rgba(93, 77, 157, 0.03);
+    color: var(--bulk-text-secondary);
+    font-family: var(--bulk-display-font);
+    font-size: 0.75rem;
+    font-weight: 650;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.02em;
+    white-space: nowrap;
+}
+
+/* ── Transform toolbar ─────────────────────────────────────────────────── */
+.bulk-v2 .bulk-edit-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.bulk-v2 .bulk-edit-group {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px;
+    border: 1px solid var(--clay-border);
+    border-radius: 999px;
+    background: var(--clay-surface-2);
+    box-shadow: var(--clay-shadow-sm);
+}
+
+.bulk-v2 .bulk-edit-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 34px;
+    height: 34px;
+    padding: 0 10px;
+    border: 1px solid transparent;
+    border-radius: 999px;
+    background: transparent;
+    color: var(--clay-muted);
+    cursor: pointer;
+    transition: background 200ms ease, color 200ms ease, transform 200ms var(--clay-ease-bounce), box-shadow 200ms ease;
+}
+
+.bulk-v2 .bulk-edit-btn svg {
+    width: 16px;
+    height: 16px;
+    flex-shrink: 0;
+}
+
+.bulk-v2 .bulk-edit-btn:hover {
+    background: var(--clay-surface);
+    color: var(--clay-text);
+    transform: translateY(-1px);
+    box-shadow: var(--clay-shadow-sm);
+}
+
+.bulk-v2 .bulk-edit-btn:active {
+    transform: translateY(0);
+    box-shadow: var(--clay-shadow-pressed);
+}
+
+.bulk-v2 .bulk-edit-btn:focus-visible {
+    outline: none;
+    box-shadow: var(--clay-focus-ring);
+}
+
+.bulk-v2 .bulk-edit-btn.active {
+    background: var(--clay-accent-soft);
+    border-color: rgba(42, 167, 155, 0.4);
+    color: var(--clay-accent-ink);
+    box-shadow: var(--clay-shadow-pressed);
+}
+
+.bulk-v2 .bulk-edit-reset {
+    padding: 0.3rem 0.75rem;
+    border: 1px solid var(--bulk-hairline);
+    border-radius: 999px;
+    background: rgba(93, 77, 157, 0.03);
+    color: var(--bulk-text-secondary);
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    cursor: pointer;
+    transition: background 300ms var(--bulk-ease), color 300ms var(--bulk-ease), border-color 300ms var(--bulk-ease), opacity 300ms var(--bulk-ease);
+}
+
+.bulk-v2 .bulk-edit-reset:hover:not(:disabled) {
+    border-color: rgba(42, 167, 155, 0.45);
+    color: var(--clay-accent-ink);
+}
+
+.bulk-v2 .bulk-edit-reset:focus-visible {
+    outline: none;
+    box-shadow: var(--clay-focus-ring);
+}
+
+.bulk-v2 .bulk-edit-reset:disabled {
+    cursor: default;
+    opacity: 0.45;
+}
+
+/* ── Colour adjustments ────────────────────────────────────────────────── */
+.bulk-v2 .bulk-adjust-block {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+    padding-top: 0.7rem;
+    border-top: 1px solid var(--bulk-hairline);
+}
+
+.bulk-v2 .bulk-adjust-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+}
+
+.bulk-v2 .bulk-adjust-title {
+    color: var(--bulk-text-muted);
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+}
+
+.bulk-v2 .bulk-preset-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+}
+
+.bulk-v2 .bulk-preset-chip {
+    flex: 1 1 auto;
+    min-height: 1.9rem;
+    padding: 0 0.7rem;
+    border: 1px solid var(--bulk-hairline);
+    border-radius: 999px;
+    background: rgba(93, 77, 157, 0.03);
+    color: var(--bulk-text-secondary);
+    font-size: 0.75rem;
+    font-weight: 650;
+    letter-spacing: 0.03em;
+    cursor: pointer;
+    transition: background 300ms var(--bulk-ease), color 300ms var(--bulk-ease), border-color 300ms var(--bulk-ease), transform 300ms var(--bulk-ease);
+}
+
+.bulk-v2 .bulk-preset-chip:hover:not(.active) {
+    color: var(--bulk-text-primary);
+    border-color: var(--bulk-hairline-strong);
+    transform: translateY(-1px);
+}
+
+.bulk-v2 .bulk-preset-chip:focus-visible {
+    outline: none;
+    box-shadow: var(--clay-focus-ring);
+}
+
+.bulk-v2 .bulk-preset-chip.active {
+    background: linear-gradient(135deg, rgba(42, 167, 155, 0.25), rgba(42, 167, 155, 0.06));
+    border-color: rgba(42, 167, 155, 0.45);
+    color: var(--bulk-text-primary);
+    box-shadow: 0 0 24px -4px var(--bulk-accent-glow);
+}
+
+.bulk-v2 .bulk-adjust-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 6px 16px;
+}
+
+.bulk-v2 .bulk-adjust-row {
+    display: grid;
+    grid-template-columns: minmax(60px, auto) minmax(0, 1fr) 30px;
+    align-items: center;
+    gap: 8px;
+}
+
+.bulk-v2 .bulk-adjust-label {
+    color: var(--bulk-text-muted);
+    font-size: 11px;
+    font-weight: 650;
+    letter-spacing: 0.01em;
+    white-space: nowrap;
+}
+
+.bulk-v2 .bulk-adjust-slider {
+    width: 100%;
+    min-width: 0;
+    accent-color: var(--clay-accent);
+    cursor: pointer;
+}
+
+.bulk-v2 .bulk-adjust-value {
+    color: var(--bulk-text-secondary);
+    font-family: var(--bulk-display-font);
+    font-size: 11px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    text-align: right;
+}
+
+.bulk-v2 .bulk-adjust-value.is-active {
+    color: var(--clay-accent-ink);
+}
+
+.bulk-v2 .bulk-batch-note {
+    color: var(--bulk-text-muted);
+    font-size: 0.6875rem;
+    line-height: 1.45;
+}
+
+/* ── Selected-file preview stage ───────────────────────────────────────── */
+.bulk-v2 .bulk-preview-stage {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 8rem;
+    max-height: 16rem;
+    padding: 0.6rem;
+    border: 1px solid var(--bulk-hairline);
+    border-radius: 16px;
+    /* Checkerboard so a preserved alpha channel reads as transparency rather
+       than as whatever the card background happens to be. */
+    background:
+        linear-gradient(45deg, rgba(93, 77, 157, 0.06) 25%, transparent 25%, transparent 75%, rgba(93, 77, 157, 0.06) 75%),
+        linear-gradient(45deg, rgba(93, 77, 157, 0.06) 25%, transparent 25%, transparent 75%, rgba(93, 77, 157, 0.06) 75%),
+        var(--clay-surface-2);
+    background-position: 0 0, 8px 8px;
+    background-size: 16px 16px;
+    box-shadow: inset 2px 2px 5px rgba(93, 77, 157, 0.08);
+    overflow: hidden;
+}
+
+.bulk-v2 .bulk-preview-canvas {
+    display: block;
+    max-width: 100%;
+    max-height: 14.5rem;
+    border-radius: 8px;
+    object-fit: contain;
+}
+
+/* The base rule above outranks the global `.hidden`, so restate the toggle at
+   matching specificity — otherwise the empty-state note shares the row with a
+   zero-content canvas and gets squeezed to a few characters wide. */
+.bulk-v2 .bulk-preview-canvas.hidden {
+    display: none;
+}
+
+.bulk-v2 .bulk-preview-note {
+    flex: 1 1 auto;
+    min-width: 0;
+    color: var(--bulk-text-muted);
+    font-size: 0.75rem;
+    line-height: 1.45;
+    text-align: center;
+}
+
+.bulk-v2 .bulk-preview-note.hidden {
+    display: none;
+}
+
+/* ── Narrow layouts ────────────────────────────────────────────────────── */
+@media (max-width: 900px) {
+    .bulk-v2 .bulk-adjust-grid {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .bulk-v2 .bulk-edit-toolbar {
+        justify-content: center;
+    }
+}
+
+@media (max-width: 560px) {
+    .bulk-format-tabs,
+    .bulk-v2 .bulk-format-tabs {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 4px;
+    }
+
+    .bulk-v2 .bulk-preview-stage {
+        min-height: 6.5rem;
+    }
+}
+
+/* ── Chore: PDF format cards are four now, not three ───────────────────── */
+/* Their column is one half of `.pdf-image-export-grid`, so four across would
+   crush "Smallest"/"Lossless" onto two lines. 2×2 is the honest fit; the
+   existing 620px rule still collapses them to a single column. */
+body.app-shell-v2 .pdf-fmt-cards {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+/* ── Chore: the workspace tab strip is six tabs now, not five ──────────── */
+/* The grid was pinned at five columns, which stranded Annotate alone on a
+   second row. Every breakpoint now divides six evenly: 6 across once there is
+   real room, 3 + 3 on ordinary desktops and tablets, 2 × 3 on phones. The
+   1023px and 560px rules earlier in this file already cover the last two. */
+@media (min-width: 1440px) {
+    body.app-shell-v2 .workspace-topbar .segmented-control {
+        grid-template-columns: repeat(6, minmax(0, 1fr));
+    }
+}
+
+@media (min-width: 1024px) and (max-width: 1439px) {
+    body.app-shell-v2 .workspace-topbar .segmented-control {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+}
+
+/* Narrow columns must wrap rather than spill. The tab keeps `overflow:
+   visible` on purpose — the grid row grows for a two-line subtitle, and
+   clipping it would hide the second line outright. */
+body.app-shell-v2 .workspace-topbar .segmented-control-tab {
+    min-width: 0;
+}
+
+body.app-shell-v2 .workspace-tab-title,
+body.app-shell-v2 .workspace-tab-subtitle {
+    overflow-wrap: anywhere;
+    white-space: normal;
+}

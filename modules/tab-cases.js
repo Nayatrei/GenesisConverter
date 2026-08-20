@@ -92,6 +92,26 @@ export const TAB_CASES = {
         ])
     },
 
+    // Annotate keeps its own canvas in the workspace, so column 2 only needs
+    // the import block — the original-image panel would duplicate the canvas.
+    annotate: {
+        label: 'Annotate',
+        eyebrow: 'Image Markup',
+        title: 'Mark up an image',
+        description: 'Draw, add text, hide details with blur, and frame the image before exporting.',
+        accent: '#f472b6',
+        accentSoft: 'rgba(244, 114, 182, 0.16)',
+        accentRgb: '244, 114, 182',
+        importTitle: '1. Load Image',
+        importButton: 'Import From Device',
+        importCopy: 'Choose a single image from your device or paste a direct image URL. Supported imports: {{formats}}.',
+        importAria: 'Import an image from your device',
+        sections: new Set([
+            'import-image',
+            'import-url'
+        ])
+    },
+
     bulk: {
         label: 'Bulk',
         eyebrow: 'Batch Folder',
@@ -156,7 +176,7 @@ const WORKSPACE_SECTION_NODES = [
  * declares it active. Also updates import-block copy, the case identity
  * strip, and the `--case-accent` CSS variable that drives accent coloring.
  *
- * @param {string} name              Tab name (svg/logo/raster/bulk/pdf)
+ * @param {string} name              Tab name (svg/logo/raster/annotate/bulk/pdf)
  * @param {object} ctx               Shared context
  * @param {string} ctx.importablePrompt  Prompt fragment listing accepted formats
  * @param {boolean} ctx.svgIsDirty       Whether SVG controls have been touched

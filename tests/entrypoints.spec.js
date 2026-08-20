@@ -4,7 +4,7 @@ const { test, expect } = require('@playwright/test');
 
 const root = path.resolve(__dirname, '..');
 const canonicalEntrypoint = fs.readFileSync(path.join(root, '3d-obj.html'), 'utf8');
-const namedEntrypoints = ['logo.html', 'raster.html', 'bulk.html', 'pdf.html', 'svg.html'];
+const namedEntrypoints = ['logo.html', 'raster.html', 'annotate.html', 'bulk.html', 'pdf.html', 'svg.html'];
 
 test('named static entrypoints stay synchronized with the 3D app shell', () => {
     for (const filename of namedEntrypoints) {

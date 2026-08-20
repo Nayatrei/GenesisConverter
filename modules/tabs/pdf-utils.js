@@ -228,6 +228,7 @@ export function validatePdfImageExportPlan({
 function estimatePdfImageBytes(pixels, format) {
     if (format === 'jpg' || format === 'jpeg') return Math.max(1, Math.round(pixels * 3 * 0.16));
     if (format === 'png') return Math.max(1, Math.round(pixels * 3 * 0.45));
+    if (format === 'webp') return Math.max(1, Math.round(pixels * 3 * 0.128));
     if (format === 'tga') return Math.max(1, Math.round(pixels * 3) + 18);
     return Math.max(1, Math.round(pixels * 3));
 }

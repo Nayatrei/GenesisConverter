@@ -76,6 +76,7 @@ test('PDF tab is registered as fifth tab and hides image import sidebar', async 
         'Raster',
         'Bulk',
         'PDF',
+        'Annotate',
     ]);
     await page.locator('.segmented-control-tab[data-tab="pdf"]').click();
 

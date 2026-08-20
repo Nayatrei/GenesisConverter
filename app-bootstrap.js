@@ -1,7 +1,7 @@
 const VERSION_MANIFEST_PATH = './app-version.json';
 // Tool shells load this bootstrap behind the generated release key so a stale
 // CDN 404 for an earlier deployment can never block the current application.
-const TOOL_PATHS = new Set(['/3d-obj', '/logo', '/raster', '/bulk', '/pdf', '/svg']);
+const TOOL_PATHS = new Set(['/3d-obj', '/logo', '/raster', '/annotate', '/bulk', '/pdf', '/svg']);
 
 function rememberRequestedTool() {
     const route = window.location.pathname.replace(/\.html$/i, '');

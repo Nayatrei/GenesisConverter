@@ -232,6 +232,7 @@ export function createElements() {
             imageFormatCards: document.querySelectorAll('[data-pdf-image-format]'),
             imageEstJpg: document.getElementById('pdf-image-est-jpg'),
             imageEstPng: document.getElementById('pdf-image-est-png'),
+            imageEstWebp: document.getElementById('pdf-image-est-webp'),
             imageEstTga: document.getElementById('pdf-image-est-tga'),
             imageExportBtn: document.getElementById('pdf-export-images-btn'),
             imagePdfInput: document.getElementById('pdf-image-file-input'),

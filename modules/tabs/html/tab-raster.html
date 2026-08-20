@@ -8,7 +8,7 @@
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
                                 </svg>
                                 <p class="raster-card-dropzone-title">Drop image here</p>
-                                <p class="raster-card-dropzone-sub">PNG, JPG, SVG, WEBP, GIF, BMP, AVIF &amp; more</p>
+                                <p class="raster-card-dropzone-sub">PNG, JPG, HEIC, SVG, WEBP, GIF, BMP, AVIF &amp; more</p>
                                 <div class="raster-card-dropzone-divider"><span>or</span></div>
                                 <button class="raster-card-dropzone-btn btn-primary" onclick="event.stopPropagation(); document.getElementById('file-input').click()">
                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -35,10 +35,61 @@
 
                             <!-- ① Channel Preview -->
                             <div class="raster-preview-block">
+                                <!-- Transform toolbar -->
+                                <div class="raster-edit-toolbar" role="toolbar" aria-label="Image transforms">
+                                    <div class="raster-edit-group">
+                                        <button id="raster-rotate-ccw" type="button" class="raster-edit-btn" title="Rotate 90° left" aria-label="Rotate 90 degrees left">
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                                <path d="M3 2v6h6"/>
+                                                <path d="M3.51 15a9 9 0 1 0 2.13-9.36L3 8"/>
+                                            </svg>
+                                        </button>
+                                        <button id="raster-rotate-cw" type="button" class="raster-edit-btn" title="Rotate 90° right" aria-label="Rotate 90 degrees right">
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                                <path d="M21 2v6h-6"/>
+                                                <path d="M20.49 15a9 9 0 1 1-2.12-9.36L21 8"/>
+                                            </svg>
+                                        </button>
+                                        <button id="raster-flip-h" type="button" class="raster-edit-btn" title="Flip horizontal" aria-label="Flip horizontal">
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                                <path d="M12 3v18"/>
+                                                <path d="M4 8l6 4-6 4V8z"/>
+                                                <path d="M20 8l-6 4 6 4V8z"/>
+                                            </svg>
+                                        </button>
+                                        <button id="raster-flip-v" type="button" class="raster-edit-btn" title="Flip vertical" aria-label="Flip vertical">
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                                <path d="M3 12h18"/>
+                                                <path d="M8 4h8l-4 6-4-6z"/>
+                                                <path d="M8 20h8l-4-6-4 6z"/>
+                                            </svg>
+                                        </button>
+                                    </div>
+                                    <div class="raster-edit-group">
+                                        <button id="raster-crop-toggle" type="button" class="raster-edit-btn raster-edit-btn-wide" title="Crop image" aria-pressed="false">
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                                <path d="M6 2v14a2 2 0 0 0 2 2h14"/>
+                                                <path d="M18 22V8a2 2 0 0 0-2-2H2"/>
+                                            </svg>
+                                            <span>Crop</span>
+                                        </button>
+                                        <button id="raster-edit-reset" type="button" class="raster-edit-btn raster-edit-btn-wide" title="Undo crop and transforms">
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                                <path d="M3 2v6h6"/>
+                                                <path d="M3.51 15a9 9 0 1 0 2.13-9.36L3 8"/>
+                                            </svg>
+                                            <span>Revert</span>
+                                        </button>
+                                    </div>
+                                </div>
+
                                 <!-- RGBA Segmented Control -->
                                 <div class="raster-channel-seg-wrap">
                                     <div class="rgba-channel-tabs raster-channel-seg">
-                                        <button class="rgba-channel-tab red active" data-channel="red">
+                                        <button class="rgba-channel-tab rgb active" data-channel="rgb">
+                                            <span class="rchan-dot"></span>RGB
+                                        </button>
+                                        <button class="rgba-channel-tab red" data-channel="red">
                                             <span class="rchan-dot"></span>R
                                         </button>
                                         <button class="rgba-channel-tab green" data-channel="green">
@@ -55,6 +106,26 @@
                                 <!-- Canvas -->
                                 <div class="rgba-preview-container raster-canvas-frame">
                                     <canvas id="rgba-preview-canvas" class="rgba-preview-canvas"></canvas>
+                                    <div id="raster-crop-overlay" class="raster-crop-overlay hidden" aria-hidden="true">
+                                        <div id="raster-crop-box" class="raster-crop-box">
+                                            <span class="raster-crop-handle" data-handle="nw"></span>
+                                            <span class="raster-crop-handle" data-handle="n"></span>
+                                            <span class="raster-crop-handle" data-handle="ne"></span>
+                                            <span class="raster-crop-handle" data-handle="e"></span>
+                                            <span class="raster-crop-handle" data-handle="se"></span>
+                                            <span class="raster-crop-handle" data-handle="s"></span>
+                                            <span class="raster-crop-handle" data-handle="sw"></span>
+                                            <span class="raster-crop-handle" data-handle="w"></span>
+                                            <span id="raster-crop-readout" class="raster-crop-readout">—</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Crop action bar (visible only while cropping) -->
+                                <div id="raster-crop-actions" class="raster-crop-actions hidden">
+                                    <span class="raster-crop-hint">Drag inside to move, drag a handle to resize.</span>
+                                    <button id="raster-crop-cancel" type="button" class="raster-crop-btn">Cancel</button>
+                                    <button id="raster-crop-apply" type="button" class="raster-crop-btn raster-crop-btn-primary">Apply Crop</button>
                                 </div>
                             </div>
 
@@ -81,7 +152,64 @@
                                 </div>
                             </div>
 
-                            <!-- ③ Output Scale -->
+                            <!-- ③ Color Adjustments -->
+                            <div class="raster-control-block raster-adjust-block">
+                                <div class="raster-control-header">
+                                    <span class="raster-control-title">Color Adjustments</span>
+                                    <button id="raster-adjust-reset" type="button" class="raster-adjust-reset">Reset</button>
+                                </div>
+                                <div class="raster-preset-row" role="group" aria-label="Filter presets">
+                                    <button class="raster-preset-chip active" type="button" data-preset="original">Original</button>
+                                    <button class="raster-preset-chip" type="button" data-preset="warm">Warm</button>
+                                    <button class="raster-preset-chip" type="button" data-preset="cool">Cool</button>
+                                    <button class="raster-preset-chip" type="button" data-preset="mono">Mono</button>
+                                    <button class="raster-preset-chip" type="button" data-preset="fade">Fade</button>
+                                </div>
+                                <div class="raster-adjust-grid">
+                                    <div class="raster-adjust-row">
+                                        <label class="raster-adjust-label" for="raster-adjust-brightness">Brightness</label>
+                                        <input id="raster-adjust-brightness" class="raster-adjust-slider" data-adjust="brightness" type="range" min="-100" max="100" step="1" value="0">
+                                        <output class="raster-adjust-value" data-adjust-value="brightness">0</output>
+                                    </div>
+                                    <div class="raster-adjust-row">
+                                        <label class="raster-adjust-label" for="raster-adjust-exposure">Exposure</label>
+                                        <input id="raster-adjust-exposure" class="raster-adjust-slider" data-adjust="exposure" type="range" min="-100" max="100" step="1" value="0">
+                                        <output class="raster-adjust-value" data-adjust-value="exposure">0</output>
+                                    </div>
+                                    <div class="raster-adjust-row">
+                                        <label class="raster-adjust-label" for="raster-adjust-contrast">Contrast</label>
+                                        <input id="raster-adjust-contrast" class="raster-adjust-slider" data-adjust="contrast" type="range" min="-100" max="100" step="1" value="0">
+                                        <output class="raster-adjust-value" data-adjust-value="contrast">0</output>
+                                    </div>
+                                    <div class="raster-adjust-row">
+                                        <label class="raster-adjust-label" for="raster-adjust-gamma">Gamma</label>
+                                        <input id="raster-adjust-gamma" class="raster-adjust-slider" data-adjust="gamma" type="range" min="-100" max="100" step="1" value="0">
+                                        <output class="raster-adjust-value" data-adjust-value="gamma">0</output>
+                                    </div>
+                                    <div class="raster-adjust-row">
+                                        <label class="raster-adjust-label" for="raster-adjust-saturation">Saturation</label>
+                                        <input id="raster-adjust-saturation" class="raster-adjust-slider" data-adjust="saturation" type="range" min="-100" max="100" step="1" value="0">
+                                        <output class="raster-adjust-value" data-adjust-value="saturation">0</output>
+                                    </div>
+                                    <div class="raster-adjust-row">
+                                        <label class="raster-adjust-label" for="raster-adjust-vibrance">Vibrance</label>
+                                        <input id="raster-adjust-vibrance" class="raster-adjust-slider" data-adjust="vibrance" type="range" min="-100" max="100" step="1" value="0">
+                                        <output class="raster-adjust-value" data-adjust-value="vibrance">0</output>
+                                    </div>
+                                    <div class="raster-adjust-row">
+                                        <label class="raster-adjust-label" for="raster-adjust-temperature">Temperature</label>
+                                        <input id="raster-adjust-temperature" class="raster-adjust-slider" data-adjust="temperature" type="range" min="-100" max="100" step="1" value="0">
+                                        <output class="raster-adjust-value" data-adjust-value="temperature">0</output>
+                                    </div>
+                                    <div class="raster-adjust-row">
+                                        <label class="raster-adjust-label" for="raster-adjust-clarity">Clarity</label>
+                                        <input id="raster-adjust-clarity" class="raster-adjust-slider" data-adjust="clarity" type="range" min="-100" max="100" step="1" value="0">
+                                        <output class="raster-adjust-value" data-adjust-value="clarity">0</output>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- ④ Output Scale -->
                             <div class="raster-control-block">
                                 <div class="raster-control-header">
                                     <span class="raster-control-title">Output Scale</span>
@@ -101,7 +229,7 @@
                                 </div>
                             </div>
 
-                            <!-- ④ Export Size Preview -->
+                            <!-- ⑤ Export Size Preview -->
                             <div class="raster-export-block">
                                 <div class="raster-export-header-row">
                                     <span class="raster-export-at-label">Exporting at</span>
@@ -118,6 +246,11 @@
                                         <div class="raster-fmt-name">PNG</div>
                                         <div class="raster-fmt-desc">Lossless</div>
                                         <div id="size-est-png" class="raster-fmt-size">—</div>
+                                    </div>
+                                    <div class="raster-fmt-card">
+                                        <div class="raster-fmt-name">WEBP</div>
+                                        <div class="raster-fmt-desc">Small · Alpha</div>
+                                        <div id="size-est-webp" class="raster-fmt-size">—</div>
                                     </div>
                                     <div class="raster-fmt-card">
                                         <div class="raster-fmt-name">TGA</div>
@@ -152,6 +285,19 @@
             </button>
             <label class="raster-dl-alpha-toggle">
                 <input id="preserve-alpha-png" type="checkbox" class="accent-blue-500 cursor-pointer" checked>
+                <span>Include alpha</span>
+            </label>
+        </div>
+        <!-- WEBP -->
+        <div class="raster-dl-item">
+            <button id="save-resized-webp-btn" class="raster-dl-btn btn-secondary" disabled>
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/>
+                </svg>
+                Save as WEBP
+            </button>
+            <label class="raster-dl-alpha-toggle">
+                <input id="preserve-alpha-webp" type="checkbox" class="accent-blue-500 cursor-pointer" checked>
                 <span>Include alpha</span>
             </label>
         </div>

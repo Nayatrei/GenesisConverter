@@ -1,5 +1,5 @@
 (() => {
-    const supportedTools = new Set(['/3d-obj', '/logo', '/raster', '/bulk', '/pdf']);
+    const supportedTools = new Set(['/3d-obj', '/logo', '/raster', '/annotate', '/bulk', '/pdf']);
     const recentToolLink = document.querySelector('#recent-tool-link');
 
     if (recentToolLink) {

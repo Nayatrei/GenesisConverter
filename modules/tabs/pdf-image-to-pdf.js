@@ -12,7 +12,7 @@ const PAGE_SIZES = Object.freeze({
 
 async function getPdfLib() {
     if (!pdfLibPromise) {
-        pdfLibPromise = import('../../vendor/pdf-lib/pdf-lib.esm.min.js?v=r-641e1c86a51e7186');
+        pdfLibPromise = import('../../vendor/pdf-lib/pdf-lib.esm.min.js?v=r-a07fe4380410a7ae');
     }
     return pdfLibPromise;
 }
@@ -126,7 +126,7 @@ export function createImageToPdfController({
         const rejectedCount = suppliedFiles.length - acceptedFiles.length;
 
         if (!acceptedFiles.length) {
-            setStatus('Choose JPG, PNG, or WebP image files.', 'error');
+            setStatus('Choose JPG, PNG, WebP, or HEIC image files.', 'error');
             return;
         }
 
@@ -142,7 +142,9 @@ export function createImageToPdfController({
                 height: 0,
                 rotation: 0,
                 exifOrientation: 1,
-                previewUrl: URL.createObjectURL(file),
+                // A HEIC blob cannot back an <img>, so its preview URL is
+                // withheld until loadItem has swapped in the decoded PNG.
+                previewUrl: kind === 'heic' ? '' : URL.createObjectURL(file),
                 status: 'loading',
                 error: ''
             };
@@ -163,8 +165,24 @@ export function createImageToPdfController({
         }
     }
 
+    // Replaces a HEIC item's file with the decoded PNG, in place, so every later
+    // step (preview, rotate, embedPng) runs the ordinary PNG path. The decoder
+    // module — and the WebAssembly build behind it — loads only when this runs.
+    async function decodeHeicItem(item) {
+        const { decodeHeicToBlob } = await import('../shared/heic.js?v=r-a07fe4380410a7ae');
+        const pngBlob = await decodeHeicToBlob(item.file, 'image/png');
+        if (isDisposed || !getImageState().items.includes(item)) return;
+        const stem = String(item.name || 'image').replace(/\.[^/.]+$/, '') || 'image';
+        item.file = new File([pngBlob], `${stem}.png`, { type: 'image/png' });
+        item.kind = 'png';
+        revokeItemPreview(item);
+        item.previewUrl = URL.createObjectURL(item.file);
+    }
+
     async function loadItem(item) {
         try {
+            if (item.kind === 'heic') await decodeHeicItem(item);
+            if (isDisposed || !getImageState().items.includes(item)) return;
             const [image, exifOrientation] = await Promise.all([
                 loadImageElement(item.previewUrl),
                 item.kind === 'jpg' ? readJpegExifOrientation(item.file) : Promise.resolve(1)
@@ -376,7 +394,7 @@ export function createImageToPdfController({
 
     function renderStatus({ items, readyItems, hasErrors, isLoading, isExporting }) {
         if (!items.length) {
-            setStatus('Add JPG, PNG, or WebP images. Everything stays in this browser.', 'muted');
+            setStatus('Add JPG, PNG, WebP, or HEIC images. Everything stays in this browser.', 'muted');
         } else if (isExporting) {
             setStatus('Building the PDF locally…', 'muted');
         } else if (isLoading) {
@@ -588,6 +606,10 @@ function getImageKind(file) {
     if (mime === 'image/jpeg' || /\.jpe?g$/.test(name)) return 'jpg';
     if (mime === 'image/png' || /\.png$/.test(name)) return 'png';
     if (mime === 'image/webp' || /\.webp$/.test(name)) return 'webp';
+    // iPhone photos. Nothing downstream can read HEIC bytes, so loadItem
+    // decodes each one to PNG and rewrites the item's kind before any preview,
+    // rotation, or embed step touches it.
+    if (/\.(?:heic|heif|heics|heifs|hif)$/.test(name) || /^image\/hei[cf](?:-sequence)?$/.test(mime)) return 'heic';
     return '';
 }
 

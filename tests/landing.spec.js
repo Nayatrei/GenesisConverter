@@ -6,7 +6,7 @@ test('root shows the bilingual landing page instead of opening a tool', async ({
     await expect(page).toHaveURL(/\/$/);
     await expect(page.getByRole('heading', { name: /필요한 결과부터 시작하세요/ })).toBeVisible();
     await expect(page.getByText('Start with the result you need.')).toBeVisible();
-    await expect(page.locator('.tool-card')).toHaveCount(5);
+    await expect(page.locator('.tool-card')).toHaveCount(6);
     await expect(page.locator('.tool-card-3d')).toContainText('평면 이미지의 색상 영역을 추적해');
     await expect(page.locator('.tool-card-3d')).toContainText('Trace a flat image into shallow');
 });
@@ -19,7 +19,8 @@ test('landing cards open their dedicated tool slugs', async ({ page }) => {
         ['.tool-card-logo', '/logo', 'logo'],
         ['.tool-card-resize', '/raster', 'raster'],
         ['.tool-card-bulk', '/bulk', 'bulk'],
-        ['.tool-card-pdf', '/pdf', 'pdf']
+        ['.tool-card-pdf', '/pdf', 'pdf'],
+        ['.tool-card-annotate', '/annotate', 'annotate']
     ];
 
     for (const [selector, route, tab] of cards) {

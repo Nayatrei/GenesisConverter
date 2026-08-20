@@ -14,6 +14,7 @@
     "@playwright/test": "^1.54.0"
   },
   "dependencies": {
+    "libheif-js": "^1.19.8",
     "pdf-lib": "^1.17.1",
     "pdfjs-dist": "^4.7.76"
   }

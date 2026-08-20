@@ -5,17 +5,18 @@ import {
     PDF_IMAGE_EXPORT_MAX_TOTAL_BYTES,
     sanitizePdfFilename,
     validatePdfImageExportPlan
-} from './pdf-utils.js?v=r-641e1c86a51e7186';
+} from './pdf-utils.js?v=r-a07fe4380410a7ae';
 import {
+    canvasToBlobAsync,
     estimateSizeBytes,
     exportCanvasToRasterBlob,
     formatBytes,
     getRasterExtension,
     sanitizeFileComponent
-} from '../raster-utils.js?v=r-641e1c86a51e7186';
-import { createZipFile } from '../export3d.js?v=r-641e1c86a51e7186';
-import { createImageToPdfController } from './pdf-image-to-pdf.js?v=r-641e1c86a51e7186';
-import { createPdfOcrController } from './pdf-ocr.js?v=r-641e1c86a51e7186';
+} from '../raster-utils.js?v=r-a07fe4380410a7ae';
+import { createZipFile } from '../export3d.js?v=r-a07fe4380410a7ae';
+import { createImageToPdfController } from './pdf-image-to-pdf.js?v=r-a07fe4380410a7ae';
+import { createPdfOcrController } from './pdf-ocr.js?v=r-a07fe4380410a7ae';
 
 let pdfLibPromise = null;
 let pdfJsPromise = null;
@@ -24,24 +25,50 @@ const MAX_THUMBS = 60;
 const THUMB_WIDTH = 160;
 const MAX_REVIEW_THUMBS = 12;
 const STEP_COUNT = 3;
-const IMAGE_EXPORT_FORMATS = ['png', 'jpg', 'tga'];
+const IMAGE_EXPORT_FORMATS = ['png', 'jpg', 'webp', 'tga'];
+// WEBP reuses the JPG quality level; raster-utils only knows png/jpg/tga.
+const IMAGE_EXPORT_LOSSY_QUALITY = 0.92;
+const WEBP_SIZE_RATIO_TO_JPG = 0.8;
 const IMAGE_WIDTH_MIN = 16;
 const IMAGE_WIDTH_MAX = 8192;
 const PDF_TASKS = ['combine', 'pdf-images', 'images-pdf', 'ocr'];
 const PDF_DOCUMENT_TASKS = new Set(['combine', 'pdf-images']);
 
+function getImageExportExtension(format) {
+    return format === 'webp' ? 'webp' : getRasterExtension(format);
+}
+
+function estimateImageExportBytes(width, height, format) {
+    if (format === 'webp') {
+        return Math.max(1, Math.round(estimateSizeBytes(width, height, 'jpg', false) * WEBP_SIZE_RATIO_TO_JPG));
+    }
+    return estimateSizeBytes(width, height, format, false);
+}
+
+async function exportCanvasToImageBlob(canvas, format) {
+    if (format === 'webp') {
+        const blob = await canvasToBlobAsync(canvas, 'image/webp', IMAGE_EXPORT_LOSSY_QUALITY);
+        // Browsers without a WEBP encoder silently hand back PNG bytes.
+        if (blob.type !== 'image/webp') {
+            throw new Error('This browser cannot encode WEBP images. Choose JPG or PNG instead.');
+        }
+        return blob;
+    }
+    return exportCanvasToRasterBlob(canvas, format, false);
+}
+
 async function getPdfLib() {
     if (!pdfLibPromise) {
-        pdfLibPromise = import('../../vendor/pdf-lib/pdf-lib.esm.min.js?v=r-641e1c86a51e7186');
+        pdfLibPromise = import('../../vendor/pdf-lib/pdf-lib.esm.min.js?v=r-a07fe4380410a7ae');
     }
     return pdfLibPromise;
 }
 
 async function getPdfJs() {
     if (!pdfJsPromise) {
-        pdfJsPromise = import('../../vendor/pdfjs/pdf.min.mjs?v=r-641e1c86a51e7186').then((pdfjs) => {
+        pdfJsPromise = import('../../vendor/pdfjs/pdf.min.mjs?v=r-a07fe4380410a7ae').then((pdfjs) => {
             pdfjs.GlobalWorkerOptions.workerSrc =
-                new URL('../../vendor/pdfjs/pdf.worker.min.mjs?v=r-641e1c86a51e7186', import.meta.url).href;
+                new URL('../../vendor/pdfjs/pdf.worker.min.mjs?v=r-a07fe4380410a7ae', import.meta.url).href;
             return pdfjs;
         });
     }
@@ -1211,13 +1238,14 @@ export function createPdfTabController({
 
         const estimateTargets = {
             jpg: elements.pdf.imageEstJpg,
+            webp: elements.pdf.imageEstWebp,
             png: elements.pdf.imageEstPng,
             tga: elements.pdf.imageEstTga
         };
         Object.entries(estimateTargets).forEach(([format, element]) => {
             if (!element) return;
             element.textContent = dims && entries.length
-                ? `≈ ${formatBytes(estimateSizeBytes(dims.width, dims.height, format, false) * entries.length)}`
+                ? `≈ ${formatBytes(estimateImageExportBytes(dims.width, dims.height, format) * entries.length)}`
                 : '—';
         });
     }
@@ -1401,7 +1429,7 @@ export function createPdfTabController({
         if (!items.length || !outputEntries.length || elements.pdf.imageExportBtn?.disabled) return;
 
         const { format, targetWidth } = state.pdf.imageExport;
-        const extension = getRasterExtension(format);
+        const extension = getImageExportExtension(format);
         const formatLabel = extension.toUpperCase();
         const loaderTitle = `Exporting ${formatLabel} Pages...`;
 
@@ -1501,7 +1529,7 @@ export function createPdfTabController({
                 await page.render({ canvasContext: context, viewport, intent: 'print' }).promise;
                 page.cleanup();
 
-                const blob = await exportCanvasToRasterBlob(canvas, format, false);
+                const blob = await exportCanvasToImageBlob(canvas, format);
                 canvas.width = 0;
                 canvas.height = 0;
                 actualOutputBytes += blob.size;

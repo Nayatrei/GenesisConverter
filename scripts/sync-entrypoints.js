@@ -3,7 +3,7 @@ const path = require('node:path');
 
 const root = path.resolve(__dirname, '..');
 const canonicalEntrypoint = path.join(root, '3d-obj.html');
-const namedEntrypoints = ['logo.html', 'raster.html', 'bulk.html', 'pdf.html', 'svg.html'];
+const namedEntrypoints = ['logo.html', 'raster.html', 'annotate.html', 'bulk.html', 'pdf.html', 'svg.html'];
 
 for (const filename of namedEntrypoints) {
     fs.copyFileSync(canonicalEntrypoint, path.join(root, filename));

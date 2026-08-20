@@ -18,8 +18,9 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet">
-    <script type="module" src="app-bootstrap.js?v=r-641e1c86a51e7186"></script>
-    <link id="app-stylesheet" rel="stylesheet" href="style.css?v=r-641e1c86a51e7186">
+    <script type="module" src="app-bootstrap.js?v=r-a07fe4380410a7ae"></script>
+    <link id="app-stylesheet" rel="stylesheet" href="style.css?v=r-a07fe4380410a7ae">
+    <link id="annotate-stylesheet" rel="stylesheet" href="annotate.css?v=r-a07fe4380410a7ae">
 </head>
 <body class="app-body antialiased app-shell-v2">
 
@@ -80,9 +81,9 @@
                             <button id="import-btn" class="w-full btn-primary font-semibold py-2 px-4 rounded-md mb-2">
                                 <span id="import-btn-label">Import From Device</span>
                             </button>
-                            <input type="file" id="file-input" accept="image/*" class="hidden">
+                            <input type="file" id="file-input" accept="image/*,.heic,.heif,.hif" class="hidden">
                             <input type="file" id="bulk-folder-input" class="hidden" webkitdirectory directory multiple accept="image/*,.png,.jpg,.jpeg,.jfif,.webp,.gif,.bmp,.avif,.svg,.ico,.tif,.tiff">
-                            <p id="import-mode-copy" class="text-xs text-gray-400 mt-2">Choose a single image from your device or paste a direct image URL. Supported imports: PNG, JPG, JPEG, WEBP, GIF, BMP, AVIF, SVG, ICO, TIFF, and other browser-compatible image files.</p>
+                            <p id="import-mode-copy" class="text-xs text-gray-400 mt-2">Choose a single image from your device or paste a direct image URL. Supported imports: PNG, JPG, JPEG, HEIC, WEBP, GIF, BMP, AVIF, SVG, ICO, TIFF, and other browser-compatible image files.</p>
                             <div id="import-url-shell" data-case-section="import-url">
                                 <p id="import-url-divider" class="text-xs text-gray-500 my-2">OR</p>
                                 <div class="flex">
@@ -557,6 +558,7 @@
                             <button class="segmented-control-tab export-tab" data-tab="raster"><span class="workspace-tab-title">Raster</span><span class="workspace-tab-subtitle">Resize Images</span></button>
                             <button class="segmented-control-tab export-tab" data-tab="bulk"><span class="workspace-tab-title">Bulk</span><span class="workspace-tab-subtitle">Resize Bulk Images</span></button>
                             <button class="segmented-control-tab export-tab" data-tab="pdf"><span class="workspace-tab-title">PDF</span><span class="workspace-tab-subtitle">Convert PDF</span></button>
+                            <button class="segmented-control-tab export-tab" data-tab="annotate"><span class="workspace-tab-title">Annotate</span><span class="workspace-tab-subtitle">Draw on Images</span></button>
                         </div>
                     </div>
                     <button id="mobile-controls-toggle" class="mobile-controls-toggle" aria-expanded="false" aria-controls="app-sidebar" aria-label="Open settings panel">
@@ -577,7 +579,7 @@
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
                         </svg>
                         <h2 class="workspace-dropzone-title">Drop image here</h2>
-                        <p class="workspace-dropzone-sub">PNG, JPG, SVG, WEBP, GIF, BMP, AVIF &amp; more</p>
+                        <p class="workspace-dropzone-sub">PNG, JPG, HEIC, SVG, WEBP, GIF, BMP, AVIF &amp; more</p>
                         <div class="workspace-dropzone-divider"><span>or</span></div>
                         <button class="workspace-dropzone-btn btn-primary" onclick="event.stopPropagation(); document.getElementById('file-input').click()">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -609,7 +611,7 @@
                             <div class="flex justify-between items-center mb-3 original-image-header">
                                 <div>
                                     <h3 class="font-semibold text-gray-200" style="font-size: clamp(0.875rem, 1.5vw, 1rem);">Original Images</h3>
-                                    <div id="bulk-folder-summary" class="text-xs text-gray-400 mt-1">Choose a folder from the left sidebar to scan PNG, JPG, JPEG, WEBP, GIF, BMP, AVIF, SVG, ICO, TIFF, and other browser-compatible image files.</div>
+                                    <div id="bulk-folder-summary" class="text-xs text-gray-400 mt-1">Choose a folder from the left sidebar to scan PNG, JPG, JPEG, HEIC, WEBP, GIF, BMP, AVIF, SVG, ICO, TIFF, and other browser-compatible image files.</div>
                                 </div>
                             </div>
                             <div class="bulk-list-shell">
@@ -631,6 +633,7 @@
                     <div id="tab-raster-slot"></div>
                     <div id="tab-bulk-slot"></div>
                     <div id="tab-pdf-slot"></div>
+                    <div id="tab-annotate-slot"></div>
                 </div><!-- Close output-section -->
 
                 <div id="footer-svg-slot"></div>
@@ -638,6 +641,7 @@
                 <div id="footer-raster-slot"></div>
                 <div id="footer-bulk-slot"></div>
                 <div id="footer-pdf-slot"></div>
+                <div id="footer-annotate-slot"></div>
             </div><!-- Close main-content -->
         </main>
     </div>

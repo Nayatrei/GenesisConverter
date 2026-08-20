@@ -11,6 +11,7 @@
                                     <div class="bulk-format-tabs" role="tablist" aria-label="Bulk Export Format">
                                         <button type="button" class="bulk-format-tab active" data-format="jpg">JPG</button>
                                         <button type="button" class="bulk-format-tab" data-format="png">PNG</button>
+                                        <button type="button" class="bulk-format-tab" data-format="webp">WEBP</button>
                                         <button type="button" class="bulk-format-tab" data-format="tga">TGA</button>
                                     </div>
 
@@ -85,6 +86,58 @@
                                                 </span>
                                             </button>
                                         </div>
+                                    </div>
+
+                                    <!-- Batch edits: one transform + colour state, applied to every image -->
+                                    <div class="bulk-controls-card bulk-batch-card">
+                                        <div class="bulk-batch-head">
+                                            <div class="bulk-controls-label">Batch Edits</div>
+                                            <span id="bulk-transform-readout" class="bulk-edit-readout">No transform</span>
+                                        </div>
+
+                                        <div class="bulk-edit-toolbar" role="toolbar" aria-label="Batch transforms">
+                                            <div class="bulk-edit-group">
+                                                <button id="bulk-rotate-ccw" type="button" class="bulk-edit-btn" title="Rotate every image 90° left" aria-label="Rotate every image 90 degrees left">
+                                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                                        <path d="M3 2v6h6"/>
+                                                        <path d="M3.51 15a9 9 0 1 0 2.13-9.36L3 8"/>
+                                                    </svg>
+                                                </button>
+                                                <button id="bulk-rotate-cw" type="button" class="bulk-edit-btn" title="Rotate every image 90° right" aria-label="Rotate every image 90 degrees right">
+                                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                                        <path d="M21 2v6h-6"/>
+                                                        <path d="M20.49 15a9 9 0 1 1-2.12-9.36L21 8"/>
+                                                    </svg>
+                                                </button>
+                                                <button id="bulk-flip-h" type="button" class="bulk-edit-btn" title="Flip every image horizontally" aria-label="Flip every image horizontally" aria-pressed="false">
+                                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                                        <path d="M12 3v18"/>
+                                                        <path d="M4 8l6 4-6 4V8z"/>
+                                                        <path d="M20 8l-6 4 6 4V8z"/>
+                                                    </svg>
+                                                </button>
+                                                <button id="bulk-flip-v" type="button" class="bulk-edit-btn" title="Flip every image vertically" aria-label="Flip every image vertically" aria-pressed="false">
+                                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                                        <path d="M3 12h18"/>
+                                                        <path d="M8 4h8l-4 6-4-6z"/>
+                                                        <path d="M8 20h8l-4-6-4 6z"/>
+                                                    </svg>
+                                                </button>
+                                            </div>
+                                            <button id="bulk-transform-reset" type="button" class="bulk-edit-reset" disabled>Reset Transform</button>
+                                        </div>
+
+                                        <div class="bulk-adjust-block">
+                                            <div class="bulk-adjust-head">
+                                                <span class="bulk-adjust-title">Color Adjustments</span>
+                                                <button id="bulk-adjust-reset" type="button" class="bulk-edit-reset" disabled>Reset</button>
+                                            </div>
+                                            <!-- Chips and sliders are generated from modules/shared/image-adjust.js -->
+                                            <div id="bulk-preset-row" class="bulk-preset-row" role="group" aria-label="Filter presets"></div>
+                                            <div id="bulk-adjust-grid" class="bulk-adjust-grid"></div>
+                                        </div>
+
+                                        <p class="bulk-batch-note">Transforms and colour apply to every image in the batch at export. HEIC/HEIF photos from an iPhone are decoded on import.</p>
                                     </div>
 
                                     <div class="bulk-summary-grid">
@@ -169,6 +222,10 @@
                                             <div id="bulk-selected-format" class="bulk-selected-format-pill">PNG</div>
                                         </div>
                                         <div id="bulk-selected-path" class="bulk-selected-path">Choose a folder from the left sidebar to begin.</div>
+                                        <div class="bulk-preview-stage">
+                                            <canvas id="bulk-preview-canvas" class="bulk-preview-canvas hidden"></canvas>
+                                            <p id="bulk-preview-note" class="bulk-preview-note">Select an image to preview the batch edits.</p>
+                                        </div>
                                         <div class="bulk-detail-grid">
                                             <div class="bulk-detail-item">
                                                 <span class="bulk-detail-label">Export File</span>

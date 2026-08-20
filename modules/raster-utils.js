@@ -1,12 +1,16 @@
+// HEIC/HEIF is in this set even though no browser but Safari decodes it: the
+// import paths route those files through modules/shared/heic.js, which decodes
+// them with the vendored libheif WebAssembly build before anything else runs.
 export const IMPORTABLE_IMAGE_EXTENSIONS = new Set([
     'png', 'jpg', 'jpeg', 'jfif', 'jpe', 'pjpeg', 'pjp',
     'webp', 'gif', 'bmp', 'dib', 'avif', 'svg', 'svgz',
-    'ico', 'cur', 'tif', 'tiff', 'apng'
+    'ico', 'cur', 'tif', 'tiff', 'apng',
+    'heic', 'heif', 'heics', 'heifs', 'hif'
 ]);
 
 export const BULK_SUPPORTED_EXTENSIONS = IMPORTABLE_IMAGE_EXTENSIONS;
 
-export const IMPORTABLE_IMAGE_PROMPT = 'PNG, JPG, JPEG, WEBP, GIF, BMP, AVIF, SVG, ICO, TIFF, and other browser-compatible image files';
+export const IMPORTABLE_IMAGE_PROMPT = 'PNG, JPG, JPEG, WEBP, GIF, BMP, AVIF, HEIC, SVG, ICO, TIFF, and other browser-compatible image files';
 
 const IMAGE_EXTENSION_MIME_TYPES = {
     png: 'image/png',
@@ -27,7 +31,12 @@ const IMAGE_EXTENSION_MIME_TYPES = {
     cur: 'image/x-icon',
     tif: 'image/tiff',
     tiff: 'image/tiff',
-    apng: 'image/png'
+    apng: 'image/png',
+    heic: 'image/heic',
+    heif: 'image/heif',
+    heics: 'image/heic-sequence',
+    heifs: 'image/heif-sequence',
+    hif: 'image/heic'
 };
 
 export const RASTER_FORMAT_LABELS = {
@@ -165,6 +174,8 @@ export function getImageFormat(filename, dataUrl) {
         if (extension === 'svg' || extension === 'svgz') return 'SVG';
         if (extension === 'tif' || extension === 'tiff') return 'TIFF';
         if (extension === 'ico' || extension === 'cur') return 'ICO';
+        if (extension === 'heic' || extension === 'heics' || extension === 'hif') return 'HEIC';
+        if (extension === 'heif' || extension === 'heifs') return 'HEIF';
         if (extension) return extension.toUpperCase();
     }
 

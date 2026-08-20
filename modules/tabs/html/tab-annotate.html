@@ -1,0 +1,195 @@
+                    <!-- Annotate Tab Content -->
+                    <div id="tab-annotate" class="export-panel hidden annotate-v2">
+
+                        <!-- Empty state shown when no image is loaded -->
+                        <div id="annotate-empty-state" class="annotate-dropzone" onclick="document.getElementById('file-input').click()">
+                            <div class="annotate-dropzone-inner">
+                                <svg class="annotate-dropzone-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                                </svg>
+                                <p class="annotate-dropzone-title">Drop image here</p>
+                                <p class="annotate-dropzone-sub">PNG, JPG, SVG, WEBP, GIF, BMP, AVIF &amp; more</p>
+                                <div class="annotate-dropzone-divider"><span>or</span></div>
+                                <button class="annotate-dropzone-btn btn-primary" onclick="event.stopPropagation(); document.getElementById('file-input').click()">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/>
+                                    </svg>
+                                    Import from Device
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Editor shown when an image is loaded -->
+                        <div id="annotate-content" class="hidden annotate-layout">
+
+                            <!-- ① Tool strip -->
+                            <div class="annotate-toolbar">
+                                <div class="annotate-tool-group" role="group" aria-label="Markup tools">
+                                    <button type="button" class="annotate-tool active" data-annotate-tool="pen" title="Pen — freehand">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                            <path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/>
+                                        </svg>
+                                        <span>Pen</span>
+                                    </button>
+                                    <button type="button" class="annotate-tool" data-annotate-tool="line" title="Line">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                            <path d="M4 20L20 4"/>
+                                        </svg>
+                                        <span>Line</span>
+                                    </button>
+                                    <button type="button" class="annotate-tool" data-annotate-tool="arrow" title="Arrow">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                            <path d="M5 19L19 5"/><path d="M11 5h8v8"/>
+                                        </svg>
+                                        <span>Arrow</span>
+                                    </button>
+                                    <button type="button" class="annotate-tool" data-annotate-tool="rect" title="Rectangle">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                            <rect x="4" y="5" width="16" height="14" rx="2"/>
+                                        </svg>
+                                        <span>Rect</span>
+                                    </button>
+                                    <button type="button" class="annotate-tool" data-annotate-tool="ellipse" title="Ellipse">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                            <ellipse cx="12" cy="12" rx="8" ry="6"/>
+                                        </svg>
+                                        <span>Ellipse</span>
+                                    </button>
+                                    <button type="button" class="annotate-tool" data-annotate-tool="text" title="Text — click the canvas to place">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                            <path d="M5 6V4h14v2M12 4v16M9 20h6"/>
+                                        </svg>
+                                        <span>Text</span>
+                                    </button>
+                                    <button type="button" class="annotate-tool" data-annotate-tool="blur" title="Blur region — drag over what to hide">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                            <rect x="4" y="4" width="16" height="16" rx="2"/><path d="M8 8h.01M12 8h.01M16 8h.01M8 12h.01M12 12h.01M16 12h.01M8 16h.01M12 16h.01M16 16h.01"/>
+                                        </svg>
+                                        <span>Blur</span>
+                                    </button>
+                                    <button type="button" class="annotate-tool" data-annotate-tool="frame" title="Frame — border around the whole image">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                            <rect x="3" y="3" width="18" height="18" rx="3"/><rect x="7" y="7" width="10" height="10" rx="1"/>
+                                        </svg>
+                                        <span>Frame</span>
+                                    </button>
+                                </div>
+
+                                <div class="annotate-history">
+                                    <button type="button" id="annotate-undo-btn" class="annotate-history-btn" title="Undo (Cmd/Ctrl+Z)" disabled>
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                            <path d="M9 14L4 9l5-5"/><path d="M4 9h11a5 5 0 010 10h-4"/>
+                                        </svg>
+                                        <span>Undo</span>
+                                    </button>
+                                    <button type="button" id="annotate-redo-btn" class="annotate-history-btn" title="Redo (Shift+Cmd/Ctrl+Z)" disabled>
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                            <path d="M15 14l5-5-5-5"/><path d="M20 9H9a5 5 0 000 10h4"/>
+                                        </svg>
+                                        <span>Redo</span>
+                                    </button>
+                                    <button type="button" id="annotate-clear-btn" class="annotate-history-btn" title="Remove every markup object" disabled>
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                            <path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"/>
+                                        </svg>
+                                        <span>Clear</span>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- ② Options bar -->
+                            <div class="annotate-options" id="annotate-options">
+                                <div class="annotate-option" data-annotate-option="stroke">
+                                    <label class="annotate-option-label" for="annotate-stroke-color">Color</label>
+                                    <input type="color" id="annotate-stroke-color" class="annotate-color" value="#ff3b30">
+                                </div>
+                                <div class="annotate-option" data-annotate-option="stroke">
+                                    <label class="annotate-option-label" for="annotate-stroke-width">Stroke</label>
+                                    <input type="range" id="annotate-stroke-width" min="1" max="40" step="1" value="6">
+                                    <span id="annotate-stroke-width-value" class="annotate-option-value">6</span>
+                                </div>
+                                <div class="annotate-option" data-annotate-option="fill">
+                                    <label class="annotate-option-check" for="annotate-fill-toggle">
+                                        <input type="checkbox" id="annotate-fill-toggle">
+                                        <span>Fill shape</span>
+                                    </label>
+                                    <input type="color" id="annotate-fill-color" class="annotate-color" value="#ffd60a">
+                                    <input type="range" id="annotate-fill-opacity" min="10" max="100" step="5" value="35" title="Fill opacity">
+                                    <span id="annotate-fill-opacity-value" class="annotate-option-value">35%</span>
+                                </div>
+                                <div class="annotate-option" data-annotate-option="text">
+                                    <label class="annotate-option-label" for="annotate-font-size">Font size</label>
+                                    <input type="range" id="annotate-font-size" min="10" max="160" step="2" value="36">
+                                    <span id="annotate-font-size-value" class="annotate-option-value">36</span>
+                                </div>
+                                <div class="annotate-option" data-annotate-option="blur">
+                                    <label class="annotate-option-label" for="annotate-blur-mode">Hide with</label>
+                                    <select id="annotate-blur-mode" class="annotate-select">
+                                        <option value="pixelate" selected>Pixelate</option>
+                                        <option value="blur">Blur</option>
+                                    </select>
+                                    <label class="annotate-option-label" for="annotate-blur-strength">Strength</label>
+                                    <input type="range" id="annotate-blur-strength" min="1" max="40" step="1" value="12">
+                                    <span id="annotate-blur-strength-value" class="annotate-option-value">12</span>
+                                </div>
+                                <div class="annotate-option" data-annotate-option="frame">
+                                    <label class="annotate-option-label" for="annotate-frame-color">Frame</label>
+                                    <input type="color" id="annotate-frame-color" class="annotate-color" value="#111827">
+                                    <label class="annotate-option-label" for="annotate-frame-width">Width</label>
+                                    <input type="range" id="annotate-frame-width" min="2" max="120" step="2" value="24">
+                                    <span id="annotate-frame-width-value" class="annotate-option-value">24</span>
+                                    <label class="annotate-option-check" for="annotate-frame-rounded">
+                                        <input type="checkbox" id="annotate-frame-rounded">
+                                        <span>Rounded</span>
+                                    </label>
+                                    <button type="button" id="annotate-frame-apply" class="annotate-apply-btn">Apply Frame</button>
+                                </div>
+                            </div>
+
+                            <!-- ③ Canvas stage -->
+                            <div class="annotate-stage">
+                                <div class="annotate-canvas-frame" id="annotate-canvas-frame">
+                                    <canvas id="annotate-canvas" class="annotate-canvas"></canvas>
+                                    <input type="text" id="annotate-text-input" class="annotate-text-input hidden" placeholder="Type, then press Enter" autocomplete="off" spellcheck="false">
+                                </div>
+                                <div class="annotate-status-row">
+                                    <span id="annotate-hint" class="annotate-hint">Drag on the image to draw. Undo with Cmd/Ctrl+Z.</span>
+                                    <span id="annotate-object-count" class="annotate-count">0 objects</span>
+                                </div>
+                            </div>
+
+                        </div><!-- end annotate-content -->
+                    </div><!-- end tab-annotate -->
+
+<footer id="annotate-download-footer" data-tab-footer="annotate" class="hidden annotate-dl-footer annotate-v2">
+    <div class="annotate-dl-grid">
+        <div class="annotate-dl-item">
+            <button id="annotate-save-jpg-btn" class="annotate-dl-btn btn-secondary" disabled>
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/>
+                </svg>
+                Save as JPG
+            </button>
+            <span class="annotate-dl-hint">Smallest · White background</span>
+        </div>
+        <div class="annotate-dl-item annotate-dl-featured">
+            <button id="annotate-save-png-btn" class="annotate-dl-btn btn-primary" disabled>
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/>
+                </svg>
+                Save as PNG
+            </button>
+            <span class="annotate-dl-hint">Lossless · Keeps alpha</span>
+        </div>
+        <div class="annotate-dl-item">
+            <button id="annotate-save-webp-btn" class="annotate-dl-btn btn-secondary" disabled>
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/>
+                </svg>
+                Save as WEBP
+            </button>
+            <span class="annotate-dl-hint">Small · Modern browsers</span>
+        </div>
+    </div>
+    <p id="annotate-export-note" class="annotate-export-note">Exports at the full source resolution.</p>
+</footer>

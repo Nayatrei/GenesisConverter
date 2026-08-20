@@ -38,6 +38,7 @@ const releaseHashFiles = [...new Set([
     path.join(root, 'three-setup.js'),
     path.join(root, 'imagetracer_v1.2.6.js'),
     path.join(root, 'style.css'),
+    path.join(root, 'annotate.css'),
     path.join(root, 'landing.css'),
     path.join(root, 'landing.js'),
     path.join(root, '3d-obj.html'),
@@ -70,6 +71,7 @@ function normalizeTextForReleaseHash(filePath, source) {
         normalized = normalized
             .replace(/(app-bootstrap\.js)\?v=[^"']+/g, '$1?v=' + GENERATED_VERSION_PLACEHOLDER)
             .replace(/(style\.css)\?v=[^"']+/g, '$1?v=' + GENERATED_VERSION_PLACEHOLDER)
+            .replace(/(annotate\.css)\?v=[^"']+/g, '$1?v=' + GENERATED_VERSION_PLACEHOLDER)
             .replace(/(landing\.css)\?v=[^"']+/g, '$1?v=' + GENERATED_VERSION_PLACEHOLDER)
             .replace(/(landing\.js)\?v=[^"']+/g, '$1?v=' + GENERATED_VERSION_PLACEHOLDER);
     }
@@ -135,13 +137,22 @@ function main() {
         writeOrCheck(filePath, stampModuleSpecifiers(source, version), failures);
     }
 
-    const toolEntrypoints = ['3d-obj.html', 'logo.html', 'raster.html', 'bulk.html', 'pdf.html', 'svg.html'];
+    const toolEntrypoints = [
+        '3d-obj.html',
+        'logo.html',
+        'raster.html',
+        'annotate.html',
+        'bulk.html',
+        'pdf.html',
+        'svg.html'
+    ];
     for (const filename of toolEntrypoints) {
         const filePath = path.join(root, filename);
         const source = fs.readFileSync(filePath, 'utf8');
         const stamped = source
             .replace(/(app-bootstrap\.js)\?v=[^"']+/g, '$1?v=' + version)
-            .replace(/(style\.css)\?v=[^"']+/g, '$1?v=' + version);
+            .replace(/(style\.css)\?v=[^"']+/g, '$1?v=' + version)
+            .replace(/(annotate\.css)\?v=[^"']+/g, '$1?v=' + version);
         writeOrCheck(filePath, stamped, failures);
     }
 
@@ -149,6 +160,7 @@ function main() {
     const landing = fs.readFileSync(landingPath, 'utf8');
     const stampedLanding = landing
         .replace(/(landing\.css)\?v=[^"']+/g, '$1?v=' + version)
+        .replace(/(annotate\.css)\?v=[^"']+/g, '$1?v=' + version)
         .replace(/(landing\.js)\?v=[^"']+/g, '$1?v=' + version);
     writeOrCheck(landingPath, stampedLanding, failures);
 

@@ -1,26 +1,32 @@
-import { createBulkTabController } from './modules/tabs/bulk-tab.js?v=r-641e1c86a51e7186';
-import { createRasterTabController } from './modules/tabs/raster-tab.js?v=r-641e1c86a51e7186';
-import { createSvgTabController } from './modules/tabs/svg-tab.js?v=r-641e1c86a51e7186';
-import { createLogoTabController } from './modules/tabs/logo-tab.js?v=r-641e1c86a51e7186';
-import { createPdfTabController } from './modules/tabs/pdf-tab.js?v=r-641e1c86a51e7186';
+import { createAnnotateTabController } from './modules/tabs/annotate-tab.js?v=r-a07fe4380410a7ae';
+import { createBulkTabController } from './modules/tabs/bulk-tab.js?v=r-a07fe4380410a7ae';
+import { createRasterTabController } from './modules/tabs/raster-tab.js?v=r-a07fe4380410a7ae';
+import { createSvgTabController } from './modules/tabs/svg-tab.js?v=r-a07fe4380410a7ae';
+import { createLogoTabController } from './modules/tabs/logo-tab.js?v=r-a07fe4380410a7ae';
+import { createPdfTabController } from './modules/tabs/pdf-tab.js?v=r-a07fe4380410a7ae';
 import {
     getDataUrlSize,
+    getFileStem,
     getImageFormat,
     IMPORTABLE_IMAGE_PROMPT,
     isImportableImageFile,
     normalizeImageBlob
-} from './modules/raster-utils.js?v=r-641e1c86a51e7186';
-import { createElements } from './modules/app-elements.js?v=r-641e1c86a51e7186';
-import { createState } from './modules/app-state.js?v=r-641e1c86a51e7186';
-import { applyTabCase, TAB_CASES } from './modules/tab-cases.js?v=r-641e1c86a51e7186';
-import { bindMagnetPocketControls } from './modules/shared/magnet-pocket-controls.js?v=r-641e1c86a51e7186';
+} from './modules/raster-utils.js?v=r-a07fe4380410a7ae';
+// Only the classifier is imported eagerly — it is a few string checks. The
+// ~1.4 MB libheif WebAssembly build behind decodeHeicToBlob stays unloaded
+// until the HEIC branch below actually asks for it.
+import { isHeicFile } from './modules/shared/heic.js?v=r-a07fe4380410a7ae';
+import { createElements } from './modules/app-elements.js?v=r-a07fe4380410a7ae';
+import { createState } from './modules/app-state.js?v=r-a07fe4380410a7ae';
+import { applyTabCase, TAB_CASES } from './modules/tab-cases.js?v=r-a07fe4380410a7ae';
+import { bindMagnetPocketControls } from './modules/shared/magnet-pocket-controls.js?v=r-a07fe4380410a7ae';
 
 async function loadTabPartials() {
     const appVersion = window.__GENESIS_APP_VERSION__
         || new URL(import.meta.url).searchParams.get('v')
         || 'dev';
     const withVersion = (path) => `${path}?v=${encodeURIComponent(appVersion)}`;
-    const tabs = ['svg', 'logo', 'raster', 'bulk', 'pdf'];
+    const tabs = ['svg', 'logo', 'raster', 'bulk', 'pdf', 'annotate'];
     await Promise.all(tabs.map(async (name) => {
         const res = await fetch(withVersion(`modules/tabs/html/tab-${name}.html`));
         if (!res.ok) throw new Error(`Failed to load the ${name} tab (HTTP ${res.status}).`);
@@ -56,7 +62,8 @@ async function initializeApplication() {
         logo: 'logo',
         raster: 'raster',
         bulk: 'bulk',
-        pdf: 'pdf'
+        pdf: 'pdf',
+        annotate: 'annotate'
     });
 
     function getTabFromPathname(pathname = window.location.pathname) {
@@ -284,6 +291,14 @@ async function initializeApplication() {
         hasSingleImageLoaded
     });
 
+    const annotateTab = createAnnotateTabController({
+        state,
+        elements,
+        downloadBlob,
+        getImageBaseName,
+        hasSingleImageLoaded
+    });
+
     const bulkTab = createBulkTabController({
         state,
         elements,
@@ -397,6 +412,9 @@ async function initializeApplication() {
             case 'bulk':
                 bulkTab.onTabActivated();
                 break;
+            case 'annotate':
+                annotateTab.onTabActivated();
+                break;
             default:
                 break;
         }
@@ -430,6 +448,18 @@ async function initializeApplication() {
         state.originalImageSize = null;
     }
 
+    // Decodes a HEIC/HEIF blob to a PNG File so the rest of the import pipeline
+    // (data URL -> <img> -> every tab) never has to know HEIC exists. The
+    // decoder module is pulled in here, on first use, so the WebAssembly build
+    // is never downloaded by visitors who only import PNG/JPG.
+    async function convertHeicForImport(file, updateImportProgress, progress = 0.08) {
+        updateImportProgress(progress, `Converting ${file.name || 'image'} from HEIC`);
+        const { decodeHeicToBlob } = await import('./modules/shared/heic.js?v=r-a07fe4380410a7ae');
+        const pngBlob = await decodeHeicToBlob(file, 'image/png');
+        const pngName = `${getFileStem(file.name || 'image')}.png`;
+        return new File([pngBlob], pngName, { type: 'image/png' });
+    }
+
     async function handleImportedFile(file) {
         if (!isImportableImageFile(file)) {
             elements.statusText.textContent = `Unsupported file. Import supports ${IMPORTABLE_IMAGE_PROMPT}.`;
@@ -450,7 +480,13 @@ async function initializeApplication() {
             };
 
             updateImportProgress(0.05, `Preparing ${file.name}`);
-            const normalizedFile = normalizeImageBlob(file, file.name);
+            // iPhone photos arrive as HEIC, which no browser but Safari can put
+            // in an <img>. Decode them to PNG first; every tab downstream reads
+            // the same source <img>, so one conversion here covers all of them.
+            const importSource = isHeicFile(file)
+                ? await convertHeicForImport(file, updateImportProgress)
+                : file;
+            const normalizedFile = normalizeImageBlob(importSource, importSource.name);
             updateImportProgress(0.15, `Reading ${file.name}`);
             const dataUrl = await readBlobAsDataUrl(normalizedFile, {
                 onProgress: (progress) => {
@@ -489,12 +525,19 @@ async function initializeApplication() {
                 dataUrl = url;
                 updateImportProgress(0.75, 'Reading pasted image');
             } else {
-                const blob = normalizeImageBlob(
+                let blob = normalizeImageBlob(
                     await fetchImageBlobWithProgress(url, (progress) => {
                         updateImportProgress(0.1 + (progress * 0.6), `Fetching ${displayName}`);
                     }),
                     displayName
                 );
+                if (isHeicFile({ name: displayName, type: blob.type })) {
+                    blob = await convertHeicForImport(
+                        new File([blob], displayName, { type: blob.type || 'image/heic' }),
+                        updateImportProgress,
+                        0.72
+                    );
+                }
                 updateImportProgress(0.78, `Reading ${displayName}`);
                 dataUrl = await readBlobAsDataUrl(blob, {
                     onProgress: (progress) => {
@@ -612,6 +655,7 @@ async function initializeApplication() {
         setupWorkspaceDragAndDrop();
 
         rasterTab.bindEvents();
+        annotateTab.bindEvents();
         bulkTab.bindEvents();
         svgTab.bindEvents();
         logoTab.bindEvents();
@@ -622,6 +666,7 @@ async function initializeApplication() {
         elements.sourceImage?.addEventListener('load', () => {
             if (state.activeTab === 'svg' || state.activeTab === 'logo') return;
             rasterTab.onSourceImageLoaded();
+            annotateTab.onSourceImageLoaded();
             showLoader(false);
         });
 
