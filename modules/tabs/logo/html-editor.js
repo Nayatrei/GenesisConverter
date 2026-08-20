@@ -615,6 +615,10 @@ export function renderHtmlToDataUrl(html, font = '', widthPx = 0) {
     });
 }
 
+// Shown while the markup is only previewed — rendered, but not traced or turned
+// into a 3D model. The Logo tab sets this on activation.
+export const SOURCE_ONLY_STATUS = 'Preview only — press Update 3D';
+
 /**
  * Factory for the stateful HTML editor controller.
  *
@@ -625,7 +629,7 @@ export function renderHtmlToDataUrl(html, font = '', widthPx = 0) {
  * @param {function} generatePreviewClick - triggers full preview regeneration after render
  * @param {function} [onModeChanged] - syncs sidebar UI when HTML/image mode changes
  *
- * @returns {{ setHtmlStatus, triggerHtmlRender, scheduleHtmlRender, onHtmlRendered, setHtmlMode }}
+ * @returns {{ setHtmlStatus, triggerHtmlRender, triggerSourceOnlyRender, scheduleHtmlRender, onHtmlRendered, setHtmlMode }}
  */
 export function createHtmlEditor({ ls, le, elements, syncWorkspaceView, generatePreviewClick, onModeChanged }) {
 
@@ -635,6 +639,11 @@ export function createHtmlEditor({ ls, le, elements, syncWorkspaceView, generate
         le.htmlStatus.style.color = isError ? '#B03C33' : '#635F69';
     }
 
+    // Every render that writes into the shared source <img> takes a ticket. The
+    // cheap activation preview and a real trace render can be in flight at the
+    // same time, so the stale one must never land on top of the fresh one.
+    let renderSequence = 0;
+
     async function triggerHtmlRender() {
         stopCountdownVisual();
         clearTimeout(ls.htmlRenderTimer);
@@ -643,16 +652,45 @@ export function createHtmlEditor({ ls, le, elements, syncWorkspaceView, generate
             setHtmlStatus('');
             return;
         }
+        const seq = ++renderSequence;
         setHtmlStatus('Rendering…');
         try {
             const font = le.htmlFontSelect ? le.htmlFontSelect.value : '';
             const widthPx = le.htmlWidthSlider ? parseInt(le.htmlWidthSlider.value, 10) : 0;
             const dataUrl = await renderHtmlToDataUrl(html, font, widthPx);
+            if (seq !== renderSequence) return;
             await onHtmlRendered(dataUrl);
+            if (seq !== renderSequence) return;
             setHtmlStatus('Ready');
         } catch (err) {
+            if (seq !== renderSequence) return;
             setHtmlStatus('Render failed', true);
             console.warn('HTML logo render error:', err);
+        }
+    }
+
+    // Activation path: paint the markup into the source preview and stop there.
+    // No quantize, no trace, no 3D — those wait for an explicit Update 3D click,
+    // so opening the Logo tab never blocks behind the full pipeline.
+    async function triggerSourceOnlyRender() {
+        const html = le.htmlInput ? le.htmlInput.value.trim() : '';
+        if (!html || !le.htmlSourceImg) return;
+        const seq = ++renderSequence;
+        setHtmlStatus('Rendering preview…');
+        try {
+            const font = le.htmlFontSelect ? le.htmlFontSelect.value : '';
+            const widthPx = le.htmlWidthSlider ? parseInt(le.htmlWidthSlider.value, 10) : 0;
+            const dataUrl = await renderHtmlToDataUrl(html, font, widthPx);
+            // An import can drop HTML mode while this render is in flight; the
+            // preview must not resurrect it on top of the imported bitmap.
+            if (seq !== renderSequence || !ls.htmlModeActive) return;
+            await applyRenderedSource(dataUrl);
+            if (seq !== renderSequence) return;
+            setHtmlStatus(SOURCE_ONLY_STATUS);
+        } catch (err) {
+            if (seq !== renderSequence) return;
+            setHtmlStatus('Render failed', true);
+            console.warn('HTML logo preview render error:', err);
         }
     }
 
@@ -692,7 +730,9 @@ export function createHtmlEditor({ ls, le, elements, syncWorkspaceView, generate
         }, RENDER_DELAY);
     }
 
-    async function onHtmlRendered(dataUrl) {
+    // Everything the rendered markup owns except the trace: source image, mirror,
+    // resolution readout, and the enabled Update-3D control.
+    async function applyRenderedSource(dataUrl) {
         if (!le.htmlSourceImg) return;
 
         await new Promise((resolve, reject) => {
@@ -715,6 +755,11 @@ export function createHtmlEditor({ ls, le, elements, syncWorkspaceView, generate
             le.generatePreviewBtn.disabled = false;
         }
         if (typeof onModeChanged === 'function') onModeChanged(true);
+    }
+
+    async function onHtmlRendered(dataUrl) {
+        if (!le.htmlSourceImg) return;
+        await applyRenderedSource(dataUrl);
         await generatePreviewClick();
 
         // Keep the builder in place while automatic rendering finishes. The 3D
@@ -725,10 +770,12 @@ export function createHtmlEditor({ ls, le, elements, syncWorkspaceView, generate
     async function triggerSourcePreview() {
         const html = le.htmlInput?.value.trim();
         if (!html) return;
+        const seq = ++renderSequence;
         try {
             const font = le.htmlFontSelect?.value || '';
             const widthPx = le.htmlWidthSlider ? parseInt(le.htmlWidthSlider.value, 10) : 0;
             const dataUrl = await renderHtmlToDataUrl(html, font, widthPx);
+            if (seq !== renderSequence) return;
             if (le.htmlSourceImg) le.htmlSourceImg.src = dataUrl;
             if (le.svgSourceMirror) {
                 le.svgSourceMirror.src = dataUrl;
@@ -813,5 +860,13 @@ export function createHtmlEditor({ ls, le, elements, syncWorkspaceView, generate
         });
     }
 
-    return { setHtmlStatus, triggerHtmlRender, scheduleHtmlRender, onHtmlRendered, setHtmlMode, triggerSourcePreview };
+    return {
+        setHtmlStatus,
+        triggerHtmlRender,
+        triggerSourceOnlyRender,
+        scheduleHtmlRender,
+        onHtmlRendered,
+        setHtmlMode,
+        triggerSourcePreview
+    };
 }

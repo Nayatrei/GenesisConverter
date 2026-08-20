@@ -426,6 +426,9 @@ test('Bambu project export includes native package metadata and preserves handed
 test('default Logo exports a centered, watertight Bambu project at the displayed print size', async ({ page }, testInfo) => {
     await page.goto('/3d-obj');
     await page.locator('.segmented-control-tab[data-tab="logo"]').click();
+    // Activation only previews the default preset; the trace runs on Update 3D.
+    await expect(page.locator('#logo-html-status')).toHaveText(/Preview only/, { timeout: 30_000 });
+    await page.locator('#logo-html-render-btn').click();
     await expect(page.locator('#logo-html-status')).toHaveText('Ready', { timeout: 30_000 });
     await expect(page.locator('#logo-export-3mf-btn')).toBeEnabled({ timeout: 30_000 });
 

@@ -29,8 +29,11 @@ async function waitForAppReady(page) {
     });
 }
 
-// The default Logo preset renders and traces itself as soon as the tab opens.
-async function waitForLogoHtmlPreset(page) {
+// Opening the Logo tab only paints the default preset's preview. The trace and
+// the 3D model wait for an explicit Update 3D press.
+async function renderLogoHtmlPreset(page) {
+    await expect(page.locator('#logo-html-status')).toHaveText(/Preview only/, { timeout: 60_000 });
+    await page.locator('#logo-html-render-btn').click();
     await expect(page.locator('#logo-html-status')).toHaveText('Ready', { timeout: 60_000 });
     await expect(page.locator('#logo-quality-indicator')).not.toHaveText('', { timeout: 60_000 });
 }
@@ -70,7 +73,7 @@ test('the two tabs never share one objParams object', async ({ page }) => {
 test('a shared 3D control only writes the active tab objParams', async ({ page }) => {
     await page.goto('/logo');
     await waitForAppReady(page);
-    await waitForLogoHtmlPreset(page);
+    await renderLogoHtmlPreset(page);
 
     const before = await readObjParams(page);
     expect(before.svg.decimate).toBe(0);
@@ -107,7 +110,7 @@ test('the shared 3D controls repaint from the tab being activated', async ({ pag
     // Switching to Logo must show the LOGO tab's values, not the ones just set
     // on the 3D tab.
     await tab(page, 'logo').click();
-    await waitForLogoHtmlPreset(page);
+    await renderLogoHtmlPreset(page);
     await expect(page.locator('#obj-decimate')).toHaveValue('0');
     await expect(page.locator('#obj-decimate-value')).toHaveText('0');
     await expect(page.locator('#obj-bezel')).toHaveValue('off');
@@ -146,7 +149,7 @@ test('an AMS print style picked on Logo leaves the 3D tab style untouched', asyn
     });
 
     await tab(page, 'logo').click();
-    await waitForLogoHtmlPreset(page);
+    await renderLogoHtmlPreset(page);
 
     await page.locator('#obj-ams-print-style').selectOption('full-depth');
     await expect(page.locator('#logo-obj-preview-canvas')).toHaveAttribute(

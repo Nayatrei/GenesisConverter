@@ -178,6 +178,9 @@ test('Face on Bed shortcut makes every color coplanar and restores the prior sty
 test('Logo Face on Bed shares the responsive bed-orientation lifecycle', async ({ page }) => {
     await page.goto('/3d-obj');
     await page.locator('.segmented-control-tab[data-tab="logo"]').click();
+    // Activation only previews the default preset; the trace runs on Update 3D.
+    await expect(page.locator('#logo-html-status')).toHaveText(/Preview only/, { timeout: 30_000 });
+    await page.locator('#logo-html-render-btn').click();
 
     const toggle = page.locator('#logo-obj-face-down-toggle');
     const canvas = page.locator('#logo-obj-preview-canvas');

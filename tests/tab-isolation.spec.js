@@ -60,8 +60,11 @@ async function importOnActiveTab(page, file) {
     });
 }
 
-// The default Logo preset renders and traces itself as soon as the tab opens.
-async function waitForLogoHtmlPreset(page) {
+// Opening the Logo tab only paints the default preset's preview. The trace and
+// the 3D model wait for an explicit Update 3D press.
+async function renderLogoHtmlPreset(page) {
+    await expect(page.locator('#logo-html-status')).toHaveText(/Preview only/, { timeout: 60_000 });
+    await page.locator('#logo-html-render-btn').click();
     await expect(page.locator('#logo-html-status')).toHaveText('Ready', { timeout: 60_000 });
     await expect(page.locator('#logo-bambu-open-btn')).toBeEnabled({ timeout: 60_000 });
     await expect(page.locator('#logo-quality-indicator')).not.toHaveText('', { timeout: 60_000 });
@@ -95,7 +98,7 @@ test('importing on the 3D tab never feeds the Logo tab', async ({ page }) => {
     // Opening the Logo tab now builds the Logo tab's own HTML source, never the
     // bitmap that was imported on the 3D tab.
     await tab(page, 'logo').click();
-    await waitForLogoHtmlPreset(page);
+    await renderLogoHtmlPreset(page);
     expect(await mirror.getAttribute('src')).not.toBe(importedSrc);
     await expect(page.locator('#logo-html-editor-body')).toHaveAttribute('data-source-mode', 'html');
 });
@@ -104,7 +107,7 @@ test('Logo HTML mode survives an import made on the 3D tab', async ({ page }) =>
     await useDesktopBambu(page);
     await page.goto('/logo');
     await waitForAppReady(page);
-    await waitForLogoHtmlPreset(page);
+    await renderLogoHtmlPreset(page);
 
     const mirror = page.locator('#logo-svg-source-mirror');
     const renderedLogoSrc = await mirror.getAttribute('src');
@@ -131,7 +134,7 @@ test('Logo drops a stale trace when the shared source is replaced elsewhere', as
     await useDesktopBambu(page);
     await page.goto('/logo');
     await waitForAppReady(page);
-    await waitForLogoHtmlPreset(page);
+    await renderLogoHtmlPreset(page);
 
     // Import image A on the Logo tab itself: that switches Logo to image mode
     // and traces A.
@@ -163,7 +166,13 @@ test('Logo drops a stale trace when the shared source is replaced elsewhere', as
 
     await tab(page, 'logo').click();
 
-    // The tab retraces image B on its own…
+    // Activation drops image A's results without tracing anything, so the user
+    // asks for image B's trace explicitly.
+    await expect(page.locator('#logo-quality-indicator')).toHaveText('');
+    await expect(page.locator('#logo-bambu-open-btn')).toBeDisabled();
+    await page.locator('#logo-generate-preview-btn').click();
+
+    // The tab then traces image B…
     await expect(page.locator('#logo-bambu-open-btn')).toBeEnabled({ timeout: 60_000 });
     await expect(page.locator('#logo-quality-indicator')).not.toHaveText('', { timeout: 60_000 });
     const qualityForB = await page.locator('#logo-quality-indicator').textContent();
@@ -178,6 +187,60 @@ test('Logo drops a stale trace when the shared source is replaced elsewhere', as
     expect(logs.quality).toContain('');
     expect(logs.quality.indexOf('')).toBeLessThan(logs.quality.lastIndexOf(qualityForB));
     expect(logs.bambuDisabled).toContain(true);
+});
+
+// Switching tabs is navigation, not work. Activation used to run the whole
+// quantize/trace pipeline behind the blocking loader, which made the Logo tab
+// take seconds to open on any non-trivial source.
+test('opening Logo with an unanalyzed source never blocks on the pipeline', async ({ page }) => {
+    await useDesktopBambu(page);
+    await page.goto('/3d-obj');
+    await waitForAppReady(page);
+
+    // A source imported on the 3D tab, then handed to the Logo tab in image
+    // mode without ever being analyzed there.
+    await importOnActiveTab(page, svgFile('four-color.svg', fourColorSvg()));
+    await tab(page, 'logo').click();
+    await page.locator('#logo-html-mode-toggle').click();
+    await expect(page.locator('#logo-html-editor-body')).toHaveAttribute('data-source-mode', 'image');
+    await tab(page, 'svg').click();
+    await expect(page.locator('#tab-svg')).toBeVisible();
+
+    // Record every visibility change on the blocking loader from the moment the
+    // Logo tab is shown — polling after the fact cannot tell "never shown" from
+    // "shown and already dismissed".
+    await page.evaluate(() => {
+        window.__LOADER_DISPLAY_LOG__ = [];
+        const overlay = document.getElementById('loader-overlay');
+        new MutationObserver(() => {
+            window.__LOADER_DISPLAY_LOG__.push(overlay.style.display);
+        }).observe(overlay, { attributes: true, attributeFilter: ['style', 'class'] });
+    });
+
+    const startedAt = Date.now();
+    await tab(page, 'logo').click();
+    await expect(page.locator('#tab-logo')).toBeVisible();
+    await expect(page.locator('#logo-generate-preview-btn')).toBeEnabled();
+    const activationMs = Date.now() - startedAt;
+
+    expect(await page.evaluate(() => window.__LOADER_DISPLAY_LOG__)).not.toContain('flex');
+    await expect(page.locator('#loader-overlay')).toBeHidden();
+    expect(activationMs).toBeLessThan(1500);
+
+    // Nothing was traced, and the source is on screen waiting for the click.
+    expect(await page.evaluate(() => ({
+        traced: Boolean(document.getElementById('logo-svg-preview')?.getAttribute('src')),
+        mirrored: Boolean(document.getElementById('logo-svg-source-mirror')?.getAttribute('src'))
+    }))).toEqual({ traced: false, mirrored: true });
+    await expect(page.locator('#logo-quality-indicator')).toHaveText('');
+
+    // The explicit control still runs the full pipeline.
+    await page.locator('#logo-generate-preview-btn').click();
+    await expect(page.locator('#logo-bambu-open-btn')).toBeEnabled({ timeout: 60_000 });
+    await expect(page.locator('#logo-quality-indicator')).not.toHaveText('', { timeout: 60_000 });
+    expect(await page.evaluate(
+        () => Boolean(document.getElementById('logo-svg-preview')?.getAttribute('src'))
+    )).toBe(true);
 });
 
 test('a failed transfer probe falls back to the 3MF download', async ({ page }) => {

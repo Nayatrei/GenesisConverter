@@ -338,6 +338,9 @@ test('Bambu project emits native pause metadata only for hidden insertion events
 test('Logo preview places hidden pockets, auto-thickens the base, and renders X-ray proxies', async ({ page }) => {
     await waitForApp(page);
     await page.locator('.segmented-control-tab[data-tab="logo"]').click();
+    // Activation only previews the default preset; the trace runs on Update 3D.
+    await expect(page.locator('#logo-html-status')).toHaveText(/Preview only/, { timeout: 30_000 });
+    await page.locator('#logo-html-render-btn').click();
     await expect(page.locator('#tab-logo')).toBeVisible();
     await expect(page.locator('#logo-obj-preview-placeholder')).toBeHidden({ timeout: 30_000 });
 
@@ -409,6 +412,9 @@ test('3D image workflow carves the same shared four-pocket plan', async ({ page 
 test('oversized Logo pockets block every 3D export until the configuration fits', async ({ page }) => {
     await waitForApp(page);
     await page.locator('.segmented-control-tab[data-tab="logo"]').click();
+    // Activation only previews the default preset; the trace runs on Update 3D.
+    await expect(page.locator('#logo-html-status')).toHaveText(/Preview only/, { timeout: 30_000 });
+    await page.locator('#logo-html-render-btn').click();
     await expect(page.locator('#logo-obj-preview-placeholder')).toBeHidden({ timeout: 30_000 });
     await page.locator('.magnet-pocket-switch').click();
     await expect(page.locator('#obj-magnet-panel')).toHaveAttribute('data-state', 'ready', {
@@ -440,6 +446,9 @@ test('oversized Logo pockets block every 3D export until the configuration fits'
 test('magnetized Logo STL keeps the carved base closed and preserves insertion elevations', async ({ page }, testInfo) => {
     await waitForApp(page);
     await page.locator('.segmented-control-tab[data-tab="logo"]').click();
+    // Activation only previews the default preset; the trace runs on Update 3D.
+    await expect(page.locator('#logo-html-status')).toHaveText(/Preview only/, { timeout: 30_000 });
+    await page.locator('#logo-html-render-btn').click();
     await expect(page.locator('#logo-obj-preview-placeholder')).toBeHidden({ timeout: 30_000 });
     await page.locator('.magnet-pocket-switch').click();
     await expect(page.locator('#obj-magnet-panel')).toHaveAttribute('data-state', 'ready', {

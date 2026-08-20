@@ -12,7 +12,7 @@ const PAGE_SIZES = Object.freeze({
 
 async function getPdfLib() {
     if (!pdfLibPromise) {
-        pdfLibPromise = import('../../vendor/pdf-lib/pdf-lib.esm.min.js?v=r-21f681b15fbb1a90');
+        pdfLibPromise = import('../../vendor/pdf-lib/pdf-lib.esm.min.js?v=r-570fed1440edfc49');
     }
     return pdfLibPromise;
 }
@@ -169,7 +169,7 @@ export function createImageToPdfController({
     // step (preview, rotate, embedPng) runs the ordinary PNG path. The decoder
     // module — and the WebAssembly build behind it — loads only when this runs.
     async function decodeHeicItem(item) {
-        const { decodeHeicToBlob } = await import('../shared/heic.js?v=r-21f681b15fbb1a90');
+        const { decodeHeicToBlob } = await import('../shared/heic.js?v=r-570fed1440edfc49');
         const pngBlob = await decodeHeicToBlob(item.file, 'image/png');
         if (isDisposed || !getImageState().items.includes(item)) return;
         const stem = String(item.name || 'image').replace(/\.[^/.]+$/, '') || 'image';

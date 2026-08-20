@@ -46,12 +46,16 @@ async function expectRenderedImage(locator) {
     }).toBe(true);
 }
 
+// Activation paints the default preset's preview and stops there — the trace
+// and the 3D model only run once the user asks for them.
 async function openLogoTab(page) {
     await page.goto('/3d-obj');
     await page.locator('.segmented-control-tab[data-tab="logo"]').click();
     await expect(page.locator('#tab-logo')).toBeVisible();
     await expect(page.locator('#logo-sidebar-controls')).toBeVisible();
     await expect(page.locator('#svg-sidebar-controls')).toBeHidden();
+    await expect(page.locator('#logo-html-status')).toHaveText(/Preview only/, { timeout: 30_000 });
+    await expect(page.locator('#logo-maker-workflow')).toHaveAttribute('data-stage', 'source');
 }
 
 async function renderPreset(page, preset) {
@@ -82,6 +86,8 @@ async function renderPreset(page, preset) {
 test('logo sidebar controls stay isolated from SVG controls', async ({ page }) => {
     await openLogoTab(page);
 
+    // The default preset only traces once Update 3D is pressed.
+    await page.locator('#logo-html-render-btn').click();
     await expect(page.locator('#logo-bambu-open-btn')).toBeEnabled({ timeout: 30_000 });
 
     await expect(page.locator('#sidebar-adjust-section #obj-scale')).toBeVisible();

@@ -1,4 +1,4 @@
-import { buildTracedataSubset, createMergedTracedata, layerHasPaths } from './trace-utils.js?v=r-21f681b15fbb1a90';
+import { buildTracedataSubset, createMergedTracedata, layerHasPaths } from './trace-utils.js?v=r-570fed1440edfc49';
 
 /**
  * Creates a palette display and merge-rule manager for a tab.
