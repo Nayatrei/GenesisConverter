@@ -632,7 +632,7 @@ export function createHtmlEditor({ ls, le, elements, syncWorkspaceView, generate
     function setHtmlStatus(text, isError = false) {
         if (!le.htmlStatus) return;
         le.htmlStatus.textContent = text;
-        le.htmlStatus.style.color = isError ? '#f87171' : '#9ca3af';
+        le.htmlStatus.style.color = isError ? '#B03C33' : '#635F69';
     }
 
     async function triggerHtmlRender() {
