@@ -1,5 +1,5 @@
-import { markTransparentPixels, stripTransparentPalette } from './image-utils.js?v=r-a07fe4380410a7ae';
-import { buildTracedataSubset } from './trace-utils.js?v=r-a07fe4380410a7ae';
+import { markTransparentPixels, stripTransparentPalette } from './image-utils.js?v=r-21f681b15fbb1a90';
+import { buildTracedataSubset } from './trace-utils.js?v=r-21f681b15fbb1a90';
 
 const MASK_POINT_DIVISIONS = 48;
 const MASK_BOUNDS_POINT_DIVISIONS = 24;

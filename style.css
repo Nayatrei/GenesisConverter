@@ -5946,30 +5946,11 @@ footer.raster-dl-footer.raster-v2 {
 .svg-v2 .output-grid {
     gap: 1.25rem;
 }
-/* Cards here are the shared clay card (see "Cards, panels, wells"). Only
-   structure lives in this tab layer: children clip to the card radius, so no
-   inner corner plumbing is needed. */
-.svg-v2 .output-card {
-    padding: 0;
-    overflow: hidden;
-    transition: transform 600ms var(--bulk-ease), box-shadow 600ms var(--bulk-ease), border-color 600ms var(--bulk-ease);
-}
-.svg-v2 .output-card-header {
-    border-bottom: 1px solid var(--clay-border);
-    padding: 1rem 1.25rem;
-}
-.svg-v2 .output-card-content {
-    padding: 1rem 1.25rem;
-}
-.svg-v2 .output-card-title {
-    color: var(--clay-text);
-    font-size: var(--fs-md);
-    font-weight: 700;
-    letter-spacing: -0.005em;
-    display: flex;
-    align-items: center;
-    gap: 0.55rem;
-}
+/* Cards, headers, content wells and titles are NOT defined here any more.
+   The Bambu (svg) workspace shares the Logo workspace's definitions verbatim —
+   see "LOGO V2 / shared workspace card" below, where every rule names
+   `.svg-v2` alongside `.logo-v2`. Keeping one declaration block for both is
+   what stops the two workspaces drifting apart in scale again. */
 .svg-v2 .output-card-title .text-xs {
     color: var(--clay-muted);
     font-size: var(--fs-2xs);
@@ -5983,36 +5964,20 @@ footer.raster-dl-footer.raster-v2 {
     margin: 0;
 }
 
-/* Layer-stack card inside preview output card */
+/* Layer-stack card inside preview output card.
+   Shape / density is shared with the Logo tab (see `.logo-v2 .layer-stack-*`
+   below, which now names `.svg-v2` too); only the header flex structure is
+   Bambu-specific because its header is a bare row, not an .output-card-header. */
 .svg-v2 .layer-stack-card {
-    margin: 0.75rem;
+    margin: 0;
     overflow: hidden;
 }
 .svg-v2 .layer-stack-header {
-    color: var(--clay-text);
-    font-size: var(--fs-md);
-    font-weight: 700;
-    letter-spacing: -0.005em;
-    padding: 1rem 1.25rem;
-    border-bottom: 1px solid var(--clay-border);
     display: flex;
     justify-content: space-between;
     align-items: center;
-}
-.svg-v2 .layer-stack-options {
-    padding: 0.65rem 0.9rem;
-    color: var(--bulk-text-secondary);
-}
-.svg-v2 .layer-stack-checkbox {
-    accent-color: var(--clay-accent-deep);
-}
-.svg-v2 .layer-stack-select {
-    background: rgba(93, 77, 157,0.05);
-    border: 1px solid var(--bulk-hairline);
-    color: var(--bulk-text-primary);
-    border-radius: 8px;
-    padding: 0.25rem 0.5rem;
-    font-size: 0.8125rem;
+    gap: 1rem;
+    font-size: var(--fs-sm);
 }
 
 /* Header action buttons inside output cards */
@@ -6121,7 +6086,13 @@ footer#logo-export-footer.logo-v2 {
    LOGO V2
    ════════════════════════════════════════════════════════════════ */
 
-.logo-v2 .output-card {
+/* ── Shared workspace card (Logo + Bambu 3D) ─────────────────────────
+   Single source of truth for the double-bezel card used by both 3D
+   workspaces: outer shell + inset core. `.svg-v2` is named on every rule
+   so the Bambu tab can never fall back to a denser copy of these. */
+.logo-v2 .output-card,
+.svg-v2 .output-card,
+.svg-v2 .slicer-filament-card {
     background: var(--bulk-shell-bg);
     border: 1px solid var(--bulk-shell-ring);
     border-radius: 28px;
@@ -6130,10 +6101,14 @@ footer#logo-export-footer.logo-v2 {
     overflow: hidden;
     transition: border-color 500ms var(--bulk-ease);
 }
-.logo-v2 .output-card:hover {
+.logo-v2 .output-card:hover,
+.svg-v2 .output-card:hover,
+.svg-v2 .slicer-filament-card:hover {
     border-color: var(--bulk-hairline-strong);
 }
-.logo-v2 .output-card-header {
+.logo-v2 .output-card-header,
+.svg-v2 .output-card-header,
+.svg-v2 .slicer-filament-card .layer-stack-header {
     background: var(--bulk-core-bg);
     border: 1px solid var(--bulk-hairline);
     border-bottom: none;
@@ -6141,14 +6116,20 @@ footer#logo-export-footer.logo-v2 {
     padding: 1rem 1.25rem;
     box-shadow: var(--bulk-core-highlight);
 }
-.logo-v2 .output-card-content {
+.logo-v2 .output-card-content,
+.svg-v2 .output-card-content {
     background: var(--bulk-core-bg);
     border: 1px solid var(--bulk-hairline);
     border-top: none;
     border-radius: 0 0 22px 22px;
     padding: 1rem 1.25rem;
 }
-.logo-v2 .output-card-title {
+.logo-v2 .output-card-title,
+.svg-v2 .output-card-title,
+.svg-v2 .slicer-filament-card .layer-stack-header > span:first-child {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
     color: var(--bulk-text-primary);
     font-size: 1rem;
     font-weight: 700;
@@ -6267,14 +6248,17 @@ footer#logo-export-footer.logo-v2 {
 .logo-v2 .svg-layer-heights-card .output-card-content {
     padding: 0.5rem 0.5rem 0.85rem;
 }
-.logo-v2 .layer-stack-options {
+.logo-v2 .layer-stack-options,
+.svg-v2 .layer-stack-options {
     color: var(--bulk-text-secondary);
     padding: 0.65rem 0.9rem;
 }
-.logo-v2 .layer-stack-checkbox {
+.logo-v2 .layer-stack-checkbox,
+.svg-v2 .layer-stack-checkbox {
     accent-color: var(--clay-accent-deep);
 }
-.logo-v2 .layer-stack-select {
+.logo-v2 .layer-stack-select,
+.svg-v2 .layer-stack-select {
     background: rgba(93, 77, 157,0.05);
     border: 1px solid var(--bulk-hairline);
     color: var(--bulk-text-primary);
@@ -10375,8 +10359,8 @@ body.app-shell-v2 .sidebar-sub-icon {
 
 .svg-v2 .slicer-workbench {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(19rem, 23rem);
-    gap: 0.75rem;
+    grid-template-columns: minmax(0, 1fr) minmax(21rem, 26rem);
+    gap: 1.25rem;
     min-width: 0;
     align-items: start;
 }
@@ -10388,7 +10372,7 @@ body.app-shell-v2 .sidebar-sub-icon {
 
 .svg-v2 .slicer-inspector-pane {
     display: grid;
-    gap: 0.75rem;
+    gap: 1.25rem;
     align-content: start;
 }
 
@@ -10407,7 +10391,7 @@ body.app-shell-v2 .sidebar-sub-icon {
 .svg-v2 .model-preview-card .obj-preview-stage {
     height: clamp(24rem, 49vh, 40rem);
     min-height: 24rem;
-    border-radius: 0;
+    border-radius: 0 0 22px 22px;
     background-color: var(--clay-surface);
 }
 
@@ -10419,9 +10403,8 @@ body.app-shell-v2 .sidebar-sub-icon {
     pointer-events: none;
 }
 
-.svg-v2 .model-preview-card .preview-card-actions {
-    gap: 0.3rem;
-}
+/* Toolbar spacing comes from the shared `.preview-card-actions` rule so the
+   Bambu preview header matches the Logo preview header exactly. */
 
 .svg-v2 .obj-face-down-toggle,
 .logo-v2 .obj-face-down-toggle {
@@ -10552,40 +10535,19 @@ body.app-shell-v2 .sidebar-sub-icon {
     background: rgba(93, 77, 157,0.2);
 }
 
-.svg-v2 .model-preview-card .preview-card-actions .btn-secondary,
-.svg-v2 .model-preview-card .preview-bed-picker,
-.svg-v2 .vector-layers-card .zoom-controls,
-.svg-v2 .vector-layers-card #preview-resolution {
-    border-radius: var(--clay-radius-sm);
-}
-
-.svg-v2 .model-preview-card .preview-card-actions .btn-secondary {
-    min-height: 40px;
-    padding: 0.5rem 0.875rem;
-    font-size: 0.8125rem;
-}
-
+/* Toolbar pills, zoom cluster and selects all take the Logo tab's pill radius
+   and control sizing from the shared `.preview-card-actions .btn-secondary` /
+   `.svg-v2 select` rules — nothing is re-declared smaller here. */
 .svg-v2 .model-preview-card .preview-bed-picker {
     display: flex;
     align-items: center;
-    gap: 0.35rem;
+    gap: 0.5rem;
 }
 
-.svg-v2 .model-preview-card #obj-preview-bed {
-    min-height: 1.9rem;
-    max-width: 10.5rem;
-    padding: 0.25rem 1.5rem 0.25rem 0.5rem;
-    border-radius: 7px;
-    font-size: 0.75rem;
-}
-
+/* Only the 2-column arrangement is Bambu-specific; surface, radius, padding
+   and gap are the shared `.model-preflight` values the Logo tab uses. */
 .svg-v2 .model-preflight {
     grid-template-columns: auto minmax(0, 1fr);
-    gap: 0.45rem 0.75rem;
-    margin: 4px 0 0;
-    padding: 0.68rem 0.75rem;
-    border-radius: 0 0 9px 9px;
-    background: rgba(253, 253, 255,0.96);
 }
 
 .svg-v2 .model-preflight-head {
@@ -10594,7 +10556,6 @@ body.app-shell-v2 .sidebar-sub-icon {
 
 .svg-v2 .model-preflight-grid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 0.35rem;
 }
 
 .svg-v2 .model-preflight-metric,
@@ -10602,85 +10563,57 @@ body.app-shell-v2 .sidebar-sub-icon {
     grid-column: auto;
 }
 
-.svg-v2 .model-preflight-metric {
-    padding: 0.38rem 0.5rem;
-    border-left-width: 1px;
-}
-
-.svg-v2 .model-preflight-metric span {
-    font-size: 0.75rem;
-}
-
 .svg-v2 .model-preflight-metric strong {
     overflow: hidden;
-    font-size: 0.75rem;
     text-overflow: ellipsis;
 }
 
 .svg-v2 .model-preflight-note {
     align-self: center;
     max-width: none;
-    font-size: 0.75rem;
 }
 
 .svg-v2 .vector-layers-card .preview-container {
     height: clamp(13rem, 24vh, 18rem);
     min-height: 13rem;
-    border-radius: 0 0 9px 9px;
+    border-radius: 0 0 22px 22px;
 }
 
-.svg-v2 .vector-layers-card .preview-card-actions {
-    gap: 0.35rem;
-}
-
-.svg-v2 .vector-layers-card .zoom-controls button {
-    min-width: 1.7rem;
-    min-height: 1.7rem;
-}
-
-.svg-v2 .vector-layers-card #preview-resolution {
-    min-height: 1.8rem;
-    padding: 0.22rem 1.35rem 0.22rem 0.45rem;
-    font-size: 0.75rem;
-}
-
+/* Filament bodies: the card shell and its header come from the shared
+   workspace-card rules; only the body well (options + helper copy + list) is
+   assembled here, at the Logo tab's padding and type scale. */
 .svg-v2 .slicer-filament-card {
     margin: 0;
-    overflow: hidden;
-}
-
-.svg-v2 .slicer-filament-card .layer-stack-header {
-    min-height: 2.65rem;
-    padding: 0.65rem 0.75rem;
-    background: rgba(253, 253, 255,0.96);
-    font-size: 0.75rem;
 }
 
 .svg-v2 .slicer-filament-card .layer-stack-options {
-    padding: 0.55rem 0.75rem;
+    background: var(--bulk-core-bg);
+    border: 1px solid var(--bulk-hairline);
+    border-top: none;
+    border-bottom: none;
 }
 
 .svg-v2 .slicer-filament-card > p {
     margin: 0;
-    padding: 0 0.75rem 0.55rem;
-    font-size: 0.75rem;
-    line-height: 1.45;
+    padding: 0 0.75rem 0.5rem;
+    background: var(--bulk-core-bg);
+    border-inline: 1px solid var(--bulk-hairline);
+    line-height: 1.5;
 }
 
 .svg-v2 .slicer-filament-card .layer-stack-list {
-    max-height: 17rem;
+    max-height: 22rem;
+    padding: 0 1.25rem 1rem;
+    background: var(--bulk-core-bg);
+    border: 1px solid var(--bulk-hairline);
+    border-top: none;
+    border-radius: 0 0 22px 22px;
     overflow-y: auto;
     overscroll-behavior: contain;
 }
 
-.svg-v2 .slicer-layer-editor-card .output-card-header {
-    min-height: 2.75rem;
-    border-bottom: 1px solid rgba(93, 77, 157,0.12);
-    border-radius: 9px;
-}
-
 .svg-v2 .slicer-layer-editor-card .collapsible-section:not(.collapsed) {
-    max-height: 22rem;
+    max-height: 26rem;
     overflow-y: auto;
 }
 
@@ -10689,68 +10622,19 @@ body.app-shell-v2 .sidebar-sub-icon {
     gap: 0;
 }
 
-.svg-v2 .slicer-layer-editor-card .output-card-content {
-    padding: 0.7rem 0.8rem;
-    border: 0;
-    border-radius: 0;
-    background: rgba(253, 253, 255,0.94);
-}
-
 .svg-v2 .slicer-layer-editor-card .output-card-content + .output-card-content {
-    border-top: 1px solid rgba(93, 77, 157,0.12);
-    border-radius: 0 0 9px 9px;
+    border-top: 1px solid var(--bulk-hairline);
 }
 
-/* The real four-step creator replaces the mockup's invented slicer modes. */
-.svg-v2 .maker-workflow {
-    grid-template-columns: minmax(9rem, 0.32fr) minmax(0, 1.68fr);
-    gap: 0.65rem;
-    margin-bottom: 0.65rem;
-    padding: 0.55rem 0.65rem;
-    border-radius: 11px;
-    background: rgba(253, 253, 255,0.76);
-}
+/* The real four-step creator replaces the mockup's invented slicer modes.
+   It renders at the shared `.maker-workflow` scale — identical to the Logo
+   tab's progress rail — so no compact overrides live here. */
 
-.svg-v2 .maker-workflow-copy {
-    gap: 0.08rem;
-    padding-right: 0.65rem;
-}
-
-.svg-v2 .maker-workflow-copy strong {
-    font-size: 0.8125rem;
-}
-
-.svg-v2 .maker-workflow-eyebrow {
-    font-size: 0.75rem;
-}
-
-.svg-v2 .maker-workflow-steps {
-    gap: 0.25rem;
-}
-
-.svg-v2 .maker-workflow-step {
-    grid-template-columns: 1.35rem minmax(0, 1fr);
-    gap: 0.35rem;
-    padding: 0.3rem 0.38rem;
-    border-radius: 7px;
-}
-
-.svg-v2 .maker-workflow-index {
-    width: 1.35rem;
-    height: 1.35rem;
-    border-radius: 5px;
-    font-size: 0.75rem;
-}
-
-.svg-v2 .maker-workflow-step strong {
-    font-size: 0.75rem;
-}
-
-.svg-v2 .maker-workflow-step small {
-    font-size: 0.75rem;
-}
-
-/* Compact, slicer-like app chrome while the Bambu 3D case is active. */
+/* Viewport-fit shell for the Bambu 3D case: the workbench and its export dock
+   stay on screen together and the workspace scrolls inside itself.
+   STRUCTURE ONLY — the sidebar, brand, tab strip and workspace card header all
+   keep the app-wide scale so this tab reads at the same size as the Logo tab.
+   Do not re-add typography or padding shrinkers here. */
 @media (min-width: 1024px) {
     body.app-shell-v2 .app-shell[data-active-case="svg"] {
         height: 100dvh;
@@ -10773,141 +10657,14 @@ body.app-shell-v2 .sidebar-sub-icon {
         min-height: 0;
         overflow-y: auto;
     }
-
-    body.app-shell-v2 .app-shell[data-active-case="svg"] .app-sidebar {
-        width: clamp(21rem, 25vw, 25rem);
-    }
-
-    body.app-shell-v2 .app-shell[data-active-case="svg"] .app-sidebar > header {
-        padding: 1rem 1.125rem;
-    }
-
-    body.app-shell-v2 .app-shell[data-active-case="svg"] .app-brand-mark {
-        width: 46px;
-        height: 46px;
-        min-width: 46px;
-        min-height: 46px;
-        border-radius: 15px;
-    }
-
-    body.app-shell-v2 .app-shell[data-active-case="svg"] .app-brand-copy h1 {
-        font-size: 1.125rem;
-    }
-
-    body.app-shell-v2 .app-shell[data-active-case="svg"] .app-brand-copy p {
-        font-size: 0.75rem;
-    }
-
-    body.app-shell-v2 .app-shell[data-active-case="svg"] .sidebar-scroll {
-        padding: 1rem;
-    }
-
-    body.app-shell-v2 .app-shell[data-active-case="svg"] .sidebar-accordion {
-        margin-bottom: 0.75rem;
-        border-radius: var(--clay-radius);
-    }
-
-    body.app-shell-v2 .app-shell[data-active-case="svg"] .sidebar-accordion-header {
-        padding: 0.875rem 1rem;
-    }
-
-    body.app-shell-v2 .app-shell[data-active-case="svg"] .sidebar-accordion-body-inner {
-        padding: 0.25rem 0.875rem 1rem;
-    }
-
-    body.app-shell-v2 .app-shell[data-active-case="svg"] .sidebar-sub-accordion {
-        margin-bottom: 0.625rem;
-        border-radius: var(--clay-radius-sm);
-    }
-
-    body.app-shell-v2 .app-shell[data-active-case="svg"] .sidebar-sub-header {
-        padding: 0.75rem;
-    }
-
-    body.app-shell-v2 .app-shell[data-active-case="svg"] .sidebar-sub-body-inner {
-        padding: 0.25rem 0.625rem 0.75rem;
-    }
-
-    body.app-shell-v2 .app-shell[data-active-case="svg"] .workspace-topbar {
-        padding: 0.75rem 1rem 0.5rem;
-    }
-
-    body.app-shell-v2 .app-shell[data-active-case="svg"] .workspace-topbar .segmented-control {
-        gap: 0.625rem;
-    }
-
-    body.app-shell-v2 .app-shell[data-active-case="svg"] .workspace-topbar .segmented-control-tab {
-        min-height: 3.4rem;
-        padding: 0.55rem 0.75rem;
-        border-radius: var(--clay-radius);
-        font-size: 0.875rem;
-    }
-
-    body.app-shell-v2 .app-shell[data-active-case="svg"] .workspace-tab-subtitle {
-        font-size: 0.75rem;
-    }
-
-    body.app-shell-v2 .app-shell[data-active-case="svg"] #output-section.card {
-        padding: 0.75rem 1rem 1rem !important;
-        gap: 0;
-    }
-
-    body.app-shell-v2 .app-shell[data-active-case="svg"] .workspace-card-header {
-        display: none;
-    }
-
-    body.app-shell-v2 .app-shell[data-active-case="svg"] #tab-svg.svg-v2 {
-        padding-top: 0;
-        background: transparent;
-    }
-
-    body.app-shell-v2 .app-shell[data-active-case="svg"] .app-sidebar > footer {
-        padding: 1rem;
-    }
-
-    body.app-shell-v2 .app-shell[data-active-case="svg"] #generate-preview-btn {
-        padding: 0.85rem 1.25rem !important;
-        border-radius: 999px !important;
-        font-size: 0.875rem;
-    }
 }
 
-/* Real exports form the only bottom action bar. */
-footer#svg-export-footer.svg-v2 {
-    padding: 0.65rem 0.75rem !important;
-}
-
-.svg-v2 .footer-action-grouped {
-    grid-template-columns: minmax(0, 1fr) minmax(14rem, 0.38fr);
-    gap: 0.6rem;
-}
-
-.svg-v2 .export-recommended-group {
-    grid-template-columns: minmax(11rem, 0.42fr) minmax(0, 1.58fr);
-    align-items: center;
-    gap: 0.6rem;
-}
-
-.svg-v2 .export-group-heading {
-    display: grid;
-    gap: 0.15rem;
-    padding: 0 0.25rem;
-}
-
-.svg-v2 .export-group-heading small {
-    line-height: 1.35;
-}
-
-/* Dock density only — the pill radius and skin stay with the shared button. */
+/* Real exports form the only bottom action bar. Its grid, dock cards, CTA
+   buttons and helper copy are the Logo tab's export shelf — every rule that
+   used to shrink them here has been removed on purpose. */
 .svg-v2 .export-icon-btn {
     width: 100%;
     justify-content: center;
-    padding: 0.55rem 0.9rem !important;
-}
-
-.svg-v2 .footer-action-meta {
-    padding: 0.25rem 0.25rem 0.05rem;
-    line-height: 1.35;
 }
 
 .svg-v2 .export-advanced-group summary {
@@ -13540,127 +13297,61 @@ progress {
    Both tabs consume the shared clay components (cards, recessed panels,
    btn-primary / btn-secondary, chips, eyebrow chips, drop zones, inputs,
    scrollbars, disabled states). Nothing below re-skins a component; this
-   layer holds only grid/flex structure, the compact density modifiers the
-   Bambu tab needs to keep its 100dvh fit, and the two layout bug fixes.
+   layer holds only grid/flex structure, the Bambu tab's 100dvh stage sizing,
+   and the two layout bug fixes.
    ════════════════════════════════════════════════════════════════════════ */
 
-/* ── Bambu 3D: compact density modifier ─────────────────────────────────
-   The shared card padding/type scale is correct but too tall for a 100dvh
-   workbench, so the slicer scope trims padding and stage heights only —
-   surface, border, radius and shadow all still come from the shared card. */
-.svg-v2 .slicer-workbench,
-.svg-v2 .slicer-inspector-pane {
-    gap: 1rem;
-}
+/* ── Bambu 3D ↔ Logo: one workspace scale ───────────────────────────────
+   The Bambu (svg) workspace used to carry a "compact density modifier" that
+   trimmed card padding, type sizes, control heights, radii and the export
+   dock so the whole tab fit 100dvh without scrolling. That made it read a
+   size smaller than the Logo workspace even though the two use the same
+   markup and the same components.
 
-.svg-v2 .slicer-workbench .output-card-header,
-.svg-v2 .slicer-filament-card .layer-stack-header {
-    min-height: 3.25rem;
-    padding: 0.8rem 1rem;
-}
+   The density modifiers are gone. Cards, headers, titles, toolbar pills,
+   selects, the AMS preflight strip, the filament card and the export dock now
+   resolve to the exact rules the Logo tab uses (see "Shared workspace card"
+   and the `.svg-v2, .logo-v2` groups earlier in this file). What is left here
+   is only what is genuinely structural: the preview stage heights, which are
+   viewport-relative because the workbench scrolls inside a 100dvh shell.
 
-.svg-v2 .slicer-workbench .output-card-content,
-.svg-v2 .slicer-filament-card .layer-stack-options {
-    padding: 0.8rem 1rem;
-}
-
-.svg-v2 .slicer-filament-card > p {
-    margin: 0;
-    padding: 0 1rem 0.75rem;
-    font-size: var(--fs-xs);
-    line-height: 1.5;
-}
-
-.svg-v2 .model-preflight {
-    margin: 0;
-    padding: 0.8rem 1rem;
-    border-top: 1px solid var(--clay-border);
-    background: var(--clay-surface-2);
-    gap: 0.55rem 0.85rem;
-}
-
-.svg-v2 .model-preflight-metric strong,
-.svg-v2 .model-preflight-note {
-    font-size: var(--fs-xs);
-}
-
+   If the Bambu tab ever feels too tall again, change the stage clamps below —
+   do NOT reintroduce padding / font-size shrinkers. */
 .svg-v2 .model-preview-card .obj-preview-stage {
-    height: clamp(17rem, 34vh, 30rem);
-    min-height: 17rem;
+    height: clamp(20rem, 40vh, 34rem);
+    min-height: 20rem;
 }
 
 .svg-v2 .vector-layers-card .preview-container {
-    height: clamp(9rem, 16vh, 14rem);
-    min-height: 9rem;
+    height: clamp(11rem, 20vh, 16rem);
+    min-height: 11rem;
 }
 
 .svg-v2 .slicer-filament-card .layer-stack-list {
-    max-height: 10rem;
+    max-height: 14rem;
 }
 
 /* ── Bambu 3D: export dock structure ────────────────────────────────────
-   Skin comes from the shared recessed-panel and button components; the only
-   thing left here is the recommended card's accent tint and the dock's own
-   padding. */
-footer#svg-export-footer.svg-v2 {
-    padding: 0.9rem 1rem !important;
-    border-top: 1px solid var(--clay-border);
-    background: var(--clay-surface);
-}
-
-.svg-v2 .footer-action-card {
-    padding: 0.7rem;
-}
-
+   Skin, padding and type all come from the shared export-dock rules the Logo
+   footer uses; the recommended card's accent tint is the only local value. */
 .svg-v2 .footer-action-card.is-recommended {
     background: var(--clay-accent-soft);
     box-shadow: var(--clay-shadow-sm), 0 0 0 1px rgba(23, 112, 106, 0.3);
 }
 
-.svg-v2 .export-group-heading span,
-.svg-v2 .export-advanced-group summary span {
-    color: var(--clay-text);
-    font-size: var(--fs-sm);
-    font-weight: 800;
-    letter-spacing: 0.06em;
-}
-
-.svg-v2 .export-group-heading small,
-.svg-v2 .export-advanced-group summary small,
-.svg-v2 .footer-action-meta {
-    color: var(--clay-muted);
-    font-size: var(--fs-2xs);
-    letter-spacing: 0.01em;
-    line-height: 1.4;
-}
-
-.svg-v2 .export-advanced-group summary {
-    padding: 0.85rem 1rem;
-    color: var(--clay-text);
-}
-
-.svg-v2 .export-icon-btn {
-    min-height: 2.9rem;
-    font-size: var(--fs-sm);
-    font-weight: 700;
-}
-
-/* ── Bambu 3D: toolbar control sizing (skin is the shared .btn-secondary) ── */
+/* ── Bambu 3D: toolbar control sizing ───────────────────────────────────
+   Bed and resolution pickers are the same 40px `.text-xs` preview select the
+   Logo tab uses; only the caret gutter on the right is local. */
 .svg-v2 .model-preview-card #obj-preview-bed,
 .svg-v2 .vector-layers-card #preview-resolution {
-    min-height: 40px;
-    max-width: 11.5rem;
-    padding: 0.4rem 1.6rem 0.4rem 0.7rem;
-    font-size: var(--fs-xs);
+    max-width: 12.5rem;
+    padding-right: 1.6rem;
+    padding-left: 0.5rem;
 }
 
 .svg-v2 .vector-layers-card .zoom-controls button {
     min-width: 36px;
     min-height: 36px;
-}
-
-.svg-v2 .preview-action-divider {
-    height: 1.6rem;
 }
 
 /* ── PDF: bottom action bar ─────────────────────────────────────────────

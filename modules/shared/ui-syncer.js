@@ -1,6 +1,6 @@
-import { formatObjScalePercent } from '../obj-scale.js?v=r-a07fe4380410a7ae';
-import { syncAmsPrintStyleControls } from './ams-print-style.js?v=r-a07fe4380410a7ae';
-import { syncMagnetPocketControls } from './magnet-pocket-controls.js?v=r-a07fe4380410a7ae';
+import { formatObjScalePercent } from '../obj-scale.js?v=r-21f681b15fbb1a90';
+import { syncAmsPrintStyleControls } from './ams-print-style.js?v=r-21f681b15fbb1a90';
+import { syncMagnetPocketControls } from './magnet-pocket-controls.js?v=r-21f681b15fbb1a90';
 
 /**
  * The 3D sidebar (#obj-scale, #obj-thickness, #obj-bed, the magnet panel, …) is

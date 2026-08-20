@@ -6,7 +6,7 @@ import {
     getFormatLabel,
     getRasterExtension,
     getScaledDimensions
-} from '../raster-utils.js?v=r-a07fe4380410a7ae';
+} from '../raster-utils.js?v=r-21f681b15fbb1a90';
 import {
     ADJUSTMENT_KEYS,
     DEFAULT_ADJUSTMENTS,
@@ -15,7 +15,7 @@ import {
     isNeutralAdjustments,
     matchFilterPreset,
     normalizeAdjustments
-} from '../shared/image-adjust.js?v=r-a07fe4380410a7ae';
+} from '../shared/image-adjust.js?v=r-21f681b15fbb1a90';
 
 // Live preview never renders above this edge length. Sliders re-run the whole
 // adjustment pass on every debounced tick, so a 6000px source would otherwise

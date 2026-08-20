@@ -2,8 +2,8 @@ import {
     BAMBU_PROJECT_APP_VERSION,
     BAMBU_PROJECT_3MF_VERSION,
     BAMBU_PROJECT_NOZZLE_DIAMETER
-} from './config.js?v=r-a07fe4380410a7ae';
-import { getBambuPrinterTemplate, buildBambuProjectSettings } from './bambu/templates.js?v=r-a07fe4380410a7ae';
+} from './config.js?v=r-21f681b15fbb1a90';
+import { getBambuPrinterTemplate, buildBambuProjectSettings } from './bambu/templates.js?v=r-21f681b15fbb1a90';
 
 const MESH_POSITION_EPSILON = 1e-5;
 

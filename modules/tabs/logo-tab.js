@@ -1,46 +1,46 @@
-import { SLIDER_TOOLTIPS } from '../config.js?v=r-a07fe4380410a7ae';
-import { createObjPreview } from '../preview3d.js?v=r-a07fe4380410a7ae';
-import { createObjExporter } from '../export3d.js?v=r-a07fe4380410a7ae';
+import { SLIDER_TOOLTIPS } from '../config.js?v=r-21f681b15fbb1a90';
+import { createObjPreview } from '../preview3d.js?v=r-21f681b15fbb1a90';
+import { createObjExporter } from '../export3d.js?v=r-21f681b15fbb1a90';
 import {
     hasTransparentPixels,
     markTransparentPixels,
     quantizeImageDataToFixedPalette,
     remapQuantizedPaletteToColors,
     stripTransparentPalette
-} from '../shared/image-utils.js?v=r-a07fe4380410a7ae';
-import { debounce, layerHasPaths, buildTracedataSubset, createMergedTracedata, assess3DPrintQuality } from '../shared/trace-utils.js?v=r-a07fe4380410a7ae';
-import { saveInitialSliderValues, updateAllSliderDisplays, resetSlidersToInitial } from '../shared/slider-manager.js?v=r-a07fe4380410a7ae';
-import { createZoomPanController } from '../shared/zoom-pan.js?v=r-a07fe4380410a7ae';
-import { svgToPng } from '../shared/svg-renderer.js?v=r-a07fe4380410a7ae';
-import { createPaletteManager } from '../shared/palette-manager.js?v=r-a07fe4380410a7ae';
-import { buildWeldedSilhouetteSvgString } from '../shared/silhouette-builder.js?v=r-a07fe4380410a7ae';
-import { formatObjScalePercent } from '../obj-scale.js?v=r-a07fe4380410a7ae';
-import { createHtmlEditor, extractDeclaredHtmlColors } from './logo/html-editor.js?v=r-a07fe4380410a7ae';
+} from '../shared/image-utils.js?v=r-21f681b15fbb1a90';
+import { debounce, layerHasPaths, buildTracedataSubset, createMergedTracedata, assess3DPrintQuality } from '../shared/trace-utils.js?v=r-21f681b15fbb1a90';
+import { saveInitialSliderValues, updateAllSliderDisplays, resetSlidersToInitial } from '../shared/slider-manager.js?v=r-21f681b15fbb1a90';
+import { createZoomPanController } from '../shared/zoom-pan.js?v=r-21f681b15fbb1a90';
+import { svgToPng } from '../shared/svg-renderer.js?v=r-21f681b15fbb1a90';
+import { createPaletteManager } from '../shared/palette-manager.js?v=r-21f681b15fbb1a90';
+import { buildWeldedSilhouetteSvgString } from '../shared/silhouette-builder.js?v=r-21f681b15fbb1a90';
+import { formatObjScalePercent } from '../obj-scale.js?v=r-21f681b15fbb1a90';
+import { createHtmlEditor, extractDeclaredHtmlColors } from './logo/html-editor.js?v=r-21f681b15fbb1a90';
 import {
     DEFAULT_LOGO_PRESET_ID,
     LOGO_PRESETS,
     assessLogoPresetFit,
     buildLogoPresetMarkup,
     getLogoPreset
-} from './logo/logo-presets.js?v=r-a07fe4380410a7ae';
-import { createAutoWorkingImageFromSource } from '../raster-utils.js?v=r-a07fe4380410a7ae';
-import { canAttemptBambuLaunch } from '../bambu-bridge.js?v=r-a07fe4380410a7ae';
+} from './logo/logo-presets.js?v=r-21f681b15fbb1a90';
+import { createAutoWorkingImageFromSource } from '../raster-utils.js?v=r-21f681b15fbb1a90';
+import { canAttemptBambuLaunch } from '../bambu-bridge.js?v=r-21f681b15fbb1a90';
 import {
     buildTraceOptions,
     cycleTracePreset,
     estimateMeaningfulColorCount,
     getColorCountNoticeMessage,
     readTraceControls
-} from '../shared/trace-controls.js?v=r-a07fe4380410a7ae';
-import { setMakerWorkflow, updateMakerPreflight } from '../shared/maker-workflow.js?v=r-a07fe4380410a7ae';
+} from '../shared/trace-controls.js?v=r-21f681b15fbb1a90';
+import { setMakerWorkflow, updateMakerPreflight } from '../shared/maker-workflow.js?v=r-21f681b15fbb1a90';
 import {
     applyAmsPrintStylePreset,
     renderAmsPrintStyleChange,
     syncAmsPrintStyleControls,
     toggleFaceDownPrintStyle
-} from '../shared/ams-print-style.js?v=r-a07fe4380410a7ae';
-import { yieldToBrowser } from '../shared/bambu-send-progress.js?v=r-a07fe4380410a7ae';
-import { syncShared3dControls } from '../shared/ui-syncer.js?v=r-a07fe4380410a7ae';
+} from '../shared/ams-print-style.js?v=r-21f681b15fbb1a90';
+import { yieldToBrowser } from '../shared/bambu-send-progress.js?v=r-21f681b15fbb1a90';
+import { syncShared3dControls } from '../shared/ui-syncer.js?v=r-21f681b15fbb1a90';
 
 export function createLogoTabController({
     state,
