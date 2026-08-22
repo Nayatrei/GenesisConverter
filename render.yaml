@@ -4,3 +4,10 @@ services:
     env: static
     buildCommand: npm ci --omit=dev && npm run build
     staticPublishPath: .
+    routes:
+      - type: rewrite
+        source: /auth/callback
+        destination: /auth/callback/index.html
+      - type: rewrite
+        source: /auth/callback/
+        destination: /auth/callback/index.html

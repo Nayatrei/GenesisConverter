@@ -10,6 +10,9 @@
     <meta property="og:type" content="website">
     <meta property="og:image" content="icon-512.png?v=1">
     <meta name="theme-color" content="#F3F0FA">
+    <meta name="genesis-id-origin" content="https://id.genesisframeworks.com">
+    <meta name="genesis-id-app-id" content="genesis-editor">
+    <meta name="genesis-id-callback-path" content="/auth/callback/">
     <link rel="manifest" href="manifest.webmanifest?v=1">
     <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png?v=1">
     <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png?v=1">
@@ -17,9 +20,11 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800&family=Noto+Sans+KR:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="landing.css?v=r-570fed1440edfc49">
-    <link rel="stylesheet" href="annotate.css?v=r-570fed1440edfc49">
-    <script src="landing.js?v=r-570fed1440edfc49" defer></script>
+    <link rel="stylesheet" href="landing.css?v=r-cdac17424b8832cf">
+    <link rel="stylesheet" href="annotate.css?v=r-cdac17424b8832cf">
+    <link rel="stylesheet" href="genesis-id.css?v=r-cdac17424b8832cf">
+    <script src="landing.js?v=r-cdac17424b8832cf" defer></script>
+    <script src="genesis-id.js?v=r-cdac17424b8832cf" defer></script>
 </head>
 <body>
     <a class="skip-link" href="#tools">도구 선택으로 건너뛰기 / Skip to tools</a>
@@ -32,6 +37,7 @@
         </a>
         <nav class="site-nav" aria-label="주요 탐색 / Main navigation">
             <a href="#about">소개 <span aria-hidden="true">·</span> About</a>
+            <div data-genesis-id-slot data-variant="landing"></div>
             <a class="recent-tool" id="recent-tool-link" href="/3d-obj">
                 <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7M3 4v5h5M12 7v5l3 2"/></svg>
                 <span>최근 도구 <span aria-hidden="true">·</span> Recent tool</span>

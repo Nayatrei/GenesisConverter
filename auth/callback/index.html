@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex, nofollow">
+    <meta name="referrer" content="no-referrer">
+    <meta name="genesis-id-origin" content="https://id.genesisframeworks.com">
+    <meta name="genesis-id-app-id" content="genesis-editor">
+    <meta name="genesis-id-callback-path" content="/auth/callback/">
+    <title>Genesis ID 연결 중 — Genesis Image Tools</title>
+    <link rel="stylesheet" href="/genesis-id.css?v=r-cdac17424b8832cf">
+    <style>
+        :root { color-scheme: light; font-family: Inter, system-ui, sans-serif; }
+        body { min-height: 100vh; margin: 0; display: grid; place-items: center; color: #24202d; background: #f3f0fa; }
+        main { width: min(28rem, calc(100% - 2rem)); padding: 2rem; border: 1px solid #e2daef; border-radius: 1.5rem; background: #fff; box-shadow: 0 1.25rem 4rem rgba(47, 36, 67, 0.14); text-align: center; }
+        h1 { margin: 0; font-size: 1.35rem; }
+        p { margin: 0.75rem 0 0; color: #666170; line-height: 1.55; }
+        a { display: none; margin-top: 1.2rem; color: #6d28d9; font-weight: 700; }
+        main[data-state="error"] a { display: inline-block; }
+    </style>
+</head>
+<body>
+    <main id="callback-status" aria-live="polite">
+        <h1>Genesis ID 연결 중</h1>
+        <p>안전한 일회용 코드를 확인하고 있습니다.<br><span lang="en">Verifying the one-time connection code.</span></p>
+        <a href="/">Image Tools로 돌아가기</a>
+    </main>
+    <script src="/genesis-id.js?v=r-cdac17424b8832cf"></script>
+    <script>
+        (async () => {
+            const status = document.getElementById('callback-status');
+            try {
+                const returnTo = await window.GenesisId.completeCallback();
+                window.location.replace(returnTo);
+            } catch (error) {
+                status.dataset.state = 'error';
+                status.querySelector('h1').textContent = 'Genesis ID를 연결하지 못했습니다';
+                status.querySelector('p').textContent = error instanceof Error
+                    ? error.message
+                    : '연결 요청이 만료되었습니다. 다시 시도해 주세요.';
+            }
+        })();
+    </script>
+</body>
+</html>

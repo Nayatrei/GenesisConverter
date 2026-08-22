@@ -1,0 +1,169 @@
+[data-genesis-id-slot] {
+    position: relative;
+    z-index: 20;
+}
+
+.genesis-id-widget {
+    position: relative;
+    font-family: Inter, Geist, "Noto Sans KR", sans-serif;
+}
+
+.genesis-id-connect,
+.genesis-id-account {
+    display: inline-flex;
+    min-height: 2.75rem;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    border: 1px solid rgba(139, 92, 246, 0.42);
+    border-radius: 999px;
+    padding: 0.62rem 0.92rem;
+    color: inherit;
+    background: rgba(124, 58, 237, 0.1);
+    font: inherit;
+    font-size: 0.78rem;
+    font-weight: 700;
+    line-height: 1.2;
+    cursor: pointer;
+}
+
+.genesis-id-connect:hover,
+.genesis-id-account:hover {
+    border-color: rgba(124, 58, 237, 0.76);
+    background: rgba(124, 58, 237, 0.16);
+}
+
+.genesis-id-connect:focus-visible,
+.genesis-id-account:focus-visible,
+.genesis-id-actions a:focus-visible,
+.genesis-id-actions button:focus-visible {
+    outline: 3px solid rgba(124, 58, 237, 0.32);
+    outline-offset: 2px;
+}
+
+.genesis-id-account {
+    flex-wrap: wrap;
+}
+
+.genesis-id-account small {
+    width: 100%;
+    color: inherit;
+    font-size: 0.68rem;
+    font-weight: 600;
+    opacity: 0.7;
+}
+
+.genesis-id-dot {
+    width: 0.48rem;
+    height: 0.48rem;
+    border-radius: 50%;
+    background: #22c55e;
+    box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.14);
+}
+
+.genesis-id-message {
+    display: block;
+    max-width: 14rem;
+    margin-top: 0.35rem;
+    color: #b45309;
+    font-size: 0.68rem;
+    line-height: 1.35;
+}
+
+.genesis-id-menu {
+    position: absolute;
+    top: calc(100% + 0.55rem);
+    right: 0;
+    width: min(19rem, calc(100vw - 2rem));
+    padding: 1rem;
+    border: 1px solid rgba(139, 92, 246, 0.3);
+    border-radius: 1rem;
+    color: #20202a;
+    background: #fff;
+    box-shadow: 0 1.1rem 3rem rgba(45, 37, 68, 0.2);
+    text-align: left;
+}
+
+.genesis-id-menu[hidden] {
+    display: none;
+}
+
+.genesis-id-menu > strong,
+.genesis-id-menu > span,
+.genesis-id-menu > small {
+    display: block;
+}
+
+.genesis-id-menu > strong {
+    font-size: 0.95rem;
+}
+
+.genesis-id-menu > span {
+    margin-top: 0.28rem;
+    color: #6d28d9;
+    font-size: 0.8rem;
+    font-weight: 700;
+}
+
+.genesis-id-menu > small {
+    margin-top: 0.75rem;
+    color: #646272;
+    font-size: 0.72rem;
+    line-height: 1.45;
+}
+
+.genesis-id-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.55rem;
+    margin-top: 0.9rem;
+}
+
+.genesis-id-actions a,
+.genesis-id-actions button {
+    min-height: 2.25rem;
+    border: 1px solid #ded8ef;
+    border-radius: 0.65rem;
+    padding: 0.48rem 0.65rem;
+    color: #4c1d95;
+    background: #f7f3ff;
+    font: inherit;
+    font-size: 0.72rem;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+[data-variant="tool"] {
+    margin-top: 0.85rem;
+}
+
+[data-variant="tool"] .genesis-id-connect,
+[data-variant="tool"] .genesis-id-account {
+    width: 100%;
+    color: #e5e7eb;
+    background: rgba(124, 58, 237, 0.14);
+}
+
+[data-variant="tool"] .genesis-id-menu {
+    right: auto;
+    left: 0;
+}
+
+@media (max-width: 760px) {
+    [data-variant="landing"] .genesis-id-connect {
+        min-height: 2.6rem;
+        padding-inline: 0.7rem;
+        font-size: 0.7rem;
+    }
+
+    [data-variant="landing"] .genesis-id-account {
+        min-width: 2.8rem;
+        min-height: 2.6rem;
+        padding-inline: 0.65rem;
+    }
+
+    [data-variant="landing"] .genesis-id-account > span:not(.genesis-id-dot),
+    [data-variant="landing"] .genesis-id-account small {
+        display: none;
+    }
+}

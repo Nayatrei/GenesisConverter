@@ -1,3 +1,13 @@
+# Genesis ID / Agent access
+
+Before automating an account-connected Editor session, read
+[`docs/genesis-id-integration.md`](docs/genesis-id-integration.md). The public
+converters never require login. Do not put Agent secrets, Firebase custom
+tokens, ID tokens, or refresh tokens in URLs, committed files, screenshots, or
+logs. A managed short-lived `genesis-editor` ID token may be attached only at
+runtime with `window.GenesisId.useManagedIdToken(token)`; it is held in
+`sessionStorage` and is never required for local conversion.
+
 <claude-mem-context>
 # Memory Context
 
