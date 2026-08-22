@@ -5,6 +5,12 @@ Browser-based tool that converts images (PNG/JPG) and HTML snippets into multi-c
 
 Launch: https://editor.genesisframeworks.com/
 
+Genesis ID is an optional account connection. Every converter remains available
+without signing in. The connection uses central authorization-code SSO with
+PKCE and an exact callback; the app displays only tier and whole-Spark balances.
+See [`docs/genesis-id-integration.md`](docs/genesis-id-integration.md) for the
+central gateway allowlist, Agent-token workflow, and deployment checks.
+
 ## Tabs
 
 The frontend is a client-side multi-tab app served by a lightweight Node transfer server. Every clean tab URL has a matching static entrypoint (`3d-obj.html`, `logo.html`, `raster.html`, `bulk.html`, and `pdf.html`). Those files share one synchronized app shell and select the active tab from the URL. Run `npm run sync:entrypoints` after changing `3d-obj.html`; the test suite rejects drift between entrypoints. Each tab's content is an HTML partial in `modules/tabs/html/` driven by a controller in `modules/tabs/`:
@@ -32,6 +38,10 @@ npm start
 ```
 
 Open `http://127.0.0.1:4173/`. Serving the files as a static site still supports normal 3MF downloads, but direct Bambu Studio handoff will fall back to download-and-open because it needs the temporary transfer endpoint.
+
+For local Genesis ID SSO, the central gateway must temporarily allow the exact
+callback `http://127.0.0.1:4173/auth/callback/` and CORS origin
+`http://127.0.0.1:4173`. No Firebase or SSO secret is stored in this repository.
 
 Tests use Playwright and start the same server:
 

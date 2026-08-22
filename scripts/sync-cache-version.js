@@ -34,6 +34,8 @@ const runtimeFiles = [
 
 const releaseHashFiles = [...new Set([
     path.join(root, 'app-bootstrap.js'),
+    path.join(root, 'genesis-id.js'),
+    path.join(root, 'genesis-id.css'),
     path.join(root, 'converter.js'),
     path.join(root, 'three-setup.js'),
     path.join(root, 'imagetracer_v1.2.6.js'),
@@ -43,6 +45,7 @@ const releaseHashFiles = [...new Set([
     path.join(root, 'landing.js'),
     path.join(root, '3d-obj.html'),
     path.join(root, 'index.html'),
+    path.join(root, 'auth', 'callback', 'index.html'),
     ...walkFiles(path.join(root, 'modules'), (_filePath, filename) => !/ \d+\.[^.]+$/.test(filename)),
     ...walkFiles(path.join(root, 'vendor'), (_filePath, filename) => !filename.startsWith('.'))
 ])].sort((left, right) => left.localeCompare(right));
@@ -73,7 +76,9 @@ function normalizeTextForReleaseHash(filePath, source) {
             .replace(/(style\.css)\?v=[^"']+/g, '$1?v=' + GENERATED_VERSION_PLACEHOLDER)
             .replace(/(annotate\.css)\?v=[^"']+/g, '$1?v=' + GENERATED_VERSION_PLACEHOLDER)
             .replace(/(landing\.css)\?v=[^"']+/g, '$1?v=' + GENERATED_VERSION_PLACEHOLDER)
-            .replace(/(landing\.js)\?v=[^"']+/g, '$1?v=' + GENERATED_VERSION_PLACEHOLDER);
+            .replace(/(landing\.js)\?v=[^"']+/g, '$1?v=' + GENERATED_VERSION_PLACEHOLDER)
+            .replace(/(genesis-id\.css)\?v=[^"']+/g, '$1?v=' + GENERATED_VERSION_PLACEHOLDER)
+            .replace(/(genesis-id\.js)\?v=[^"']+/g, '$1?v=' + GENERATED_VERSION_PLACEHOLDER);
     }
     return normalized;
 }
@@ -152,7 +157,9 @@ function main() {
         const stamped = source
             .replace(/(app-bootstrap\.js)\?v=[^"']+/g, '$1?v=' + version)
             .replace(/(style\.css)\?v=[^"']+/g, '$1?v=' + version)
-            .replace(/(annotate\.css)\?v=[^"']+/g, '$1?v=' + version);
+            .replace(/(annotate\.css)\?v=[^"']+/g, '$1?v=' + version)
+            .replace(/(genesis-id\.css)\?v=[^"']+/g, '$1?v=' + version)
+            .replace(/(genesis-id\.js)\?v=[^"']+/g, '$1?v=' + version);
         writeOrCheck(filePath, stamped, failures);
     }
 
@@ -161,8 +168,17 @@ function main() {
     const stampedLanding = landing
         .replace(/(landing\.css)\?v=[^"']+/g, '$1?v=' + version)
         .replace(/(annotate\.css)\?v=[^"']+/g, '$1?v=' + version)
-        .replace(/(landing\.js)\?v=[^"']+/g, '$1?v=' + version);
+        .replace(/(landing\.js)\?v=[^"']+/g, '$1?v=' + version)
+        .replace(/(genesis-id\.css)\?v=[^"']+/g, '$1?v=' + version)
+        .replace(/(genesis-id\.js)\?v=[^"']+/g, '$1?v=' + version);
     writeOrCheck(landingPath, stampedLanding, failures);
+
+    const callbackPath = path.join(root, 'auth', 'callback', 'index.html');
+    const callback = fs.readFileSync(callbackPath, 'utf8');
+    const stampedCallback = callback
+        .replace(/(genesis-id\.css)\?v=[^"']+/g, '$1?v=' + version)
+        .replace(/(genesis-id\.js)\?v=[^"']+/g, '$1?v=' + version);
+    writeOrCheck(callbackPath, stampedCallback, failures);
 
     if (failures.length) {
         throw new Error(

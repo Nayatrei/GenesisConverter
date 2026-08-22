@@ -8,6 +8,9 @@
     <meta name="keywords" content="image to 3d, logo to 3d, 3mf export, obj export, stl export, image converter, image resize">
     <meta property="og:title" content="Genesis Image Tools">
     <meta property="og:description" content="Create print-ready 3D models from images and logos, then export them for Bambu Studio and other 3D tools.">
+    <meta name="genesis-id-origin" content="https://id.genesisframeworks.com">
+    <meta name="genesis-id-app-id" content="genesis-editor">
+    <meta name="genesis-id-callback-path" content="/auth/callback/">
     <meta property="og:type" content="website">
     <meta property="og:image" content="icon-512.png?v=1">
     <meta name="theme-color" content="#F3F0FA">
@@ -18,9 +21,11 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet">
-    <script type="module" src="app-bootstrap.js?v=r-570fed1440edfc49"></script>
-    <link id="app-stylesheet" rel="stylesheet" href="style.css?v=r-570fed1440edfc49">
-    <link id="annotate-stylesheet" rel="stylesheet" href="annotate.css?v=r-570fed1440edfc49">
+    <script type="module" src="app-bootstrap.js?v=r-cdac17424b8832cf"></script>
+    <script src="genesis-id.js?v=r-cdac17424b8832cf" defer></script>
+    <link id="app-stylesheet" rel="stylesheet" href="style.css?v=r-cdac17424b8832cf">
+    <link id="annotate-stylesheet" rel="stylesheet" href="annotate.css?v=r-cdac17424b8832cf">
+    <link rel="stylesheet" href="genesis-id.css?v=r-cdac17424b8832cf">
 </head>
 <body class="app-body antialiased app-shell-v2">
 
@@ -47,6 +52,7 @@
                         <p class="text-sm text-gray-400">Vector & Raster Image Tools</p>
                     </div>
                 </a>
+                <div data-genesis-id-slot data-variant="tool"></div>
             </header>
 
             <!-- Tab case identity strip: shows which tab's context is active -->
