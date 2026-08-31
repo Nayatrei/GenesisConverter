@@ -1,12 +1,15 @@
 # Genesis ID / Agent access
 
-Before automating an account-connected Editor session, read
-[`docs/genesis-id-integration.md`](docs/genesis-id-integration.md). The public
-converters never require login. Do not put Agent secrets, Firebase custom
-tokens, ID tokens, or refresh tokens in URLs, committed files, screenshots, or
-logs. A managed short-lived `genesis-editor` ID token may be attached only at
-runtime with `window.GenesisId.useManagedIdToken(token)`; it is held in
-`sessionStorage` and is never required for local conversion.
+Before automating an account-connected Editor session, read the central manual
+at `/Users/jongmac/Documents/WebTools/GenesisChat/docs/agent-testing-access.md`
+and then [`docs/genesis-id-integration.md`](docs/genesis-id-integration.md).
+The public converters never require login. Deployed-browser Agent QA must use
+the central S256 PKCE procedure and its trusted runner; never inject an Agent
+ID token, Firebase custom token, cookie, or browser-storage value. In
+particular, do not call `window.GenesisId.useManagedIdToken(token)` in a
+deployed browser. That hook is retained only for local automated tests with
+synthetic tokens and is not an Agent login procedure. Never put Agent secrets
+or tokens in URLs, committed files, screenshots, or logs.
 
 <claude-mem-context>
 # Memory Context

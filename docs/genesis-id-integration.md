@@ -50,22 +50,31 @@ No raw microcredit values are read or rendered. The widget uses the central
 Spark projection and displays either an integer `N Sparks` or
 `Unlimited Sparks`.
 
-## Email-free Agent test session
+## Passwordless Agent testing
 
-The central Agent credential exchange must allow app ID `genesis-editor`. Use
-the guarded Agent workflow documented by Genesis ID to obtain a short-lived ID
-token. Never paste the Agent secret or Firebase custom token into the Editor.
-When visual browser QA specifically needs the connected state, attach the
-short-lived app-bound ID token at runtime:
+The central Agent credential exchange must allow app ID `genesis-editor`.
+Trusted non-browser API runners may use Genesis ID's guarded `agent:access`
+workflow to obtain a short-lived, app-bound ID token for direct API checks. The
+token stays in process memory and must never be transplanted into the Editor or
+another browser context.
 
-```js
-await window.GenesisId.useManagedIdToken(agentIdToken)
-```
+Deployed visual browser QA must follow **배포 브라우저 PKCE 로그인** in
+`/Users/jongmac/Documents/WebTools/GenesisChat/docs/agent-testing-access.md`.
+Start **Genesis ID 연결** in an isolated browser so that tab owns the random
+state and PKCE verifier. A trusted non-browser runner requests the one-time
+Agent browser code from the public authorization fields, and the same browser
+then completes the exact `/auth/callback/`. Disable HAR, trace, screenshots,
+and console or network-body capture until the callback query has been removed.
 
-This API validates the token against `/api/v1/account/me`, keeps it only in the
-current tab's `sessionStorage`, and cannot refresh it. Closing the tab or using
-**이 기기 연결 해제** removes it. The Editor's conversion code does not consume
-Sparks and remains independent of this session.
+Do not inject an ID token, Firebase custom token, cookie, `sessionStorage`,
+`localStorage`, or IndexedDB value, and do not call
+`window.GenesisId.useManagedIdToken(...)` in a deployed browser. That method is
+retained only as an internal local-test hook for synthetic tokens; it is not a
+production access or visual-QA procedure.
+
+Use **이 기기 연결 해제** at the end of the test and destroy the isolated
+browser profile. The Editor's conversion code does not consume Sparks and
+remains independent of any Genesis ID session.
 
 ## Deployment verification
 
