@@ -1,4 +1,4 @@
-import { markTransparentPixels, stripTransparentPalette } from './image-utils.js?v=r-7f197cb5dd025a87';
+import { markTransparentPixels, stripTransparentPalette } from './image-utils.js?v=r-2c1494863984a8eb';
 
 const MASK_POINT_DIVISIONS = 48;
 const MASK_ALPHA_THRESHOLD = 127;
