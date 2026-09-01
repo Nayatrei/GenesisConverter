@@ -46,9 +46,10 @@ Firebase custom token. Return navigation is restricted to this Editor origin.
 the user's other Genesis applications. Account-wide session revocation remains
 available from the Genesis ID membership portal.
 
-No raw microcredit values are read or rendered. The widget uses the central
-Spark projection and displays either an integer `N Sparks` or
-`Unlimited Sparks`.
+The widget accepts only the canonical `microcredit` projection and converts
+`available` with the canonical `microcreditsPerSpark: 1_000_000` divisor before rendering.
+Raw microcredit units are never displayed; whole or fractional Spark values may
+appear as appropriate, or `Unlimited Sparks` for the dedicated Agent account.
 
 ## Passwordless Agent testing
 

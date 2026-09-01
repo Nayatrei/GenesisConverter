@@ -7,28 +7,53 @@ function base64UrlJson(value) {
     return Buffer.from(JSON.stringify(value)).toString('base64url');
 }
 
+function idToken(payload) {
+    return `${base64UrlJson({ alg: 'RS256', typ: 'JWT' })}.${base64UrlJson(payload)}.${'s'.repeat(64)}`;
+}
+
 function managedToken() {
-    return `${base64UrlJson({ alg: 'RS256', typ: 'JWT' })}.${base64UrlJson({
+    return idToken({
         sub: 'agent-editor',
         exp: Math.floor(Date.now() / 1000) + 3600,
         genesisApp: 'genesis-editor',
         genesisAgent: true
-    })}.${'s'.repeat(64)}`;
+    });
 }
 
-async function mockAccount(page, { unlimited = false } = {}) {
+async function mockAccount(page, {
+    unlimited = false,
+    available = 1_234_000_000,
+    creditsInAccount = true,
+    uid = 'agent-editor'
+} = {}) {
+    const projection = {
+        unit: 'microcredit',
+        microcreditsPerSpark: 1_000_000,
+        available: unlimited ? 0 : available,
+        reserved: 0,
+        unlimited
+    };
+    let creditRequests = 0;
     await page.route(`${identityOrigin}/api/v1/account/me`, (route) => route.fulfill({
         contentType: 'application/json',
         body: JSON.stringify({
-            profile: { uid: 'agent-editor', displayName: '' },
+            profile: { uid, displayName: '' },
             access: {
                 status: 'active',
                 tier: 'pro',
                 entitlements: unlimited ? ['testing.unlimited_sparks'] : []
             },
-            credits: { available: unlimited ? 0 : 1234, reserved: 0, unlimited }
+            ...(creditsInAccount ? { credits: projection } : {})
         })
     }));
+    await page.route(`${identityOrigin}/api/v1/account/credits`, (route) => {
+        creditRequests += 1;
+        return route.fulfill({
+            contentType: 'application/json',
+            body: JSON.stringify({ credits: projection })
+        });
+    });
+    return { creditRequests: () => creditRequests };
 }
 
 test('free converters remain usable without Genesis ID', async ({ page }) => {
@@ -66,7 +91,8 @@ test('connection request binds app, exact callback, state, and S256 PKCE', async
     expect(authorizeUrl.searchParams.get('code_challenge')).toBe(expectedChallenge);
 });
 
-test('callback exchanges once and renders only whole-Spark account state', async ({ page }) => {
+test('callback exchanges once and renders canonical Spark account state', async ({ page }) => {
+    const firebaseUid = 'imported user@example.com';
     const state = 's'.repeat(43);
     const verifier = 'v'.repeat(43);
     const code = 'c'.repeat(43);
@@ -86,13 +112,17 @@ test('callback exchanges once and renders only whole-Spark account state', async
     await page.route('https://identitytoolkit.googleapis.com/**', (route) => route.fulfill({
         contentType: 'application/json',
         body: JSON.stringify({
-            idToken: managedToken(),
+            idToken: idToken({
+                sub: firebaseUid,
+                user_id: firebaseUid,
+                exp: Math.floor(Date.now() / 1000) + 3600
+            }),
             refreshToken: 'test-refresh-token',
             expiresIn: '3600',
             isNewUser: false
         })
     }));
-    await mockAccount(page);
+    const accountMock = await mockAccount(page, { uid: firebaseUid });
 
     await page.goto('/');
     await page.evaluate(({ state, verifier }) => {
@@ -114,8 +144,9 @@ test('callback exchanges once and renders only whole-Spark account state', async
     await expect(page.getByRole('dialog', { name: 'Genesis ID account' })).toContainText('Pro · 1,234 Sparks');
     await expect(page.locator('body')).not.toContainText(/microcredits?/i);
     expect(await page.evaluate(() => JSON.parse(sessionStorage.getItem('genesis:id:session:v1')).uid)).toBe(
-        'agent-editor'
+        firebaseUid
     );
+    expect(accountMock.creditRequests()).toBe(0);
     expect(exchangeBody).toEqual({
         appId: 'genesis-editor',
         redirectUri: 'http://127.0.0.1:4173/auth/callback/',
@@ -125,13 +156,13 @@ test('callback exchanges once and renders only whole-Spark account state', async
     });
 });
 
-test('callback rejects a Firebase ID token without a valid subject', async ({ page }) => {
+test('callback rejects a Firebase ID token without a valid subject or with a mismatched user_id', async ({ page }) => {
     const state = 's'.repeat(43);
     const verifier = 'v'.repeat(43);
     const code = 'c'.repeat(43);
-    const tokenWithoutSubject = `${base64UrlJson({ alg: 'RS256', typ: 'JWT' })}.${base64UrlJson({
+    let firebaseToken = idToken({
         exp: Math.floor(Date.now() / 1000) + 3600
-    })}.${'s'.repeat(64)}`;
+    });
     let accountRequests = 0;
 
     await page.route(`${identityOrigin}/api/v1/auth/sso/exchange`, (route) => route.fulfill({
@@ -145,7 +176,7 @@ test('callback rejects a Firebase ID token without a valid subject', async ({ pa
     await page.route('https://identitytoolkit.googleapis.com/**', (route) => route.fulfill({
         contentType: 'application/json',
         body: JSON.stringify({
-            idToken: tokenWithoutSubject,
+            idToken: firebaseToken,
             refreshToken: 'test-refresh-token',
             expiresIn: '3600',
             isNewUser: false
@@ -174,6 +205,84 @@ test('callback rejects a Firebase ID token without a valid subject', async ({ pa
     await expect(page.locator('#callback-status')).toContainText('Genesis ID returned an incomplete token.');
     expect(await page.evaluate(() => sessionStorage.getItem('genesis:id:session:v1'))).toBeNull();
     expect(accountRequests).toBe(0);
+
+    firebaseToken = idToken({
+        sub: 'imported user@example.com',
+        user_id: 'another-user',
+        exp: Math.floor(Date.now() / 1000) + 3600
+    });
+    await page.goto('/');
+    await page.evaluate(({ state, verifier }) => {
+        sessionStorage.setItem('genesis:id:pending:v1', JSON.stringify({
+            schemaVersion: 1,
+            appId: 'genesis-editor',
+            callbackUri: `${location.origin}/auth/callback/`,
+            state,
+            verifier,
+            returnTo: '/',
+            createdAt: Date.now()
+        }));
+    }, { state, verifier });
+    await page.goto(`/auth/callback/?code=${code}&state=${state}`);
+    await expect(page.getByRole('heading', { name: 'Genesis ID를 연결하지 못했습니다' })).toBeVisible();
+    expect(await page.evaluate(() => sessionStorage.getItem('genesis:id:session:v1'))).toBeNull();
+    expect(accountRequests).toBe(0);
+});
+
+test('fractional canonical Sparks are formatted without exposing microcredits', async ({ page }) => {
+    const accountMock = await mockAccount(page, {
+        available: 100_004_050_000,
+        creditsInAccount: false
+    });
+    await page.goto('/');
+
+    await page.evaluate(async (token) => window.GenesisId.useManagedIdToken(token), managedToken());
+    await expect(page.getByRole('button', { name: /Genesis ID.*Pro.*100,004\.05 Sparks/ })).toBeVisible();
+    await expect(page.locator('body')).not.toContainText('100,004,050,000 Sparks');
+    expect(accountMock.creditRequests()).toBeGreaterThan(0);
+});
+
+test('malformed and legacy credit projections expire the local session', async ({ page }) => {
+    let credits = { balance: 1_234_000_000 };
+    await page.route(`${identityOrigin}/api/v1/account/me`, (route) => route.fulfill({
+        contentType: 'application/json',
+        body: JSON.stringify({
+            profile: { uid: 'agent-editor', displayName: '' },
+            access: { status: 'active', tier: 'pro', entitlements: [] }
+        })
+    }));
+    await page.route(`${identityOrigin}/api/v1/account/credits`, (route) => route.fulfill({
+        contentType: 'application/json',
+        body: JSON.stringify({ credits })
+    }));
+
+    await page.goto('/');
+    const seedSession = async () => page.evaluate((idToken) => {
+        sessionStorage.setItem('genesis:id:session:v1', JSON.stringify({
+            schemaVersion: 1,
+            uid: 'agent-editor',
+            idToken,
+            refreshToken: 'test-refresh-token',
+            expiresAt: Date.now() + 3_600_000
+        }));
+    }, managedToken());
+
+    await seedSession();
+    await page.reload();
+    await expect(page.getByRole('button', { name: 'Genesis ID 연결' })).toBeVisible();
+    await expect(page.locator('body')).toContainText('계정 연결이 만료되었습니다. 다시 연결해 주세요.');
+    expect(await page.evaluate(() => sessionStorage.getItem('genesis:id:session:v1'))).toBeNull();
+    await expect(page.locator('body')).not.toContainText('1,234,000,000 Sparks');
+
+    credits = {
+        unit: 'microcredit',
+        microcreditsPerSpark: 0,
+        available: 1_234_000_000
+    };
+    await seedSession();
+    await page.reload();
+    await expect(page.getByRole('button', { name: 'Genesis ID 연결' })).toBeVisible();
+    expect(await page.evaluate(() => sessionStorage.getItem('genesis:id:session:v1'))).toBeNull();
 });
 
 test('callback rejects a mismatched state before contacting the gateway', async ({ page }) => {
@@ -222,12 +331,12 @@ test('managed token rejects another application before loading account data', as
         return route.abort();
     });
     await page.goto('/');
-    const wrongAppToken = `${base64UrlJson({ alg: 'RS256', typ: 'JWT' })}.${base64UrlJson({
+    const wrongAppToken = idToken({
         sub: 'agent-chat',
         exp: Math.floor(Date.now() / 1000) + 3600,
         genesisApp: 'genesis-chat',
         genesisAgent: true
-    })}.${'s'.repeat(64)}`;
+    });
 
     const error = await page.evaluate(async (token) => {
         try {

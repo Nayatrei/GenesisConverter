@@ -5,6 +5,8 @@
     const PENDING_KEY = 'genesis:id:pending:v1';
     const PENDING_TTL_MS = 10 * 60 * 1000;
     const TOKEN_REFRESH_SKEW_MS = 60 * 1000;
+    const MICROCREDITS_PER_SPARK = 1_000_000;
+    const sparkNumberFormat = new Intl.NumberFormat('en-US', { maximumFractionDigits: 6 });
     const slots = new Set();
 
     function readMeta(name, fallback = '') {
@@ -129,8 +131,15 @@
         );
         const token = await readResponseJson(response, 'Genesis ID token exchange failed.');
         if (!token?.idToken) throw new Error('Genesis ID returned an incomplete token.');
-        const uid = tokenClaims(token.idToken)?.sub;
-        if (typeof uid !== 'string' || !/^[A-Za-z0-9_-]{1,128}$/.test(uid)) {
+        const claims = tokenClaims(token.idToken);
+        const uid = claims?.sub;
+        if (
+            typeof uid !== 'string'
+            || uid.length < 1
+            || uid.length > 128
+            || /[\u0000-\u001F\u007F]/u.test(uid)
+            || (claims.user_id !== undefined && claims.user_id !== uid)
+        ) {
             throw new Error('Genesis ID returned an incomplete token.');
         }
         return {
@@ -204,17 +213,35 @@
     async function loadAccount(idToken) {
         const account = await accountRequest('/api/v1/account/me', idToken);
         let credits = account?.credits;
-        if (!credits) {
+        if (credits === undefined) {
             const creditResponse = await accountRequest('/api/v1/account/credits', idToken);
-            credits = creditResponse?.credits || creditResponse;
+            credits = creditResponse?.credits;
         }
-        return { ...account, credits: credits || {} };
+        return { ...account, credits: normalizeCredits(credits) };
     }
 
-    function creditLabel(credits) {
-        if (credits?.unlimited === true) return 'Unlimited Sparks';
-        const available = Number(credits?.available ?? credits?.balance ?? 0);
-        return `${Number.isFinite(available) ? Math.max(0, Math.trunc(available)).toLocaleString() : '0'} Sparks`;
+    function normalizeCredits(credits) {
+        if (!credits || typeof credits !== 'object' || Array.isArray(credits)) {
+            throw new Error('Genesis ID returned an invalid Spark balance.');
+        }
+        const divisor = credits.microcreditsPerSpark;
+        const available = credits.available;
+        if (
+            credits.unit !== 'microcredit'
+            || divisor !== MICROCREDITS_PER_SPARK
+            || typeof available !== 'number'
+            || !Number.isFinite(available)
+            || available < 0
+        ) throw new Error('Genesis ID returned an unsupported Spark balance.');
+        return {
+            amount: available / divisor,
+            unlimited: credits.unlimited === true
+        };
+    }
+
+    function creditLabel(balance) {
+        if (balance.unlimited) return 'Unlimited Sparks';
+        return `${sparkNumberFormat.format(balance.amount)} Sparks`;
     }
 
     function tierLabel(account) {

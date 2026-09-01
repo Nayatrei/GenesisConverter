@@ -1,4 +1,4 @@
-import { BED_PRESETS, OBJ_DEFAULT_ROTATION } from '../config.js?v=r-2c1494863984a8eb';
+import { BED_PRESETS, OBJ_DEFAULT_ROTATION } from '../config.js?v=r-013c77c216003608';
 
 export function getCanonicalRawExtrudeTranslation(plan, {
     offsetX = 0,
