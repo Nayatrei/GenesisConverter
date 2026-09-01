@@ -128,10 +128,14 @@
             }
         );
         const token = await readResponseJson(response, 'Genesis ID token exchange failed.');
-        if (!token?.idToken || !token?.localId) throw new Error('Genesis ID returned an incomplete token.');
+        if (!token?.idToken) throw new Error('Genesis ID returned an incomplete token.');
+        const uid = tokenClaims(token.idToken)?.sub;
+        if (typeof uid !== 'string' || !/^[A-Za-z0-9_-]{1,128}$/.test(uid)) {
+            throw new Error('Genesis ID returned an incomplete token.');
+        }
         return {
             schemaVersion: 1,
-            uid: token.localId,
+            uid,
             idToken: token.idToken,
             refreshToken: token.refreshToken || '',
             expiresAt: Date.now() + Math.max(60, Number(token.expiresIn) || 3600) * 1000

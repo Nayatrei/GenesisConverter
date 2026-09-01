@@ -89,7 +89,7 @@ test('callback exchanges once and renders only whole-Spark account state', async
             idToken: managedToken(),
             refreshToken: 'test-refresh-token',
             expiresIn: '3600',
-            localId: 'editor-user'
+            isNewUser: false
         })
     }));
     await mockAccount(page);
@@ -113,6 +113,9 @@ test('callback exchanges once and renders only whole-Spark account state', async
     await page.getByRole('button', { name: /Genesis ID.*Pro.*1,234 Sparks/ }).click();
     await expect(page.getByRole('dialog', { name: 'Genesis ID account' })).toContainText('Pro · 1,234 Sparks');
     await expect(page.locator('body')).not.toContainText(/microcredits?/i);
+    expect(await page.evaluate(() => JSON.parse(sessionStorage.getItem('genesis:id:session:v1')).uid)).toBe(
+        'agent-editor'
+    );
     expect(exchangeBody).toEqual({
         appId: 'genesis-editor',
         redirectUri: 'http://127.0.0.1:4173/auth/callback/',
@@ -120,6 +123,57 @@ test('callback exchanges once and renders only whole-Spark account state', async
         codeVerifier: verifier,
         state
     });
+});
+
+test('callback rejects a Firebase ID token without a valid subject', async ({ page }) => {
+    const state = 's'.repeat(43);
+    const verifier = 'v'.repeat(43);
+    const code = 'c'.repeat(43);
+    const tokenWithoutSubject = `${base64UrlJson({ alg: 'RS256', typ: 'JWT' })}.${base64UrlJson({
+        exp: Math.floor(Date.now() / 1000) + 3600
+    })}.${'s'.repeat(64)}`;
+    let accountRequests = 0;
+
+    await page.route(`${identityOrigin}/api/v1/auth/sso/exchange`, (route) => route.fulfill({
+        contentType: 'application/json',
+        body: JSON.stringify({ appId: 'genesis-editor', firebaseCustomToken: 'custom-editor-token' })
+    }));
+    await page.route(`${identityOrigin}/api/v1/account/config`, (route) => route.fulfill({
+        contentType: 'application/json',
+        body: JSON.stringify({ firebase: { apiKey: 'public-web-api-key' } })
+    }));
+    await page.route('https://identitytoolkit.googleapis.com/**', (route) => route.fulfill({
+        contentType: 'application/json',
+        body: JSON.stringify({
+            idToken: tokenWithoutSubject,
+            refreshToken: 'test-refresh-token',
+            expiresIn: '3600',
+            isNewUser: false
+        })
+    }));
+    await page.route(`${identityOrigin}/api/v1/account/me`, (route) => {
+        accountRequests += 1;
+        return route.abort();
+    });
+
+    await page.goto('/');
+    await page.evaluate(({ state, verifier }) => {
+        sessionStorage.setItem('genesis:id:pending:v1', JSON.stringify({
+            schemaVersion: 1,
+            appId: 'genesis-editor',
+            callbackUri: `${location.origin}/auth/callback/`,
+            state,
+            verifier,
+            returnTo: '/',
+            createdAt: Date.now()
+        }));
+    }, { state, verifier });
+    await page.goto(`/auth/callback/?code=${code}&state=${state}`);
+
+    await expect(page.getByRole('heading', { name: 'Genesis ID를 연결하지 못했습니다' })).toBeVisible();
+    await expect(page.locator('#callback-status')).toContainText('Genesis ID returned an incomplete token.');
+    expect(await page.evaluate(() => sessionStorage.getItem('genesis:id:session:v1'))).toBeNull();
+    expect(accountRequests).toBe(0);
 });
 
 test('callback rejects a mismatched state before contacting the gateway', async ({ page }) => {

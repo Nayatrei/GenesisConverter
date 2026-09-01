@@ -29,10 +29,10 @@ let tesseractPromise = null;
 
 async function getPdfJs() {
     if (!pdfJsPromise) {
-        pdfJsPromise = import('../../vendor/pdfjs/pdf.min.mjs?v=r-7f197cb5dd025a87')
+        pdfJsPromise = import('../../vendor/pdfjs/pdf.min.mjs?v=r-2c1494863984a8eb')
             .then((pdfjs) => {
                 pdfjs.GlobalWorkerOptions.workerSrc = new URL(
-                    '../../vendor/pdfjs/pdf.worker.min.mjs?v=r-7f197cb5dd025a87',
+                    '../../vendor/pdfjs/pdf.worker.min.mjs?v=r-2c1494863984a8eb',
                     import.meta.url
                 ).href;
                 return pdfjs;
@@ -47,7 +47,7 @@ async function getPdfJs() {
 
 async function getTesseract() {
     if (!tesseractPromise) {
-        tesseractPromise = import('../../vendor/tesseract/tesseract.esm.min.js?v=r-7f197cb5dd025a87')
+        tesseractPromise = import('../../vendor/tesseract/tesseract.esm.min.js?v=r-2c1494863984a8eb')
             .catch((error) => {
                 tesseractPromise = null;
                 throw error;
@@ -250,7 +250,7 @@ export function createPdfOcrController({
     async function createWorker(language, logger) {
         const workerOptions = {
             logger,
-            workerPath: new URL('../../vendor/tesseract/worker.min.js?v=r-7f197cb5dd025a87', import.meta.url).href,
+            workerPath: new URL('../../vendor/tesseract/worker.min.js?v=r-2c1494863984a8eb', import.meta.url).href,
             corePath: OCR_CORE_PATH,
             langPath: OCR_LANG_PATH
         };
