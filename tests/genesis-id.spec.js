@@ -54,7 +54,7 @@ test('connection request binds app, exact callback, state, and S256 PKCE', async
         'http://127.0.0.1:4173/auth/callback/'
     );
     expect(authorizeUrl.searchParams.get('code_challenge_method')).toBe('S256');
-    expect(authorizeUrl.searchParams.get('state')).toMatch(/^[A-Za-z0-9_-]{32}$/);
+    expect(authorizeUrl.searchParams.get('state')).toMatch(/^[A-Za-z0-9_-]{43}$/);
     expect(authorizeUrl.searchParams.get('code_challenge')).toMatch(/^[A-Za-z0-9_-]{43}$/);
 
     await page.goBack();
@@ -67,7 +67,7 @@ test('connection request binds app, exact callback, state, and S256 PKCE', async
 });
 
 test('callback exchanges once and renders only whole-Spark account state', async ({ page }) => {
-    const state = 'state-for-editor-callback';
+    const state = 's'.repeat(43);
     const verifier = 'v'.repeat(43);
     const code = 'c'.repeat(43);
     let exchangeBody;
@@ -117,7 +117,8 @@ test('callback exchanges once and renders only whole-Spark account state', async
         appId: 'genesis-editor',
         redirectUri: 'http://127.0.0.1:4173/auth/callback/',
         code,
-        codeVerifier: verifier
+        codeVerifier: verifier,
+        state
     });
 });
 
