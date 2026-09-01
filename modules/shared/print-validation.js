@@ -1,4 +1,4 @@
-import { BED_PRESETS } from '../config.js?v=r-cdac17424b8832cf';
+import { BED_PRESETS } from '../config.js?v=r-7f197cb5dd025a87';
 
 const POSITION_EPSILON = 1e-5;
 const TRIANGLE_AREA_EPSILON_SQUARED = 1e-16;

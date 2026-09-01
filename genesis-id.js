@@ -327,7 +327,7 @@
 
     async function beginConnection(returnTo = `${global.location.pathname}${global.location.search}${global.location.hash}`) {
         const config = getConfig();
-        const state = randomValue(24);
+        const state = randomValue(32);
         const verifier = randomValue(32);
         const challenge = await pkceChallenge(verifier);
         writeJsonStorage(PENDING_KEY, {
@@ -382,7 +382,8 @@
                 appId: config.appId,
                 redirectUri: config.callbackUri,
                 code,
-                codeVerifier: pending.verifier
+                codeVerifier: pending.verifier,
+                state
             })
         });
         const grant = await readResponseJson(response, 'Genesis ID sign-in code is invalid or expired.');

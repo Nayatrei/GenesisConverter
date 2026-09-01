@@ -1,9 +1,9 @@
-import { createAnnotateTabController } from './modules/tabs/annotate-tab.js?v=r-cdac17424b8832cf';
-import { createBulkTabController } from './modules/tabs/bulk-tab.js?v=r-cdac17424b8832cf';
-import { createRasterTabController } from './modules/tabs/raster-tab.js?v=r-cdac17424b8832cf';
-import { createSvgTabController } from './modules/tabs/svg-tab.js?v=r-cdac17424b8832cf';
-import { createLogoTabController } from './modules/tabs/logo-tab.js?v=r-cdac17424b8832cf';
-import { createPdfTabController } from './modules/tabs/pdf-tab.js?v=r-cdac17424b8832cf';
+import { createAnnotateTabController } from './modules/tabs/annotate-tab.js?v=r-7f197cb5dd025a87';
+import { createBulkTabController } from './modules/tabs/bulk-tab.js?v=r-7f197cb5dd025a87';
+import { createRasterTabController } from './modules/tabs/raster-tab.js?v=r-7f197cb5dd025a87';
+import { createSvgTabController } from './modules/tabs/svg-tab.js?v=r-7f197cb5dd025a87';
+import { createLogoTabController } from './modules/tabs/logo-tab.js?v=r-7f197cb5dd025a87';
+import { createPdfTabController } from './modules/tabs/pdf-tab.js?v=r-7f197cb5dd025a87';
 import {
     getDataUrlSize,
     getFileStem,
@@ -11,15 +11,15 @@ import {
     IMPORTABLE_IMAGE_PROMPT,
     isImportableImageFile,
     normalizeImageBlob
-} from './modules/raster-utils.js?v=r-cdac17424b8832cf';
+} from './modules/raster-utils.js?v=r-7f197cb5dd025a87';
 // Only the classifier is imported eagerly — it is a few string checks. The
 // ~1.4 MB libheif WebAssembly build behind decodeHeicToBlob stays unloaded
 // until the HEIC branch below actually asks for it.
-import { isHeicFile } from './modules/shared/heic.js?v=r-cdac17424b8832cf';
-import { createElements } from './modules/app-elements.js?v=r-cdac17424b8832cf';
-import { createState } from './modules/app-state.js?v=r-cdac17424b8832cf';
-import { applyTabCase, TAB_CASES } from './modules/tab-cases.js?v=r-cdac17424b8832cf';
-import { bindMagnetPocketControls } from './modules/shared/magnet-pocket-controls.js?v=r-cdac17424b8832cf';
+import { isHeicFile } from './modules/shared/heic.js?v=r-7f197cb5dd025a87';
+import { createElements } from './modules/app-elements.js?v=r-7f197cb5dd025a87';
+import { createState } from './modules/app-state.js?v=r-7f197cb5dd025a87';
+import { applyTabCase, TAB_CASES } from './modules/tab-cases.js?v=r-7f197cb5dd025a87';
+import { bindMagnetPocketControls } from './modules/shared/magnet-pocket-controls.js?v=r-7f197cb5dd025a87';
 
 async function loadTabPartials() {
     const appVersion = window.__GENESIS_APP_VERSION__
@@ -454,7 +454,7 @@ async function initializeApplication() {
     // is never downloaded by visitors who only import PNG/JPG.
     async function convertHeicForImport(file, updateImportProgress, progress = 0.08) {
         updateImportProgress(progress, `Converting ${file.name || 'image'} from HEIC`);
-        const { decodeHeicToBlob } = await import('./modules/shared/heic.js?v=r-cdac17424b8832cf');
+        const { decodeHeicToBlob } = await import('./modules/shared/heic.js?v=r-7f197cb5dd025a87');
         const pngBlob = await decodeHeicToBlob(file, 'image/png');
         const pngName = `${getFileStem(file.name || 'image')}.png`;
         return new File([pngBlob], pngName, { type: 'image/png' });
