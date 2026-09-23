@@ -4,8 +4,8 @@ test('root shows the bilingual landing page instead of opening a tool', async ({
     await page.goto('/');
 
     await expect(page).toHaveURL(/\/$/);
-    await expect(page.getByRole('heading', { name: /필요한 결과부터 시작하세요/ })).toBeVisible();
-    await expect(page.getByText('Start with the result you need.')).toBeVisible();
+    await expect(page.getByRole('heading', { name: /Images to 3D.*Tools to create/ })).toBeVisible();
+    await expect(page.getByText('필요한 결과부터 시작하세요.')).toBeVisible();
     await expect(page.locator('.tool-card')).toHaveCount(6);
     await expect(page.locator('.tool-card-3d')).toContainText('평면 이미지의 색상 영역을 추적해');
     await expect(page.locator('.tool-card-3d')).toContainText('Trace a flat image into shallow');

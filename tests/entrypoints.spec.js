@@ -9,7 +9,8 @@ const namedEntrypoints = ['logo.html', 'raster.html', 'annotate.html', 'bulk.htm
 test('named static entrypoints stay synchronized with the 3D app shell', () => {
     for (const filename of namedEntrypoints) {
         const entrypoint = fs.readFileSync(path.join(root, filename), 'utf8');
-        expect(entrypoint, `${filename} drifted from 3d-obj.html`).toBe(canonicalEntrypoint);
+        const withoutMetadata = (html) => html.replace(/<!-- SEO:start -->[\s\S]*?<!-- SEO:end -->/, '');
+        expect(withoutMetadata(entrypoint), `${filename} app shell drifted`).toBe(withoutMetadata(canonicalEntrypoint));
     }
 });
 

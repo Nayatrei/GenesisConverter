@@ -3,7 +3,7 @@ import {
     readTraceControls,
     updateTraceControlUi,
     writeTraceControls
-} from './trace-controls.js?v=r-afbde72383fa3b50';
+} from './trace-controls.js?v=r-20104b195149121b';
 
 /**
  * Snapshots current trace-control values into st.initialSliderValues and clears dirty state.

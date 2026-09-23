@@ -35,6 +35,8 @@ const TAB_ROUTE_FILES = new Map([
 const uploadHistoryByIp = new Map();
 
 const MIME_TYPES = {
+    '.xml': 'application/xml; charset=utf-8',
+    '.txt': 'text/plain; charset=utf-8',
     '.avif': 'image/avif',
     '.css': 'text/css; charset=utf-8',
     '.gif': 'image/gif',
@@ -280,6 +282,11 @@ function resolveStaticFile(pathname) {
 }
 
 async function serveStaticFile(request, response, pathname) {
+    if (pathname === '/converter.html') {
+        response.writeHead(301, { Location: '/3d-obj' });
+        response.end();
+        return;
+    }
     const routedPathname = TAB_ROUTE_FILES.get(pathname) || pathname;
     const filePath = resolveStaticFile(routedPathname);
     if (!filePath) {

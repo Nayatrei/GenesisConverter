@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>How to Convert an Image to STL | Genesis Image Tools</title>
+  <meta name="description" content="Convert flat PNG or JPG artwork into layered 3D geometry. Learn how to prepare an image, check print dimensions and export per-layer STL files.">
+  <link rel="canonical" href="https://editor.genesisframeworks.com/guides/image-to-stl.html">
+  <meta property="og:title" content="How to Convert an Image to STL">
+  <meta property="og:description" content="A practical guide to layered artwork, print dimensions and STL exports.">
+  <meta property="og:type" content="article"><meta property="og:url" content="https://editor.genesisframeworks.com/guides/image-to-stl.html">
+  <meta property="og:image" content="https://editor.genesisframeworks.com/icon-512.png">
+  <link rel="stylesheet" href="/guides/guide.css"><link rel="icon" href="/favicon.ico">
+</head>
+<body>
+<header><a href="/">Genesis Image Tools</a><a href="/guides/">All guides</a></header>
+<main>
+  <p class="eyebrow">Image to 3D · Getting started</p>
+  <h1>How to convert an image to STL</h1>
+  <p class="lede">Start with a flat graphic, trace its color regions into shallow 3D layers, and export geometry for your slicer.</p>
+  <a class="cta" href="/3d-obj">Open Image to 3D →</a>
+  <p class="note">This workflow creates layered reliefs from flat artwork. It does not reconstruct the hidden sides of a photographed object or turn every photograph into a realistic 3D model.</p>
+  <h2>Choose artwork that will trace cleanly</h2>
+  <p>Start with PNG or JPG artwork with clear edges, a small number of colors and a simple background. Flat illustrations, signs and badges are easier to work with than photos with shadows and gradients. Transparent PNGs can help separate the shape from its background.</p>
+  <figure><img src="/testImage.png" alt="Flat I am an artist graphic, an example input for a layered relief" width="280" loading="lazy"><figcaption>Example input: flat artwork. The output is geometry based on the traced regions, not a full sculpture.</figcaption></figure>
+  <h2>Convert the image in five steps</h2>
+  <ol>
+    <li><strong>Open Image to 3D and import your image.</strong> Use the image picker. Start with a small, simple image while learning the controls.</li>
+    <li><strong>Inspect the traced color regions.</strong> Adjust the tracing controls to reduce tiny islands and unwanted background shapes. Review the preview after each change.</li>
+    <li><strong>Set the physical size and layer depth.</strong> Check the model size readout in millimeters. As a starting example, try a 60 mm-wide badge; choose thicknesses appropriate to your printer and material.</li>
+    <li><strong>Check the build plate and geometry.</strong> Review the print check, remove unwanted layers, and make sure fine details are large enough for your nozzle. A preview alone does not guarantee a successful print.</li>
+    <li><strong>Export STL and inspect it in your slicer.</strong> Open the export controls and choose STL. The tool exports per-layer STL files; keep the related layers together and inspect their alignment before slicing.</li>
+  </ol>
+  <h2>What goes in, and what comes out?</h2>
+  <p>A typical input is a PNG badge with three solid colors. The output is a set of STL meshes representing the traced layers. STL stores geometry, so it does not preserve your artwork's color assignments. Assign materials in your slicer, or use the 3MF workflow when you need a project with filament mapping.</p>
+  <p>The tool also offers OBJ and Bambu 3MF exports. For a logo or text-based design, follow the <a href="/guides/logo-to-3mf.html">logo to 3MF guide</a>.</p>
+  <h2>Why does the result have rough edges?</h2>
+  <p>Small source images, compression artifacts and too many colors can create jagged outlines or many small regions. Simplify the artwork, use a cleaner source, and adjust tracing before increasing model detail. Large images and complex traces need more browser memory and processing time.</p>
+  <h2>Do I need to sign in or upload the source?</h2>
+  <p>The standard image tracing and file export workflow runs in your browser without signing in. Optional account features and external integrations have their own network behavior. For a local workflow, download the file and open it in your slicer yourself.</p>
+  <a class="cta" href="/3d-obj">Convert your image →</a>
+  <p>Need to prepare the source first? <a href="/raster">Resize or convert an image</a>.</p>
+</main>
+<footer>Genesis Image Tools · <a href="/">Explore all tools</a> · <a href="https://www.genesisframeworks.com/">Genesis Frameworks</a></footer>
+</body></html>

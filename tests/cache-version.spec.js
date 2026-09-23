@@ -48,7 +48,8 @@ test('tool entrypoints use the stable bootstrap and one release version', () => 
     expect(canonical).not.toMatch(/<script[^>]+src="three-setup\.js/);
     expect(canonical).not.toMatch(/src="converter[^"]+"/);
     for (const filename of TOOL_ENTRYPOINTS.slice(1)) {
-        expect(fs.readFileSync(path.join(ROOT, filename), 'utf8')).toBe(canonical);
+        const withoutMetadata = (html) => html.replace(/<!-- SEO:start -->[\s\S]*?<!-- SEO:end -->/, '');
+        expect(withoutMetadata(fs.readFileSync(path.join(ROOT, filename), 'utf8'))).toBe(withoutMetadata(canonical));
     }
 });
 

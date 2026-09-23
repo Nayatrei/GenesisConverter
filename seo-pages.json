@@ -1,0 +1,26 @@
+{
+  "3d-obj": {
+    "title": "Image to STL & Layered 3D Converter | Genesis Image Tools",
+    "description": "Turn flat PNG and JPG artwork into layered 3D models in your browser. Preview print dimensions and export per-layer STL, OBJ or Bambu 3MF files."
+  },
+  "logo": {
+    "title": "Logo to 3D & Bambu 3MF Converter | Genesis Image Tools",
+    "description": "Build layered 3D logos from images, SVG or text presets. Check model size and filament layers, then export a Bambu 3MF project or per-layer STL files."
+  },
+  "raster": {
+    "title": "Resize & Convert Images Online | Genesis Image Tools",
+    "description": "Resize and convert images in your browser. Open PNG, JPG, WebP or HEIC images, adjust your image and download the result without signing in."
+  },
+  "bulk": {
+    "title": "Batch Image Converter & Resizer | Genesis Image Tools",
+    "description": "Convert and resize multiple images in your browser. Prepare a batch of image exports with Genesis Image Tools, without signing in."
+  },
+  "pdf": {
+    "title": "PDF to Images & Images to PDF | Genesis Image Tools",
+    "description": "Save PDF pages as JPG, PNG or WebP, combine PDFs, or turn images into a PDF. Use the browser-based PDF tools without signing in."
+  },
+  "annotate": {
+    "title": "Annotate Images Online | Genesis Image Tools",
+    "description": "Open an image and add annotations in your browser. Mark up screenshots and visual feedback with Genesis Image Tools, without signing in."
+  }
+}

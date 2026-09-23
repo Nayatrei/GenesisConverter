@@ -1425,3 +1425,7 @@ main,
         transition-duration: 0.01ms !important;
     }
 }
+
+.guide-intro { max-width: 1200px; margin: 3rem auto; padding: 1.5rem; line-height: 1.65; }
+.guide-intro h2 { font-size: clamp(1.5rem, 3vw, 2.2rem); }
+.guide-intro a { color: #57408e; text-decoration: underline; text-underline-offset: .25em; }

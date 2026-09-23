@@ -5,6 +5,30 @@ services:
     buildCommand: npm ci --omit=dev && npm run build
     staticPublishPath: .
     routes:
+      - type: redirect
+        source: /converter.html
+        destination: /3d-obj
+      - type: redirect
+        source: /svg
+        destination: /3d-obj
+      - type: rewrite
+        source: /3d-obj
+        destination: /3d-obj.html
+      - type: rewrite
+        source: /logo
+        destination: /logo.html
+      - type: rewrite
+        source: /raster
+        destination: /raster.html
+      - type: rewrite
+        source: /bulk
+        destination: /bulk.html
+      - type: rewrite
+        source: /pdf
+        destination: /pdf.html
+      - type: rewrite
+        source: /annotate
+        destination: /annotate.html
       - type: rewrite
         source: /auth/callback
         destination: /auth/callback/index.html
