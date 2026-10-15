@@ -1,5 +1,8 @@
 # Genesis ID / Agent access
 
+Pages without a working EN/KO language switch must use English UI copy,
+including account widgets, callback errors, metadata and accessibility labels.
+
 Before automating an account-connected Editor session, read the central manual
 at `/Users/jongmac/Documents/WebTools/GenesisChat/docs/agent-testing-access.md`
 and then [`docs/genesis-id-integration.md`](docs/genesis-id-integration.md).
