@@ -117,7 +117,7 @@ const FONT_GROUP_LABELS = {
     hebrew: 'Hebrew',
     indic: 'Indic',
     sea: 'SE Asian',
-    korean: '한국어 Korean',
+    korean: 'Korean',
     japanese: '日本語 Japanese',
     chinese: '中文 Chinese',
     cjk: 'CJK (multi-script)',

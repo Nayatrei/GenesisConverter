@@ -64,7 +64,7 @@ export function updateMakerPreflight(view, quality) {
             ? `${quality.colorCount} filament${quality.colorCount === 1 ? '' : 's'}`
             : '—';
         view.preflightLayers.title = quality.pathCount
-            ? `${quality.pathCount.toLocaleString()} traced paths`
+            ? `${quality.pathCount.toLocaleString("en-US")} traced paths`
             : 'No traced paths';
     }
     if (view?.preflightNote) {

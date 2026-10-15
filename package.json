@@ -6,7 +6,8 @@
     "sync:entrypoints": "node scripts/sync-entrypoints.js",
     "sync:cache": "node scripts/sync-cache-version.js",
     "check:cache": "node scripts/sync-cache-version.js --check",
-    "build": "npm run sync:entrypoints && npm run sync:cache",
+    "check:language": "node --test scripts/english-ui.test.mjs",
+    "build": "npm run sync:entrypoints && npm run sync:cache && npm run check:language",
     "test": "playwright test",
     "test:smoke": "playwright test"
   },

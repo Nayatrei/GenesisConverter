@@ -1,21 +1,21 @@
-import { OBJ_ZOOM_MIN, OBJ_ZOOM_MAX, BED_PRESETS } from './config.js?v=r-20104b195149121b';
+import { OBJ_ZOOM_MIN, OBJ_ZOOM_MAX, BED_PRESETS } from './config.js?v=r-5fd581cf97360d61';
 import {
     fitObjScalePlanToGeometryBounds,
     formatObjScalePercent
-} from './obj-scale.js?v=r-20104b195149121b';
+} from './obj-scale.js?v=r-5fd581cf97360d61';
 import {
     buildObjGeometryBundle,
     buildObjModelPlan,
     retargetObjModelPlanPrintStyle,
     updateObjModelPlanLayerHeights
-} from './obj-model-plan.js?v=r-20104b195149121b';
-import { resolveMergedLayerGroups } from './shared/trace-utils.js?v=r-20104b195149121b';
-import { getGeometryBundleBounds } from './shared/print-validation.js?v=r-20104b195149121b';
-import { updateMagnetPocketStatus } from './shared/magnet-pocket-controls.js?v=r-20104b195149121b';
+} from './obj-model-plan.js?v=r-5fd581cf97360d61';
+import { resolveMergedLayerGroups } from './shared/trace-utils.js?v=r-5fd581cf97360d61';
+import { getGeometryBundleBounds } from './shared/print-validation.js?v=r-5fd581cf97360d61';
+import { updateMagnetPocketStatus } from './shared/magnet-pocket-controls.js?v=r-5fd581cf97360d61';
 import {
     createObjGeometrySnapshot,
     objGeometrySnapshotsMatch
-} from './shared/obj-geometry-snapshot.js?v=r-20104b195149121b';
+} from './shared/obj-geometry-snapshot.js?v=r-5fd581cf97360d61';
 
 const BED_CONTACT_EPSILON = 0.005;
 const BED_FIT_TOLERANCE_MM = 0.05;
@@ -56,7 +56,7 @@ function getBundleTriangleCount(geometryBundle) {
 
 function formatTriangleCount(value) {
     const count = Number.isFinite(value) ? Math.max(0, Math.round(value)) : 0;
-    return count.toLocaleString();
+    return count.toLocaleString("en-US");
 }
 
 export function createObjPreview({

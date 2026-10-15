@@ -313,12 +313,12 @@
         const button = document.createElement('button');
         button.type = 'button';
         button.className = 'genesis-id-connect';
-        button.textContent = 'Genesis ID 연결';
+        button.textContent = 'Connect Genesis ID';
         button.addEventListener('click', () => {
             button.disabled = true;
             void beginConnection().catch((error) => {
                 button.disabled = false;
-                renderDisconnected(slot, error instanceof Error ? error.message : 'Genesis ID 연결을 시작할 수 없습니다.');
+                renderDisconnected(slot, error instanceof Error ? error.message : 'Could not start the Genesis ID connection.');
             });
         });
         shell.append(button);
@@ -365,8 +365,8 @@
         const editorIncluded = account?.access?.status === 'active'
             && ['plus', 'pro'].includes(account?.access?.tier);
         note.textContent = editorIncluded
-            ? 'Plus / Pro 혜택 · Editor 포함. 추가 이용료나 Sparks 차감 없이 사용할 수 있습니다.'
-            : '기존 무료 변환 도구는 로그인 없이도 계속 사용할 수 있습니다. Plus / Pro에도 Editor가 추가 비용 없이 포함됩니다.';
+            ? 'Editor is included with Plus / Pro. No extra app fee or Spark deduction.'
+            : 'Free converters stay free without sign-in. Editor is also included with Plus / Pro at no extra app fee.';
         const actions = document.createElement('div');
         actions.className = 'genesis-id-actions';
         const portal = document.createElement('a');
@@ -374,11 +374,11 @@
         portal.href = getConfig().identityOrigin;
         portal.target = '_blank';
         portal.rel = 'noopener noreferrer';
-        portal.textContent = '계정 보기';
+        portal.textContent = 'My account';
         const disconnect = document.createElement('button');
         disconnect.dataset.genesisIdDisconnect = '';
         disconnect.type = 'button';
-        disconnect.textContent = '이 기기 연결 해제';
+        disconnect.textContent = 'Disconnect this device';
         disconnect.addEventListener('click', () => {
             clearSession();
             slots.forEach((current) => renderDisconnected(current));
@@ -402,7 +402,7 @@
         slots.forEach((slot) => {
             for (const selector of ['[data-genesis-id-summary]', '[data-genesis-id-detail]', '[data-genesis-id-note]']) {
                 const element = slot.querySelector(selector);
-                if (element) element.textContent = '계정 정보를 확인하고 있습니다…';
+                if (element) element.textContent = 'Checking account details…';
             }
         });
     }
@@ -441,7 +441,7 @@
             } catch {
                 if (!isCurrentSession(snapshot)) return;
                 clearSession();
-                slots.forEach((slot) => renderDisconnected(slot, '계정 연결이 만료되었습니다. 다시 연결해 주세요.'));
+                slots.forEach((slot) => renderDisconnected(slot, 'Your connection expired. Please connect again.'));
             } finally {
                 if (accountFlight === flight) accountFlight = null;
             }

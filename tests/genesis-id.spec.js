@@ -60,7 +60,7 @@ async function mockAccount(page, {
 test('free converters remain usable without Genesis ID', async ({ page }) => {
     await page.goto('/3d-obj');
 
-    await expect(page.getByRole('button', { name: 'Genesis ID 연결' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Connect Genesis ID' })).toBeVisible();
     await expect(page.locator('#import-btn')).toBeEnabled();
     await expect(page.locator('body')).not.toContainText(/microcredits?/i);
 });
@@ -71,7 +71,7 @@ for (const tier of ['plus', 'pro']) {
         await page.goto('/3d-obj');
         await page.evaluate(async (token) => window.GenesisId.useManagedIdToken(token), managedToken());
         await page.getByRole('button', { name: /Genesis ID.*Sparks/ }).click();
-        await expect(page.getByText('Plus / Pro 혜택 · Editor 포함. 추가 이용료나 Sparks 차감 없이 사용할 수 있습니다.')).toBeVisible();
+        await expect(page.getByText('Editor is included with Plus / Pro. No extra app fee or Spark deduction.')).toBeVisible();
         await expect(page.locator('#import-btn')).toBeEnabled();
     });
 }
@@ -82,7 +82,7 @@ test('connection request binds app, exact callback, state, and S256 PKCE', async
         body: '<!doctype html><title>Genesis ID test authorization</title>'
     }));
     await page.goto('/');
-    await page.getByRole('button', { name: 'Genesis ID 연결' }).click();
+    await page.getByRole('button', { name: 'Connect Genesis ID' }).click();
     await page.waitForURL((url) => url.origin === identityOrigin);
 
     const authorizeUrl = new URL(page.url());
@@ -213,7 +213,7 @@ test('callback rejects a Firebase ID token without a valid subject or with a mis
     }, { state, verifier });
     await page.goto(`/auth/callback/?code=${code}&state=${state}`);
 
-    await expect(page.getByRole('heading', { name: 'Genesis ID를 연결하지 못했습니다' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Could not connect Genesis ID' })).toBeVisible();
     await expect(page.locator('#callback-status')).toContainText('Genesis ID returned an incomplete token.');
     expect(await page.evaluate(() => sessionStorage.getItem('genesis:id:session:v1'))).toBeNull();
     expect(accountRequests).toBe(0);
@@ -236,7 +236,7 @@ test('callback rejects a Firebase ID token without a valid subject or with a mis
         }));
     }, { state, verifier });
     await page.goto(`/auth/callback/?code=${code}&state=${state}`);
-    await expect(page.getByRole('heading', { name: 'Genesis ID를 연결하지 못했습니다' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Could not connect Genesis ID' })).toBeVisible();
     expect(await page.evaluate(() => sessionStorage.getItem('genesis:id:session:v1'))).toBeNull();
     expect(accountRequests).toBe(0);
 });
@@ -281,8 +281,8 @@ test('malformed and legacy credit projections expire the local session', async (
 
     await seedSession();
     await page.reload();
-    await expect(page.getByRole('button', { name: 'Genesis ID 연결' })).toBeVisible();
-    await expect(page.locator('body')).toContainText('계정 연결이 만료되었습니다. 다시 연결해 주세요.');
+    await expect(page.getByRole('button', { name: 'Connect Genesis ID' })).toBeVisible();
+    await expect(page.locator('body')).toContainText('Your connection expired. Please connect again.');
     expect(await page.evaluate(() => sessionStorage.getItem('genesis:id:session:v1'))).toBeNull();
     await expect(page.locator('body')).not.toContainText('1,234,000,000 Sparks');
 
@@ -293,7 +293,7 @@ test('malformed and legacy credit projections expire the local session', async (
     };
     await seedSession();
     await page.reload();
-    await expect(page.getByRole('button', { name: 'Genesis ID 연결' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Connect Genesis ID' })).toBeVisible();
     expect(await page.evaluate(() => sessionStorage.getItem('genesis:id:session:v1'))).toBeNull();
 });
 
@@ -317,7 +317,7 @@ test('callback rejects a mismatched state before contacting the gateway', async 
     });
 
     await page.goto(`/auth/callback/?code=${'c'.repeat(43)}&state=wrong-state`);
-    await expect(page.getByRole('heading', { name: 'Genesis ID를 연결하지 못했습니다' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Could not connect Genesis ID' })).toBeVisible();
     expect(exchangeRequests).toBe(0);
     expect(await page.evaluate(() => sessionStorage.getItem('genesis:id:pending:v1'))).toBeNull();
 });
@@ -330,9 +330,9 @@ test('managed email-free Agent token shows unlimited Sparks and disconnects loca
     const accountButton = page.getByRole('button', { name: /Genesis ID.*Pro.*Unlimited Sparks/ });
     await expect(accountButton).toBeVisible();
     await accountButton.click();
-    await page.getByRole('button', { name: '이 기기 연결 해제' }).click();
+    await page.getByRole('button', { name: 'Disconnect this device' }).click();
 
-    await expect(page.getByRole('button', { name: 'Genesis ID 연결' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Connect Genesis ID' })).toBeVisible();
     expect(await page.evaluate(() => sessionStorage.getItem('genesis:id:session:v1'))).toBeNull();
 });
 

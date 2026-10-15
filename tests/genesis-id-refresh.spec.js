@@ -2,7 +2,7 @@ const { test, expect } = require('@playwright/test');
 
 const identityOrigin = 'https://id.genesisframeworks.com';
 const sessionKey = 'genesis:id:session:v1';
-const included = 'Plus / Pro 혜택 · Editor 포함. 추가 이용료나 Sparks 차감 없이 사용할 수 있습니다.';
+const included = 'Editor is included with Plus / Pro. No extra app fee or Spark deduction.';
 
 function syntheticToken(uid) {
     const encode = (value) => Buffer.from(JSON.stringify(value)).toString('base64url');
@@ -68,7 +68,7 @@ test('callback-only document does not start a competing widget account refresh',
     const state = await stubAccount(page);
     await installSession(page);
     await page.goto('/auth/callback/');
-    await expect(page.getByRole('heading', { name: 'Genesis ID를 연결하지 못했습니다' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Could not connect Genesis ID' })).toBeVisible();
     await page.evaluate(async () => {
         await window.GenesisId.mountAll();
         window.dispatchEvent(new Event('focus'));
@@ -111,7 +111,7 @@ for (const failure of ['suspended', 'forbidden', 'server-error', 'wrong-uid']) {
         if (failure === 'server-error') state.status = 500;
         if (failure === 'wrong-uid') state.response = account('another-user');
         await page.getByRole('button', { name: /Genesis ID.*Plus/ }).click();
-        await expect(page.getByRole('button', { name: 'Genesis ID 연결' })).toBeVisible();
+        await expect(page.getByRole('button', { name: 'Connect Genesis ID' })).toBeVisible();
         await expect(page.getByText(included)).toHaveCount(0);
         expect(await page.evaluate((key) => sessionStorage.getItem(key), sessionKey)).toBeNull();
         await expect(page.locator('#import-btn')).toBeEnabled();
@@ -133,10 +133,10 @@ test('single flight across card, focus and multiple slots cannot resurrect local
         window.dispatchEvent(new Event('focus'));
         document.dispatchEvent(new Event('visibilitychange'));
     });
-    await page.getByRole('button', { name: '이 기기 연결 해제' }).click();
+    await page.getByRole('button', { name: 'Disconnect this device' }).click();
     release();
     await page.evaluate(() => window.refreshTestCompletion);
-    await expect(page.getByRole('button', { name: 'Genesis ID 연결' })).toHaveCount(2);
+    await expect(page.getByRole('button', { name: 'Connect Genesis ID' })).toHaveCount(2);
     await expect(page.getByText(included)).toHaveCount(0);
     expect(state.requests).toBe(2);
     expect(await page.evaluate((key) => sessionStorage.getItem(key), sessionKey)).toBeNull();
@@ -191,10 +191,10 @@ test('official token refresh remains single flight and cannot persist after sign
     await page.getByRole('button', { name: /Genesis ID.*Plus/ }).click();
     await expect.poll(() => refreshRequests).toBe(1);
     await page.evaluate(() => { window.refreshTestCompletion = window.GenesisId.mountAll(); });
-    await page.getByRole('button', { name: '이 기기 연결 해제' }).click();
+    await page.getByRole('button', { name: 'Disconnect this device' }).click();
     release();
     await page.evaluate(() => window.refreshTestCompletion);
-    await expect(page.getByRole('button', { name: 'Genesis ID 연결' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Connect Genesis ID' })).toBeVisible();
     expect(await page.evaluate((key) => sessionStorage.getItem(key), sessionKey)).toBeNull();
     expect(refreshRequests).toBe(1);
     expect(state.requests).toBe(1);
@@ -306,7 +306,7 @@ for (const uid of ['local-editor-a', 'unexpected-user']) {
             expect(await page.evaluate((key) => JSON.parse(sessionStorage.getItem(key)).refreshToken, sessionKey)).toBe('synthetic-local-refresh-rotated');
             expect(state.requests).toBe(2);
         } else {
-            await expect(page.getByRole('button', { name: 'Genesis ID 연결' })).toBeVisible();
+            await expect(page.getByRole('button', { name: 'Connect Genesis ID' })).toBeVisible();
             expect(await page.evaluate((key) => sessionStorage.getItem(key), sessionKey)).toBeNull();
             expect(state.requests).toBe(1);
         }

@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -8,8 +8,8 @@
     <meta name="genesis-id-origin" content="https://id.genesisframeworks.com">
     <meta name="genesis-id-app-id" content="genesis-editor">
     <meta name="genesis-id-callback-path" content="/auth/callback/">
-    <title>Genesis ID 연결 중 — Genesis Image Tools</title>
-    <link rel="stylesheet" href="/genesis-id.css?v=r-20104b195149121b">
+    <title>Connecting Genesis ID — Genesis Image Tools</title>
+    <link rel="stylesheet" href="/genesis-id.css?v=r-5fd581cf97360d61">
     <style>
         :root { color-scheme: light; font-family: Inter, system-ui, sans-serif; }
         body { min-height: 100vh; margin: 0; display: grid; place-items: center; color: #24202d; background: #f3f0fa; }
@@ -22,11 +22,11 @@
 </head>
 <body>
     <main id="callback-status" aria-live="polite">
-        <h1>Genesis ID 연결 중</h1>
-        <p>안전한 일회용 코드를 확인하고 있습니다.<br><span lang="en">Verifying the one-time connection code.</span></p>
-        <a href="/">Image Tools로 돌아가기</a>
+        <h1>Connecting Genesis ID</h1>
+        <p>Verifying the one-time connection code.</p>
+        <a href="/">Back to Image Tools</a>
     </main>
-    <script src="/genesis-id.js?v=r-20104b195149121b"></script>
+    <script src="/genesis-id.js?v=r-5fd581cf97360d61"></script>
     <script>
         (async () => {
             const status = document.getElementById('callback-status');
@@ -35,10 +35,10 @@
                 window.location.replace(returnTo);
             } catch (error) {
                 status.dataset.state = 'error';
-                status.querySelector('h1').textContent = 'Genesis ID를 연결하지 못했습니다';
+                status.querySelector('h1').textContent = 'Could not connect Genesis ID';
                 status.querySelector('p').textContent = error instanceof Error
                     ? error.message
-                    : '연결 요청이 만료되었습니다. 다시 시도해 주세요.';
+                    : 'The connection request expired. Please try again.';
             }
         })();
     </script>
