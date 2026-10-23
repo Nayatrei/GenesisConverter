@@ -7370,6 +7370,16 @@ body.app-shell-v2 .pdf-v2 {
     }
 }
 
+/* PDF controls and task navigation are already inline below this breakpoint.
+   The shared image-tools bottom sheet must not cover this standalone flow,
+   including when a live desktop tab is resized to a phone viewport. */
+@media (max-width: 1023px) {
+    body.app-shell-v2 .app-shell[data-active-case="pdf"] .app-sidebar,
+    body.app-shell-v2[data-active-case="pdf"] .mobile-sidebar-backdrop {
+        display: none !important;
+    }
+}
+
 @media (max-width: 720px) {
     .pdf-section-head--row,
     .pdf-footer-inner,
@@ -14345,4 +14355,151 @@ body.app-shell-v2 .workspace-tab-title,
 body.app-shell-v2 .workspace-tab-subtitle {
     overflow-wrap: anywhere;
     white-space: normal;
+}
+
+/* Local PDF compression has its own one-document lifecycle, not the merge queue. */
+body.app-shell-v2 .pdf-compress-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1.25fr) minmax(16rem, 0.85fr);
+    gap: 1rem;
+    min-width: 0;
+}
+
+body.app-shell-v2 .pdf-compress-source,
+body.app-shell-v2 .pdf-compress-output {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 1rem;
+    min-width: 0;
+    padding: 1.1rem;
+    border: 1px solid var(--clay-border);
+    border-radius: 13px;
+    background: var(--clay-surface-2);
+}
+
+body.app-shell-v2 .pdf-compress-file-summary {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0.45rem 0.85rem;
+    font-size: 0.875rem;
+    overflow-wrap: anywhere;
+}
+
+body.app-shell-v2 .pdf-compress-file-summary > strong {
+    flex-basis: 100%;
+}
+
+body.app-shell-v2 .pdf-compress-options {
+    border: 1px solid var(--clay-border);
+    border-radius: 10px;
+    background: var(--clay-surface);
+    padding: 0.85rem;
+}
+
+body.app-shell-v2 .pdf-compress-options summary {
+    color: var(--clay-text);
+    cursor: pointer;
+    font-size: 0.9rem;
+    font-weight: 700;
+    line-height: 1.5;
+    overflow-wrap: anywhere;
+}
+
+body.app-shell-v2 .pdf-compress-options-body {
+    display: grid;
+    gap: 1rem;
+    padding-top: 1rem;
+}
+
+body.app-shell-v2 .pdf-compress-disclosure,
+body.app-shell-v2 .pdf-compress-original-note,
+body.app-shell-v2 .pdf-compress-warnings {
+    margin: 0;
+    padding: 0.9rem;
+    border-radius: 10px;
+    border: 1px solid var(--clay-border);
+    background: var(--clay-surface);
+    color: var(--clay-muted);
+    line-height: 1.55;
+    font-size: 0.9rem;
+    overflow-wrap: anywhere;
+}
+
+body.app-shell-v2 .pdf-compress-original-note strong {
+    color: var(--clay-text);
+}
+
+body.app-shell-v2 .pdf-compress-original-note p,
+body.app-shell-v2 #pdf-compress-result p {
+    color: var(--clay-muted);
+    line-height: 1.55;
+}
+
+body.app-shell-v2 .pdf-compress-acknowledge {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.65rem;
+    font-size: 0.9rem;
+    line-height: 1.5;
+    cursor: pointer;
+}
+
+body.app-shell-v2 .pdf-compress-acknowledge input {
+    flex: 0 0 auto;
+    width: 1.2rem;
+    height: 1.2rem;
+    margin-top: 0.15rem;
+    accent-color: var(--clay-accent-deep);
+}
+
+body.app-shell-v2 .pdf-compress-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.65rem;
+}
+
+body.app-shell-v2 .pdf-compress-panel progress {
+    width: 100%;
+    accent-color: var(--clay-accent-deep);
+}
+
+body.app-shell-v2 #pdf-compress-result-size {
+    margin: 0.45rem 0;
+    color: var(--clay-text);
+    font-size: clamp(1.7rem, 3vw, 2.5rem);
+    font-weight: 800;
+    overflow-wrap: anywhere;
+}
+
+body.app-shell-v2 #pdf-compress-reduction {
+    color: var(--clay-accent-deep);
+}
+
+body.app-shell-v2 .pdf-compress-warnings {
+    margin-bottom: 1rem;
+    padding-left: 2rem;
+}
+
+body.app-shell-v2 .pdf-compress-panel [hidden] {
+    display: none !important;
+}
+
+@media (max-width: 1100px) {
+    body.app-shell-v2 .pdf-compress-layout {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}
+
+@media (max-width: 620px) {
+    body.app-shell-v2 .pdf-compress-source,
+    body.app-shell-v2 .pdf-compress-output {
+        padding: 0.85rem;
+    }
+
+    body.app-shell-v2 .pdf-compress-actions > button,
+    body.app-shell-v2 .pdf-compress-output button {
+        width: 100%;
+    }
 }
