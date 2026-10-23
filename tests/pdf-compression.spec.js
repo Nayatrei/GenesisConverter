@@ -159,7 +159,7 @@ test('Disposal aborts pending work, releases files and revokes owned download UR
     expect(await page.evaluate(() => window.__compression.state.pdf.compression.result)).toBeNull();
 });
 
-test('Mobile resize leaves Create copy and result download clickable with one active task and decimal sizes', async ({ page }) => {
+test('Mobile Reduce Size click reveals the chooser below the sticky header and keeps copy/download clickable', async ({ page }) => {
     const source = await PDFDocument.create();
     const font = await source.embedFont(StandardFonts.Helvetica);
     source.addPage([420, 300]).drawText('A smaller copy keeps this page.', { x: 30, y: 230, size: 18, font });
@@ -176,6 +176,20 @@ test('Mobile resize leaves Create copy and result download clickable with one ac
     await expect(page.locator('#pdf-compress-source-size')).toHaveAttribute('title', `${pdfBytes.length.toLocaleString('en-US')} bytes (decimal units)`);
     await page.setViewportSize({ width: 390, height: 844 });
     await expect(page.locator('.app-sidebar')).toBeHidden();
+    await page.locator('#pdf-task-combine-btn').click();
+    await page.evaluate(() => window.scrollTo(0, 0));
+    await page.locator('#pdf-task-compress-btn').click();
+    await expect(page.locator('#pdf-compress-dropzone')).toBeFocused();
+    const position = await page.evaluate(() => {
+        const header = document.querySelector('.workspace-topbar').getBoundingClientRect();
+        const panel = document.querySelector('#pdf-compress-panel').getBoundingClientRect();
+        const chooser = document.querySelector('#pdf-compress-dropzone').getBoundingClientRect();
+        return { headerBottom: header.bottom, panelTop: panel.top, chooserTop: chooser.top, chooserBottom: chooser.bottom, viewportHeight: window.innerHeight };
+    });
+    expect(position.panelTop).toBeGreaterThanOrEqual(position.headerBottom + 8);
+    expect(position.panelTop).toBeLessThan(position.headerBottom + 32);
+    expect(position.chooserTop).toBeGreaterThan(position.headerBottom);
+    expect(position.chooserBottom).toBeLessThanOrEqual(position.viewportHeight);
     await expect(page.locator('[data-pdf-task].active')).toHaveCount(1);
     await page.locator('#pdf-compress-start-btn').click();
     await expect(page.locator('#pdf-compress-result')).toBeVisible();

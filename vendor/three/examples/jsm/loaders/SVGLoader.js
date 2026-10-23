@@ -12,7 +12,7 @@ import {
 	SRGBColorSpace,
 	Vector2,
 	Vector3
-} from '../../../build/three.module.js?v=r-d9def9dcf7c56c8d';
+} from '../../../build/three.module.js?v=r-d45f015f257fd23c';
 
 const COLOR_SPACE_SVG = SRGBColorSpace;
 
