@@ -14393,10 +14393,17 @@ body.app-shell-v2 .workspace-tab-subtitle {
 }
 
 /* Local PDF compression has its own one-document lifecycle, not the merge queue. */
+body.app-shell-v2 .pdf-compress-panel {
+    border: 0;
+    background: transparent;
+    box-shadow: none;
+}
+
 body.app-shell-v2 .pdf-compress-layout {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 1rem;
+    gap: clamp(1.5rem, 3vw, 3rem);
+    align-items: start;
     min-width: 0;
 }
 
@@ -14407,10 +14414,20 @@ body.app-shell-v2 .pdf-compress-output {
     align-items: stretch;
     gap: 1rem;
     min-width: 0;
-    padding: 1.1rem;
-    border: 1px solid var(--clay-border);
-    border-radius: 13px;
-    background: var(--clay-surface-2);
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+}
+
+body.app-shell-v2 .pdf-compress-output {
+    padding-left: clamp(1.5rem, 3vw, 3rem);
+    border-left: 1px solid var(--clay-border);
+}
+
+body.app-shell-v2 .pdf-compress-panel[data-result-sticky="true"] .pdf-compress-output {
+    position: sticky;
+    top: var(--pdf-compress-sticky-top, 12rem);
 }
 
 body.app-shell-v2 .pdf-compress-file-summary {
@@ -14427,10 +14444,11 @@ body.app-shell-v2 .pdf-compress-file-summary > strong {
 }
 
 body.app-shell-v2 .pdf-compress-options {
-    border: 1px solid var(--clay-border);
-    border-radius: 10px;
-    background: var(--clay-surface);
-    padding: 0.85rem;
+    border: 0;
+    border-top: 1px solid var(--clay-border);
+    border-radius: 0;
+    background: transparent;
+    padding: 1rem 0 0;
 }
 
 body.app-shell-v2 .pdf-compress-options summary {
@@ -14449,25 +14467,19 @@ body.app-shell-v2 .pdf-compress-options-body {
 }
 
 body.app-shell-v2 .pdf-compress-disclosure,
-body.app-shell-v2 .pdf-compress-original-note,
 body.app-shell-v2 .pdf-compress-warnings {
     margin: 0;
-    padding: 0.9rem;
-    border-radius: 10px;
-    border: 1px solid var(--clay-border);
-    background: var(--clay-surface);
+    padding: 0;
+    border: 0;
+    background: transparent;
     color: var(--clay-muted);
     line-height: 1.55;
     font-size: 0.9rem;
     overflow-wrap: anywhere;
 }
 
-body.app-shell-v2 .pdf-compress-original-note strong {
-    color: var(--clay-text);
-}
-
-body.app-shell-v2 .pdf-compress-original-note p,
 body.app-shell-v2 #pdf-compress-result p {
+    margin: 0;
     color: var(--clay-muted);
     line-height: 1.55;
 }
@@ -14478,22 +14490,41 @@ body.app-shell-v2 #pdf-compress-result {
     gap: 0.85rem;
 }
 
-body.app-shell-v2 .pdf-compress-download-card {
+body.app-shell-v2 .pdf-compress-result-meta {
     display: flex;
-    flex-direction: column;
     align-items: center;
-    justify-content: center;
-    gap: 0.6rem;
-    min-height: 240px;
-    padding: 1.1rem;
-    border: 1px solid var(--clay-border-strong);
-    border-radius: 14px;
-    background: var(--clay-accent-soft);
-    text-align: center;
+    flex-wrap: wrap;
+    gap: 0.4rem 1rem;
+    font-size: 0.9rem;
 }
 
-body.app-shell-v2 .pdf-compress-download-card #pdf-compress-page-count {
+body.app-shell-v2 .pdf-compress-result-meta #pdf-compress-page-count {
     margin: 0;
+}
+
+body.app-shell-v2 .pdf-compress-result-details {
+    border-top: 1px solid var(--clay-border);
+    padding-top: 1rem;
+    color: var(--clay-muted);
+    font-size: 0.85rem;
+    line-height: 1.55;
+}
+
+body.app-shell-v2 .pdf-compress-result-details summary {
+    cursor: pointer;
+    font-weight: 700;
+}
+
+body.app-shell-v2 #pdf-compress-original-btn {
+    align-self: center;
+    padding: 0;
+    min-height: 2rem;
+    border: 0;
+    background: transparent;
+    box-shadow: none;
+    font-size: 0.8rem;
+    text-decoration: underline;
+    text-underline-offset: 3px;
 }
 
 /* Reuse the shared primary pill skin; enlarge the result action only. */
@@ -14551,16 +14582,15 @@ body.app-shell-v2 #pdf-compress-result-size {
 body.app-shell-v2 .pdf-compress-size-comparison {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 0.65rem;
-    margin: 0.75rem 0;
+    gap: 1rem;
+    margin: 0.5rem 0;
 }
 
 body.app-shell-v2 .pdf-compress-size-comparison > div {
     min-width: 0;
-    padding: 0.7rem;
-    border: 1px solid var(--clay-border);
-    border-radius: 10px;
-    background: var(--clay-surface);
+    padding: 0;
+    border: 0;
+    background: transparent;
 }
 
 body.app-shell-v2 .pdf-compress-size-comparison > div > span {
@@ -14576,7 +14606,7 @@ body.app-shell-v2 .pdf-compress-size-comparison #pdf-compress-result-size {
     min-width: 0;
     margin: 0.35rem 0 0;
     color: var(--clay-text);
-    font-size: clamp(1.05rem, 2vw, 1.65rem);
+    font-size: clamp(1.2rem, 2vw, 1.65rem);
     font-weight: 800;
     line-height: 1.35;
     overflow-wrap: anywhere;
@@ -14587,8 +14617,8 @@ body.app-shell-v2 #pdf-compress-reduction {
 }
 
 body.app-shell-v2 .pdf-compress-warnings {
-    margin-bottom: 1rem;
-    padding-left: 2rem;
+    margin-top: 0.75rem;
+    padding-left: 1.2rem;
 }
 
 body.app-shell-v2 .pdf-compress-panel [hidden] {
@@ -14599,12 +14629,19 @@ body.app-shell-v2 .pdf-compress-panel [hidden] {
     body.app-shell-v2 .pdf-compress-layout {
         grid-template-columns: minmax(0, 1fr);
     }
+
+    body.app-shell-v2 .pdf-compress-output {
+        position: static;
+        padding: 1.5rem 0 0;
+        border-left: 0;
+        border-top: 1px solid var(--clay-border);
+    }
 }
 
 @media (max-width: 620px) {
     body.app-shell-v2 .pdf-compress-source,
     body.app-shell-v2 .pdf-compress-output {
-        padding: 0.85rem;
+        padding-inline: 0;
     }
 
     body.app-shell-v2 .pdf-compress-actions > button,

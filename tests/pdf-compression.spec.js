@@ -70,9 +70,9 @@ test('Reduce Size balances upload/download cards and enables direct download aft
     await expect(page.locator('#pdf-compress-loss-notice')).toBeVisible();
     await expect(page.locator('#pdf-compress-loss-notice')).toContainText('flattened');
     expect(await page.locator('#pdf-compress-loss-notice').evaluate((element) => element.closest('details') === null)).toBe(true);
-    expect(await page.locator('.pdf-compress-size-comparison').evaluate((element) => Boolean(
-        element.compareDocumentPosition(document.querySelector('.pdf-compress-options')) & Node.DOCUMENT_POSITION_FOLLOWING
-    ))).toBe(true);
+    expect(await page.locator('.pdf-compress-size-comparison').evaluate((element) =>
+        element.closest('.pdf-compress-output') !== null
+    )).toBe(true);
     await expect(page.locator('#pdf-compress-start-btn')).toBeDisabled();
     await page.locator('#pdf-compress-file-input').setInputFiles({ name: 'example.pdf', mimeType: 'application/pdf', buffer: bytes });
     await expect(page.locator('#pdf-compress-before-size')).toHaveText(bytes.length < 1000 ? `${bytes.length} B` : `${(bytes.length / 1000).toFixed(2)} KB`);
@@ -96,10 +96,18 @@ test('Reduce Size balances upload/download cards and enables direct download aft
     });
     expect(Math.abs(layout.sourceWidth - layout.outputWidth)).toBeLessThan(2);
     expect(Math.abs(layout.sourceTop - layout.outputTop)).toBeLessThan(2);
-    expect(Math.abs(layout.sourceHeight - layout.outputHeight)).toBeLessThan(2);
+    await expect(page.locator('#pdf-compress-panel')).toHaveAttribute('data-result-sticky', 'true');
+    expect(await page.locator('.pdf-compress-output').evaluate((element) => getComputedStyle(element).position)).toBe('sticky');
     expect(layout.buttonWidth).toBeGreaterThan(layout.outputWidth * 0.7);
     expect(layout.buttonHeight).toBeGreaterThanOrEqual(64);
     expect(layout.buttonBottom).toBeLessThanOrEqual(layout.noticeTop);
+    await expect(page.locator('.pdf-compress-result-details')).not.toHaveAttribute('open', '');
+    await expect(page.locator('#pdf-compress-warnings')).toBeHidden();
+    await page.setViewportSize({ width: 1280, height: 360 });
+    await expect(page.locator('#pdf-compress-panel')).toHaveAttribute('data-result-sticky', 'false');
+    expect(await page.locator('.pdf-compress-output').evaluate((element) => getComputedStyle(element).position)).toBe('static');
+    await page.setViewportSize({ width: 1280, height: 720 });
+    await expect(page.locator('#pdf-compress-panel')).toHaveAttribute('data-result-sticky', 'true');
     await page.locator('#pdf-compress-options-summary').click();
     await page.locator('#pdf-compress-mode').selectOption('optimize');
     await expect(page.locator('#pdf-compress-result-size')).toHaveAttribute('title', /bytes \(decimal units\)/);
