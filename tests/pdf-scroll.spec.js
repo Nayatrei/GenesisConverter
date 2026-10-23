@@ -24,11 +24,11 @@ for (const viewport of [{ width: 1280, height: 640 }, { width: 1440, height: 900
         await page.setViewportSize(viewport);
         await page.goto('/pdf');
         await expect(page.locator('[data-pdf-task]')).toHaveCount(5);
-        const rail = page.locator('.app-sidebar');
+        const rail = page.locator('.stage-inspector-rail');
         const railLayout = await rail.evaluate((element) => ({ position: getComputedStyle(element).position, height: element.getBoundingClientRect().height }));
         expect(railLayout.position).toBe('sticky');
         expect(railLayout.height).toBeLessThanOrEqual(viewport.height + 1);
-        const sidebar = page.locator('.app-sidebar .sidebar-scroll');
+        const sidebar = page.locator('.app-sidebar');
         const beforeNavigation = await sidebar.evaluate((element) => ({ top: element.scrollTop, height: element.clientHeight, content: element.scrollHeight }));
         if (beforeNavigation.content > beforeNavigation.height + 1) {
             await pointerInside(page, sidebar);

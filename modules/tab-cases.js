@@ -38,7 +38,7 @@ export const TAB_CASES = {
         accentRgb: '56, 189, 248',
         importTitle: '1. Load Image',
         importButton: 'Import From Device',
-        importCopy: 'Choose a single image from your device or paste a direct image URL. Supported imports: {{formats}}.',
+        importCopy: 'Open an image from your device or paste a direct image URL.',
         importAria: 'Import an image from your device',
         sections: new Set([
             'import-image',
@@ -61,7 +61,7 @@ export const TAB_CASES = {
         accentRgb: '167, 139, 250',
         importTitle: '1. Load Image',
         importButton: 'Import From Device',
-        importCopy: 'Choose a single image from your device or paste a direct image URL. Supported imports: {{formats}}.',
+        importCopy: 'Open an image from your device or paste a direct image URL.',
         importAria: 'Import an image from your device',
         sections: new Set([
             'import-image',
@@ -84,7 +84,7 @@ export const TAB_CASES = {
         accentRgb: '251, 191, 36',
         importTitle: '1. Load Image',
         importButton: 'Import From Device',
-        importCopy: 'Choose a single image from your device or paste a direct image URL. Supported imports: {{formats}}.',
+        importCopy: 'Open an image from your device or paste a direct image URL.',
         importAria: 'Import an image from your device',
         sections: new Set([
             'import-image',
@@ -104,7 +104,7 @@ export const TAB_CASES = {
         accentRgb: '244, 114, 182',
         importTitle: '1. Load Image',
         importButton: 'Import From Device',
-        importCopy: 'Choose a single image from your device or paste a direct image URL. Supported imports: {{formats}}.',
+        importCopy: 'Open an image from your device or paste a direct image URL.',
         importAria: 'Import an image from your device',
         sections: new Set([
             'import-image',
@@ -242,6 +242,7 @@ export function applyTabCase(name, ctx = {}) {
     }
     if (importCopyEl && caseConfig.importCopy) {
         importCopyEl.textContent = caseConfig.importCopy.replace('{{formats}}', importablePrompt);
+        importCopyEl.title = 'Supported imports: ' + importablePrompt + '.';
     }
     if (importBtnEl && caseConfig.importAria) {
         importBtnEl.setAttribute('aria-label', caseConfig.importAria);
@@ -288,6 +289,9 @@ export function applyTabCase(name, ctx = {}) {
         shell.dataset.activeCase = name;
     }
     document.body.dataset.activeCase = name;
+    document.getElementById('stage-logo-source-host')?.classList.toggle('hidden', name !== 'logo');
+    document.getElementById('stage-raster-controls-host')?.classList.toggle('hidden', name !== 'raster');
+    document.getElementById('stage-bulk-controls-host')?.classList.toggle('hidden', name !== 'bulk');
 
     return caseConfig;
 }

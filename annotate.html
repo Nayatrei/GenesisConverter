@@ -6,7 +6,7 @@
     <meta name="genesis-id-origin" content="https://id.genesisframeworks.com">
     <meta name="genesis-id-app-id" content="genesis-editor">
     <meta name="genesis-id-callback-path" content="/auth/callback/">
-    <meta name="theme-color" content="#F3F0FA">
+    <meta name="theme-color" content="#0b0b10">
     <link rel="manifest" href="manifest.webmanifest?v=1">
     <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png?v=1">
     <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png?v=1">
@@ -14,11 +14,12 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet">
-    <script type="module" src="app-bootstrap.js?v=r-a962f21ef9708c00"></script>
-    <script src="genesis-id.js?v=r-a962f21ef9708c00" defer></script>
-    <link id="app-stylesheet" rel="stylesheet" href="style.css?v=r-a962f21ef9708c00">
-    <link id="annotate-stylesheet" rel="stylesheet" href="annotate.css?v=r-a962f21ef9708c00">
-    <link rel="stylesheet" href="genesis-id.css?v=r-a962f21ef9708c00">
+    <script type="module" src="app-bootstrap.js?v=r-dd34831b95192447"></script>
+    <script src="genesis-id.js?v=r-dd34831b95192447" defer></script>
+    <link id="app-stylesheet" rel="stylesheet" href="style.css?v=r-dd34831b95192447">
+    <link id="annotate-stylesheet" rel="stylesheet" href="annotate.css?v=r-dd34831b95192447">
+    <link rel="stylesheet" href="genesis-id.css?v=r-dd34831b95192447">
+    <link id="stage-stylesheet" rel="stylesheet" href="stage-theme.css?v=r-dd34831b95192447">
 
     <!-- SEO:start -->
     <title>Annotate Images Online | Genesis Image Tools</title>
@@ -32,7 +33,32 @@
     <script type="application/json" id="seo-pages">{"3d-obj":{"title":"Image to STL & Layered 3D Converter | Genesis Image Tools","description":"Turn flat PNG and JPG artwork into layered 3D models in your browser. Preview print dimensions and export per-layer STL, OBJ or Bambu 3MF files."},"logo":{"title":"Logo to 3D & Bambu 3MF Converter | Genesis Image Tools","description":"Build layered 3D logos from images, SVG or text presets. Check model size and filament layers, then export a Bambu 3MF project or per-layer STL files."},"raster":{"title":"Resize & Convert Images Online | Genesis Image Tools","description":"Resize and convert images in your browser. Open PNG, JPG, WebP or HEIC images, adjust your image and download the result without signing in."},"bulk":{"title":"Batch Image Converter & Resizer | Genesis Image Tools","description":"Convert and resize multiple images in your browser. Prepare a batch of image exports with Genesis Image Tools, without signing in."},"pdf":{"title":"Compress & Convert PDFs | Genesis Image Tools","description":"Make a smaller PDF copy, combine pages, save PDF pages as images, or turn images into a PDF. Private browser tools with no upload or sign-in."},"annotate":{"title":"Annotate Images Online | Genesis Image Tools","description":"Open an image and add annotations in your browser. Mark up screenshots and visual feedback with Genesis Image Tools, without signing in."}}</script>
     <!-- SEO:end -->
 </head>
-<body class="app-body antialiased app-shell-v2">
+<body class="app-body antialiased app-shell-v2 immersive-stage">
+    <a class="stage-skip" href="#main-content">Skip to workspace</a>
+    <header class="stage-header">
+        <a class="stage-brand" href="/" aria-label="Genesis Editor home"><span class="stage-brand-mark" aria-hidden="true">g</span><span>Genesis Editor<small>THE CREATIVE TOOLKIT</small></span></a>
+        <div class="workspace-topbar">
+            <div class="workspace-toolbar-group">
+                <nav class="segmented-control-container export-tabs-overlay" aria-label="Editor tools">
+                    <div class="segmented-control">
+                        <div class="segmented-control-indicator"></div>
+                        <button class="segmented-control-tab export-tab active" data-tab="svg"><span class="workspace-tab-title">Bambu 3D</span><span class="workspace-tab-subtitle">AMS color print from image</span></button>
+                        <button class="segmented-control-tab export-tab" data-tab="logo"><span class="workspace-tab-title">Logo</span><span class="workspace-tab-subtitle">Custom HTML logo to 3D</span></button>
+                        <button class="segmented-control-tab export-tab" data-tab="raster"><span class="workspace-tab-title">Raster</span><span class="workspace-tab-subtitle">Resize Images</span></button>
+                        <button class="segmented-control-tab export-tab" data-tab="bulk"><span class="workspace-tab-title">Bulk</span><span class="workspace-tab-subtitle">Resize Bulk Images</span></button>
+                        <button class="segmented-control-tab export-tab" data-tab="pdf"><span class="workspace-tab-title">PDF</span><span class="workspace-tab-subtitle">Convert PDF</span></button>
+                        <button class="segmented-control-tab export-tab" data-tab="annotate"><span class="workspace-tab-title">Annotate</span><span class="workspace-tab-subtitle">Draw on Images</span></button>
+                    </div>
+                </nav>
+                <button id="mobile-controls-toggle" class="mobile-controls-toggle" aria-expanded="false" aria-controls="app-sidebar" aria-label="Open settings panel"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 3v18M12 3v18M20 3v18M1 8h6m2 8h6m2-10h6"/></svg></button>
+            </div>
+        </div>
+        <div class="stage-header-actions"><a href="/guides/">Guides ↗</a><div data-genesis-id-slot data-variant="tool"></div></div>
+    </header>
+    <section id="tab-case-strip" class="tab-case-strip stage-intro" data-case="svg" aria-live="polite" aria-label="Current tool">
+        <div class="tab-case-strip-body"><span class="tab-case-strip-eyebrow" data-case-eyebrow>Image to Bambu 3MF</span><h1 class="tab-case-strip-title" data-case-title>Make an AMS color print</h1><p class="tab-case-strip-desc" data-case-desc>Separate image colors, reduce filament swaps, and export an AMS-ready Bambu project.</p></div>
+        <span class="stage-privacy">Local conversion<br>No sign-in required</span><span class="tab-case-strip-badge" data-case-badge>Bambu 3D</span>
+    </section>
 
     <div id="loader-overlay" class="fixed inset-0 flex flex-col items-center justify-center hidden">
         <div class="spinner h-16 w-16 rounded-full border-4"></div>
@@ -47,32 +73,14 @@
     </div>
 
     <div class="app-shell">
+        <div class="stage-inspector-rail">
         <!-- Control Panel -->
         <aside id="app-sidebar" class="control-panel app-sidebar w-[26rem] flex flex-col flex-shrink-0">
-            <header class="p-6 border-b border-gray-700">
-                <a class="app-brand" href="/" aria-label="Genesis Image Tools home">
-                    <img src="icon-192.png?v=1" alt="" class="app-brand-mark">
-                    <div class="app-brand-copy">
-                        <h1 class="text-2xl font-bold text-gray-100">Genesis Image Tools</h1>
-                        <p class="text-sm text-gray-400">Vector & Raster Image Tools</p>
-                    </div>
-                </a>
-                <a href="/guides/" class="text-sm text-gray-400" style="display:inline-block;padding:8px 0;text-decoration:underline">Tool guides &amp; examples</a>
-                <div data-genesis-id-slot data-variant="tool"></div>
-            </header>
-
-            <!-- Tab case identity strip: shows which tab's context is active -->
-            <div id="tab-case-strip" class="tab-case-strip" data-case="svg" aria-live="polite">
-                <span class="tab-case-strip-rail" aria-hidden="true"></span>
-                <div class="tab-case-strip-body">
-                    <span class="tab-case-strip-eyebrow" data-case-eyebrow>Image to Bambu 3MF</span>
-                    <span class="tab-case-strip-title" data-case-title>Make an AMS color print</span>
-                    <span class="tab-case-strip-desc" data-case-desc>Separate image colors, reduce filament swaps, and export an AMS-ready Bambu project.</span>
-                </div>
-                <span class="tab-case-strip-badge" data-case-badge>Bambu 3D</span>
-            </div>
+            <header class="stage-inspector-heading"><div><strong>Source &amp; settings</strong><span>Fine-tune your output</span></div><button id="mobile-controls-close" type="button" aria-label="Close settings panel">×</button></header>
 
             <div class="flex-grow p-4 overflow-y-auto sidebar-scroll">
+                <section id="stage-logo-source-host" class="logo-v2 hidden" aria-label="Logo source and builder"></section>
+                <section id="stage-raster-controls-host" class="raster-v2 hidden" aria-label="Image source and adjustments"></section>
 
                 <!-- 1. Load Image -->
                 <div id="sidebar-import-section" class="sidebar-accordion" data-case-section="import-image">
@@ -110,6 +118,7 @@
                 </div>
 
                 <!-- 2. Adjust Conversion -->
+                <section id="stage-bulk-controls-host" class="bulk-v2 hidden" aria-label="Batch export settings"></section>
                 <div id="sidebar-adjust-section" class="sidebar-accordion" data-case-section="adjust">
                     <div class="sidebar-accordion-header expanded" role="button" tabindex="0" onclick="toggleSidebarAccordion(this, 'sidebar-adjust-content')" onkeydown="if(event.key==='Enter'||event.key===' ')toggleSidebarAccordion(this,'sidebar-adjust-content')">
                         <span class="sidebar-accordion-label">
@@ -554,36 +563,14 @@
                 </div>
             </footer>
         </aside>
+        <section id="stage-export-host" aria-label="Export your work"></section>
+        </div>
 
         <!-- Mobile sidebar backdrop -->
         <div id="mobile-sidebar-backdrop" class="mobile-sidebar-backdrop"></div>
 
         <!-- Workspace -->
         <main class="workspace app-workspace relative flex-grow p-0 flex flex-col overflow-hidden">
-            <div class="workspace-topbar">
-                <div class="workspace-toolbar-group">
-                    <div class="segmented-control-container export-tabs-overlay" aria-label="Export Tabs">
-                        <div class="segmented-control">
-                            <div class="segmented-control-indicator"></div>
-                            <button class="segmented-control-tab export-tab active" data-tab="svg"><span class="workspace-tab-title">Bambu 3D</span><span class="workspace-tab-subtitle">AMS color print from image</span></button>
-                            <button class="segmented-control-tab export-tab" data-tab="logo"><span class="workspace-tab-title">Logo</span><span class="workspace-tab-subtitle">Custom HTML logo to 3D</span></button>
-                            <button class="segmented-control-tab export-tab" data-tab="raster"><span class="workspace-tab-title">Raster</span><span class="workspace-tab-subtitle">Resize Images</span></button>
-                            <button class="segmented-control-tab export-tab" data-tab="bulk"><span class="workspace-tab-title">Bulk</span><span class="workspace-tab-subtitle">Resize Bulk Images</span></button>
-                            <button class="segmented-control-tab export-tab" data-tab="pdf"><span class="workspace-tab-title">PDF</span><span class="workspace-tab-subtitle">Convert PDF</span></button>
-                            <button class="segmented-control-tab export-tab" data-tab="annotate"><span class="workspace-tab-title">Annotate</span><span class="workspace-tab-subtitle">Draw on Images</span></button>
-                        </div>
-                    </div>
-                    <button id="mobile-controls-toggle" class="mobile-controls-toggle" aria-expanded="false" aria-controls="app-sidebar" aria-label="Open settings panel">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/>
-                            <line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/>
-                            <line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/>
-                            <line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/>
-                            <line x1="17" y1="16" x2="23" y2="16"/>
-                        </svg>
-                    </button>
-                </div>
-            </div>
             <div id="welcome-screen" class="h-full flex flex-col items-center justify-center text-center p-8">
                 <div id="workspace-dropzone" class="workspace-dropzone" onclick="document.getElementById('file-input').click()">
                     <div class="workspace-dropzone-inner">
@@ -620,10 +607,11 @@
                         </div>
 
                         <div id="bulk-original-view" class="hidden" data-case-section="original-folder">
+                            <details class="stage-source-files"><summary>Source files &amp; original information</summary>
                             <div class="flex justify-between items-center mb-3 original-image-header">
                                 <div>
                                     <h3 class="font-semibold text-gray-200" style="font-size: clamp(0.875rem, 1.5vw, 1rem);">Original Images</h3>
-                                    <div id="bulk-folder-summary" class="text-xs text-gray-400 mt-1">Choose a folder from the left sidebar to scan PNG, JPG, JPEG, HEIC, WEBP, GIF, BMP, AVIF, SVG, ICO, TIFF, and other browser-compatible image files.</div>
+                                    <div id="bulk-folder-summary" class="text-xs text-gray-400 mt-1">Choose a folder from the settings panel to scan PNG, JPG, JPEG, HEIC, WEBP, GIF, BMP, AVIF, SVG, ICO, TIFF, and other browser-compatible image files.</div>
                                 </div>
                             </div>
                             <div class="bulk-list-shell">
@@ -637,6 +625,7 @@
                                     <div class="bulk-empty-state">No folder selected.</div>
                                 </div>
                             </div>
+                            </details>
                         </div>
                     </div>
 
@@ -690,6 +679,10 @@
                 sidebar.classList.add('mobile-open');
                 backdrop.classList.add('visible');
                 document.body.classList.add('mobile-controls-open');
+                sidebar.setAttribute('role', 'dialog');
+                sidebar.setAttribute('aria-modal', 'true');
+                sidebar.setAttribute('aria-label', 'Tool settings');
+                document.getElementById('mobile-controls-close')?.focus();
                 if (toggle) {
                     toggle.setAttribute('aria-expanded', 'true');
                     toggle.setAttribute('aria-label', 'Close settings panel');
@@ -699,6 +692,8 @@
                 sidebar.classList.remove('mobile-open');
                 backdrop.classList.remove('visible');
                 document.body.classList.remove('mobile-controls-open');
+                sidebar.removeAttribute('role');
+                sidebar.removeAttribute('aria-modal');
                 if (toggle) {
                     toggle.setAttribute('aria-expanded', 'false');
                     toggle.setAttribute('aria-label', 'Open settings panel');
@@ -709,9 +704,16 @@
                 sidebar.classList.contains('mobile-open') ? closeSheet() : openSheet();
             });
             if (backdrop) backdrop.addEventListener('click', function() { closeSheet(false); });
+            document.getElementById('mobile-controls-close')?.addEventListener('click', function() { closeSheet(true); });
             document.addEventListener('keydown', function(event) {
                 if (event.key === 'Escape' && sidebar.classList.contains('mobile-open')) {
                     closeSheet(true);
+                }
+                if (event.key === 'Tab' && sidebar.classList.contains('mobile-open')) {
+                    var focusable = Array.from(sidebar.querySelectorAll('button:not(:disabled), input:not(:disabled), select:not(:disabled), textarea:not(:disabled), a[href], [tabindex="0"]')).filter(function(node) { return node.getClientRects().length > 0; });
+                    var first = focusable[0], last = focusable[focusable.length - 1];
+                    if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last?.focus(); }
+                    if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus(); }
                 }
             });
             mq.addEventListener('change', function(e) { if (!e.matches) closeSheet(); });

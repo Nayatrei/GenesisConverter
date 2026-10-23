@@ -1,5 +1,5 @@
-import { compressPdf } from './pdf-compression.js?v=r-a962f21ef9708c00';
-import { sanitizePdfFilename } from './pdf-utils.js?v=r-a962f21ef9708c00';
+import { compressPdf } from './pdf-compression.js?v=r-dd34831b95192447';
+import { sanitizePdfFilename } from './pdf-utils.js?v=r-dd34831b95192447';
 
 const MODES = new Set(['optimize', 'simplify', 'rasterize']);
 const PRESETS = new Set(['high', 'balanced', 'small']);

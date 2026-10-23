@@ -10,6 +10,10 @@
     --annotate-gap: clamp(0.65rem, 1.4vw, 1rem);
 }
 
+/* Tool-dependent option groups and the empty/editor states are controlled by
+   the controller's .hidden flag, not by each component's flex layout. */
+.annotate-v2 .hidden { display: none !important; }
+
 /* ---------------------------------------------------------------- dropzone */
 
 .annotate-v2 .annotate-dropzone {

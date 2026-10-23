@@ -9842,7 +9842,7 @@ body.app-shell-v2 .sidebar-sub-icon {
 }
 
 .logo-v2 .output-card-content[data-source-mode="image"]::after {
-    content: "Use Import From Device in the left panel to choose a logo image. PNG or SVG with a transparent background gives the cleanest layers.";
+    content: "Use Import From Device in the settings panel to choose a logo image. PNG or SVG with a transparent background gives the cleanest layers.";
     display: block;
     padding: 0.85rem;
     border: 1px dashed var(--bulk-hairline-strong);

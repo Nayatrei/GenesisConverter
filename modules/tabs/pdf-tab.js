@@ -5,7 +5,7 @@ import {
     PDF_IMAGE_EXPORT_MAX_TOTAL_BYTES,
     sanitizePdfFilename,
     validatePdfImageExportPlan
-} from './pdf-utils.js?v=r-a962f21ef9708c00';
+} from './pdf-utils.js?v=r-dd34831b95192447';
 import {
     canvasToBlobAsync,
     estimateSizeBytes,
@@ -13,11 +13,11 @@ import {
     formatBytes,
     getRasterExtension,
     sanitizeFileComponent
-} from '../raster-utils.js?v=r-a962f21ef9708c00';
-import { createZipFile } from '../export3d.js?v=r-a962f21ef9708c00';
-import { createImageToPdfController } from './pdf-image-to-pdf.js?v=r-a962f21ef9708c00';
-import { createPdfOcrController } from './pdf-ocr.js?v=r-a962f21ef9708c00';
-import { createPdfCompressionController } from './pdf-compress-ui.js?v=r-a962f21ef9708c00';
+} from '../raster-utils.js?v=r-dd34831b95192447';
+import { createZipFile } from '../export3d.js?v=r-dd34831b95192447';
+import { createImageToPdfController } from './pdf-image-to-pdf.js?v=r-dd34831b95192447';
+import { createPdfOcrController } from './pdf-ocr.js?v=r-dd34831b95192447';
+import { createPdfCompressionController } from './pdf-compress-ui.js?v=r-dd34831b95192447';
 
 let pdfLibPromise = null;
 let pdfJsPromise = null;
@@ -60,16 +60,16 @@ async function exportCanvasToImageBlob(canvas, format) {
 
 async function getPdfLib() {
     if (!pdfLibPromise) {
-        pdfLibPromise = import('../../vendor/pdf-lib/pdf-lib.esm.min.js?v=r-a962f21ef9708c00');
+        pdfLibPromise = import('../../vendor/pdf-lib/pdf-lib.esm.min.js?v=r-dd34831b95192447');
     }
     return pdfLibPromise;
 }
 
 async function getPdfJs() {
     if (!pdfJsPromise) {
-        pdfJsPromise = import('../../vendor/pdfjs/pdf.min.mjs?v=r-a962f21ef9708c00').then((pdfjs) => {
+        pdfJsPromise = import('../../vendor/pdfjs/pdf.min.mjs?v=r-dd34831b95192447').then((pdfjs) => {
             pdfjs.GlobalWorkerOptions.workerSrc =
-                new URL('../../vendor/pdfjs/pdf.worker.min.mjs?v=r-a962f21ef9708c00', import.meta.url).href;
+                new URL('../../vendor/pdfjs/pdf.worker.min.mjs?v=r-dd34831b95192447', import.meta.url).href;
             return pdfjs;
         });
     }
@@ -186,7 +186,8 @@ export function createPdfTabController({
         if (!window.matchMedia?.('(max-width: 1023px)').matches) return;
         const panel = elements.pdf.compressPanel;
         if (!panel || getActiveTask() !== 'compress') return;
-        const topbar = panel.closest('.app-workspace')?.querySelector('.workspace-topbar');
+        const topbar = document.querySelector('.stage-header')
+            || panel.closest('.app-workspace')?.querySelector('.workspace-topbar');
         let headerOffset = 0;
         if (topbar) {
             const style = window.getComputedStyle(topbar);

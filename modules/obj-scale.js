@@ -1,4 +1,4 @@
-import { BED_PRESETS } from './config.js?v=r-a962f21ef9708c00';
+import { BED_PRESETS } from './config.js?v=r-dd34831b95192447';
 
 const OBJ_SCALE_MIN = 0.1;
 const OBJ_SCALE_MAX = 200;
