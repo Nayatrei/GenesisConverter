@@ -3,7 +3,7 @@ import {
 	Matrix3,
 	Vector2,
 	Vector3
-} from '../../../build/three.module.js?v=r-dd34831b95192447';
+} from '../../../build/three.module.js?v=r-8acb18e35a0108d5';
 
 class OBJExporter {
 

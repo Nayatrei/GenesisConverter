@@ -17,47 +17,51 @@ for (const width of [390, 1440]) {
             }
             const layout = await page.evaluate(() => {
                 const sheet = [...document.styleSheets].find(s => s.href?.includes('/stage-theme.css?'));
-                const panel = document.querySelector('.app-sidebar');
                 const workspace = document.querySelector('.app-workspace');
                 return {
                     overflow: document.documentElement.scrollWidth > innerWidth,
                     darkScheme: getComputedStyle(document.documentElement).colorScheme,
                     sheetLoaded: Boolean(sheet?.cssRules.length),
-                    inspectorRight: panel && workspace && innerWidth >= 1024
-                        ? panel.getBoundingClientRect().left >= workspace.getBoundingClientRect().right : true
+                    noSidebar: !document.querySelector('.app-sidebar, .stage-inspector-rail, #mobile-controls-toggle'),
+                    controlsInMain: !workspace || ['sidebar-import-section', 'sidebar-adjust-section', 'sidebar-primary-footer'].every(id => workspace.contains(document.getElementById(id)))
                 };
             });
             expect(layout.overflow, route).toBe(false);
             expect(layout.darkScheme, route).toBe('dark');
             expect(layout.sheetLoaded, route).toBe(true);
-            expect(layout.inspectorRight, route).toBe(true);
-            if (route === '/pdf' && width >= 1024) {
-                expect(await page.locator('.app-sidebar').evaluate(node => node.getBoundingClientRect().height)).toBeGreaterThan(300);
+            expect(layout.noSidebar, route).toBe(true);
+            expect(layout.controlsInMain, route).toBe(true);
+            if (route === '/bulk') {
+                await expect(page.locator('.bulk-format-tab.active')).toHaveCSS('color', 'rgb(46, 30, 64)');
             }
         }
     });
 }
 
-test('export actions move with the viewport without cloning controller nodes', async ({ page }) => {
+test('controls and exports stay in the main workflow without cloning or responsive relocation', async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 1000 });
     await page.goto('/raster');
     const footer = page.locator('#download-footer');
-    await expect(page.locator('#stage-export-host #download-footer')).toHaveCount(1);
+    await expect(page.locator('#main-content #download-footer')).toHaveCount(1);
     await footer.evaluate(node => node.dataset.qaIdentity = 'same-export-node');
     await page.setViewportSize({ width: 390, height: 844 });
     await expect(page.locator('#main-content #download-footer')).toHaveCount(1);
     await expect(footer).toHaveAttribute('data-qa-identity', 'same-export-node');
     await page.setViewportSize({ width: 1440, height: 1000 });
-    await expect(page.locator('#stage-export-host #download-footer')).toHaveCount(1);
+    await expect(page.locator('#main-content #download-footer')).toHaveCount(1);
     await expect(footer).toHaveAttribute('data-qa-identity', 'same-export-node');
     await expect(page.locator('#save-resized-png-btn')).toHaveCount(1);
     await page.locator('[data-tab="logo"]').click();
-    await expect(page.locator('#stage-logo-source-host .logo-source-card')).toHaveCount(1);
+    await expect(page.locator('#tab-logo .logo-source-card')).toHaveCount(1);
     await page.locator('.logo-source-card').evaluate(node => node.dataset.qaIdentity = 'same-source-node');
     await page.setViewportSize({ width: 390, height: 844 });
     await expect(page.locator('#tab-logo .logo-source-card')).toHaveAttribute('data-qa-identity', 'same-source-node');
     await page.setViewportSize({ width: 1440, height: 1000 });
-    await expect(page.locator('#stage-logo-source-host .logo-source-card')).toHaveAttribute('data-qa-identity', 'same-source-node');
+    await expect(page.locator('#tab-logo .logo-source-card')).toHaveAttribute('data-qa-identity', 'same-source-node');
+    await expect(page.locator('main #import-btn')).toHaveCount(1);
+    await expect(page.locator('main #generate-preview-btn')).toHaveCount(1);
+    await page.locator('[data-tab="pdf"]').click();
+    await expect(page.locator('#tab-pdf #pdf-task-navigation [data-pdf-task]')).toHaveCount(5);
 });
 
 test('Annotate keeps empty states and tool options hidden, then draws and exports PNG', async ({ page }) => {
@@ -91,12 +95,12 @@ test('Annotate keeps empty states and tool options hidden, then draws and export
     await expect(page.locator('#annotate-redo-btn')).toBeEnabled();
 });
 
-test('3D export rail retains readable full-width recommended actions', async ({ page }) => {
+test('3D export actions are readable inside the main workflow', async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto('/3d-obj');
     for (const tab of ['svg', 'logo']) {
         await page.locator(`.segmented-control-tab[data-tab="${tab}"]`).click();
-        const layout = await page.locator(`#stage-export-host [data-tab-footer="${tab}"]`).evaluate(footer => {
+        const layout = await page.locator(`main [data-tab-footer="${tab}"]`).evaluate(footer => {
             const group = footer.querySelector('.export-recommended-group');
             return {
                 footerWidth: footer.clientWidth,
@@ -104,7 +108,7 @@ test('3D export rail retains readable full-width recommended actions', async ({ 
                 clippedActions: [...group.querySelectorAll('button')].filter(b => b.scrollWidth > b.clientWidth + 1).length
             };
         });
-        expect(layout.groupWidth).toBeGreaterThan(layout.footerWidth * .8);
+        expect(layout.groupWidth).toBeGreaterThan(layout.footerWidth * .45);
         expect(layout.clippedActions).toBe(0);
     }
 });

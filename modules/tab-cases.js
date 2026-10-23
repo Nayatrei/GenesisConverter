@@ -1,8 +1,8 @@
 /**
  * Tab Case Registry
  * -----------------
- * Each tab declares — in one place — what its first column (sidebar) and
- * second column (workspace) should look like. This replaces the scattered
+ * Each tab declares — in one place — which shared controls and workspace
+ * content are available in its main workflow. This replaces the scattered
  * `classList.toggle('hidden', ...)` calls that used to live in converter.js.
  *
  * To add a new tab or change what a tab shows, edit the registry entry —
@@ -131,8 +131,7 @@ export const TAB_CASES = {
         ])
     },
 
-    // PDF exposes independent browser-local conversion tools. The PDF file
-    // queue stays in column 1 while the selected task runs in the workspace.
+    // PDF owns its task chooser and file queue inside its main workspace.
     pdf: {
         label: 'PDF',
         eyebrow: 'Private PDF tools',
@@ -146,9 +145,7 @@ export const TAB_CASES = {
         importCopy: null,
         importAria: null,
         hideResolutionNotice: true,
-        sections: new Set([
-            'pdf-tools'
-        ])
+        sections: new Set([])
     }
 };
 
@@ -159,7 +156,6 @@ const SIDEBAR_SECTION_NODES = [
     'adjust-svg',
     'adjust-logo',
     'adjust-3d',
-    'pdf-tools',
     'footer',
     'footer-svg',
     'footer-logo'
@@ -195,7 +191,12 @@ export function applyTabCase(name, ctx = {}) {
     // derived from the tab name (panel id `tab-<name>`, footer data-tab-footer).
     document.querySelectorAll('.segmented-control-tab').forEach((btn) => {
         btn.classList.toggle('active', btn.dataset.tab === name);
+        if (btn.dataset.tab === name) btn.setAttribute('aria-current', 'page');
+        else btn.removeAttribute('aria-current');
     });
+    if (window.innerWidth < 1024) {
+        document.querySelector('.stage-header [aria-current="page"]')?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+    }
     document.querySelectorAll('.export-panel').forEach((panel) => {
         panel.classList.toggle('hidden', panel.id !== `tab-${name}`);
     });
@@ -289,9 +290,6 @@ export function applyTabCase(name, ctx = {}) {
         shell.dataset.activeCase = name;
     }
     document.body.dataset.activeCase = name;
-    document.getElementById('stage-logo-source-host')?.classList.toggle('hidden', name !== 'logo');
-    document.getElementById('stage-raster-controls-host')?.classList.toggle('hidden', name !== 'raster');
-    document.getElementById('stage-bulk-controls-host')?.classList.toggle('hidden', name !== 'bulk');
 
     return caseConfig;
 }

@@ -13,12 +13,13 @@ central gateway allowlist, Agent-token workflow, and deployment checks.
 
 ## Tabs
 
-The current local redesign uses the approved **Immersive Stage** direction:
-shared dark/lilac tokens, horizontal navigation, a large working canvas and a
-right-side settings/export rail. Mobile restores controls to normal document
-order and uses a dismissible settings drawer. See
+The owner-approved **Immersive Stage** direction uses shared dark/lilac tokens,
+the same horizontal navigation on Home, tools and guides, and full-width main
+workflows. Input, settings and downloads are available directly in the main
+content on desktop and mobile, without a side panel or settings drawer. The
+shared company footer follows the workspace footer guide. See
 [`docs/immersive-stage-review.md`](docs/immersive-stage-review.md) for the
-pre-deployment review and approval boundary.
+review evidence and release notes.
 
 The frontend is a client-side multi-tab app served by a lightweight Node transfer server. Every clean tab URL has a matching static entrypoint (`3d-obj.html`, `logo.html`, `raster.html`, `bulk.html`, and `pdf.html`). Those files share one synchronized app shell and select the active tab from the URL. Run `npm run sync:entrypoints` after changing `3d-obj.html`; the test suite rejects drift between entrypoints. Each tab's content is an HTML partial in `modules/tabs/html/` driven by a controller in `modules/tabs/`:
 

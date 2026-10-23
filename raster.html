@@ -14,12 +14,13 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet">
-    <script type="module" src="app-bootstrap.js?v=r-dd34831b95192447"></script>
-    <script src="genesis-id.js?v=r-dd34831b95192447" defer></script>
-    <link id="app-stylesheet" rel="stylesheet" href="style.css?v=r-dd34831b95192447">
-    <link id="annotate-stylesheet" rel="stylesheet" href="annotate.css?v=r-dd34831b95192447">
-    <link rel="stylesheet" href="genesis-id.css?v=r-dd34831b95192447">
-    <link id="stage-stylesheet" rel="stylesheet" href="stage-theme.css?v=r-dd34831b95192447">
+    <script type="module" src="app-bootstrap.js?v=r-8acb18e35a0108d5"></script>
+    <script src="genesis-id.js?v=r-8acb18e35a0108d5" defer></script>
+    <link id="app-stylesheet" rel="stylesheet" href="style.css?v=r-8acb18e35a0108d5">
+    <link id="annotate-stylesheet" rel="stylesheet" href="annotate.css?v=r-8acb18e35a0108d5">
+    <link rel="stylesheet" href="genesis-id.css?v=r-8acb18e35a0108d5">
+    <link id="stage-stylesheet" rel="stylesheet" href="stage-theme.css?v=r-8acb18e35a0108d5">
+<script src="/site-chrome.js?v=r-8acb18e35a0108d5" defer></script>
 
     <!-- SEO:start -->
     <title>Resize &amp; Convert Images Online | Genesis Image Tools</title>
@@ -35,26 +36,28 @@
 </head>
 <body class="app-body antialiased app-shell-v2 immersive-stage">
     <a class="stage-skip" href="#main-content">Skip to workspace</a>
-    <header class="stage-header">
-        <a class="stage-brand" href="/" aria-label="Genesis Editor home"><span class="stage-brand-mark" aria-hidden="true">g</span><span>Genesis Editor<small>THE CREATIVE TOOLKIT</small></span></a>
-        <div class="workspace-topbar">
-            <div class="workspace-toolbar-group">
-                <nav class="segmented-control-container export-tabs-overlay" aria-label="Editor tools">
-                    <div class="segmented-control">
-                        <div class="segmented-control-indicator"></div>
-                        <button class="segmented-control-tab export-tab active" data-tab="svg"><span class="workspace-tab-title">Bambu 3D</span><span class="workspace-tab-subtitle">AMS color print from image</span></button>
-                        <button class="segmented-control-tab export-tab" data-tab="logo"><span class="workspace-tab-title">Logo</span><span class="workspace-tab-subtitle">Custom HTML logo to 3D</span></button>
-                        <button class="segmented-control-tab export-tab" data-tab="raster"><span class="workspace-tab-title">Raster</span><span class="workspace-tab-subtitle">Resize Images</span></button>
-                        <button class="segmented-control-tab export-tab" data-tab="bulk"><span class="workspace-tab-title">Bulk</span><span class="workspace-tab-subtitle">Resize Bulk Images</span></button>
-                        <button class="segmented-control-tab export-tab" data-tab="pdf"><span class="workspace-tab-title">PDF</span><span class="workspace-tab-subtitle">Convert PDF</span></button>
-                        <button class="segmented-control-tab export-tab" data-tab="annotate"><span class="workspace-tab-title">Annotate</span><span class="workspace-tab-subtitle">Draw on Images</span></button>
-                    </div>
-                </nav>
-                <button id="mobile-controls-toggle" class="mobile-controls-toggle" aria-expanded="false" aria-controls="app-sidebar" aria-label="Open settings panel"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 3v18M12 3v18M20 3v18M1 8h6m2 8h6m2-10h6"/></svg></button>
-            </div>
+    <!-- HEADER:start -->
+<header class="stage-header">
+    <a class="stage-brand" href="/" aria-label="Genesis Editor home"><span class="stage-brand-mark" aria-hidden="true">g</span><span>Genesis Editor<small>THE CREATIVE TOOLKIT</small></span></a>
+    <div class="workspace-topbar">
+        <div class="workspace-toolbar-group">
+            <nav class="segmented-control-container" aria-label="Main navigation">
+                <div class="segmented-control">
+                    <a class="stage-nav-link" href="/" data-nav-id="home">Home</a>
+                    <a class="stage-nav-link segmented-control-tab export-tab" href="/3d-obj" data-tab="svg"><span class="workspace-tab-title">Bambu 3D</span></a>
+                    <a class="stage-nav-link segmented-control-tab export-tab" href="/logo" data-tab="logo"><span class="workspace-tab-title">Logo</span></a>
+                    <a class="stage-nav-link segmented-control-tab export-tab" href="/raster" data-tab="raster"><span class="workspace-tab-title">Raster</span></a>
+                    <a class="stage-nav-link segmented-control-tab export-tab" href="/bulk" data-tab="bulk"><span class="workspace-tab-title">Bulk</span></a>
+                    <a class="stage-nav-link segmented-control-tab export-tab" href="/pdf" data-tab="pdf"><span class="workspace-tab-title">PDF</span></a>
+                    <a class="stage-nav-link segmented-control-tab export-tab" href="/annotate" data-tab="annotate"><span class="workspace-tab-title">Annotate</span></a>
+                    <a class="stage-nav-link" href="/guides/" data-nav-id="guides">Guides</a>
+                </div>
+            </nav>
         </div>
-        <div class="stage-header-actions"><a href="/guides/">Guides ↗</a><div data-genesis-id-slot data-variant="tool"></div></div>
-    </header>
+    </div>
+    <div class="stage-header-actions"><div data-genesis-id-slot data-variant="tool"></div></div>
+</header>
+<!-- HEADER:end -->
     <section id="tab-case-strip" class="tab-case-strip stage-intro" data-case="svg" aria-live="polite" aria-label="Current tool">
         <div class="tab-case-strip-body"><span class="tab-case-strip-eyebrow" data-case-eyebrow>Image to Bambu 3MF</span><h1 class="tab-case-strip-title" data-case-title>Make an AMS color print</h1><p class="tab-case-strip-desc" data-case-desc>Separate image colors, reduce filament swaps, and export an AMS-ready Bambu project.</p></div>
         <span class="stage-privacy">Local conversion<br>No sign-in required</span><span class="tab-case-strip-badge" data-case-badge>Bambu 3D</span>
@@ -73,14 +76,10 @@
     </div>
 
     <div class="app-shell">
-        <div class="stage-inspector-rail">
-        <!-- Control Panel -->
-        <aside id="app-sidebar" class="control-panel app-sidebar w-[26rem] flex flex-col flex-shrink-0">
-            <header class="stage-inspector-heading"><div><strong>Source &amp; settings</strong><span>Fine-tune your output</span></div><button id="mobile-controls-close" type="button" aria-label="Close settings panel">×</button></header>
-
-            <div class="flex-grow p-4 overflow-y-auto sidebar-scroll">
-                <section id="stage-logo-source-host" class="logo-v2 hidden" aria-label="Logo source and builder"></section>
-                <section id="stage-raster-controls-host" class="raster-v2 hidden" aria-label="Image source and adjustments"></section>
+        <!-- Bound once, then mounted into the main workflow by stage-layout.js. -->
+        <div id="stage-control-source" hidden>
+        <div class="stage-control-components">
+            <div>
 
                 <!-- 1. Load Image -->
                 <div id="sidebar-import-section" class="sidebar-accordion" data-case-section="import-image">
@@ -118,14 +117,13 @@
                 </div>
 
                 <!-- 2. Adjust Conversion -->
-                <section id="stage-bulk-controls-host" class="bulk-v2 hidden" aria-label="Batch export settings"></section>
                 <div id="sidebar-adjust-section" class="sidebar-accordion" data-case-section="adjust">
                     <div class="sidebar-accordion-header expanded" role="button" tabindex="0" onclick="toggleSidebarAccordion(this, 'sidebar-adjust-content')" onkeydown="if(event.key==='Enter'||event.key===' ')toggleSidebarAccordion(this,'sidebar-adjust-content')">
                         <span class="sidebar-accordion-label">
                             <svg class="sidebar-accordion-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                 <path d="M12 20h9M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/>
                             </svg>
-                            <h2 class="sidebar-accordion-title">2. Clean Colors</h2>
+                            <h2 class="sidebar-accordion-title">Conversion &amp; print settings</h2>
                         </span>
                         <div class="flex items-center gap-2">
                             <button id="reset-btn" class="hidden text-xs font-semibold text-blue-400 hover:text-blue-300" onclick="event.stopPropagation()">Reset to Initial</button>
@@ -543,11 +541,6 @@
                     </div>
                 </div>
 
-                <!-- PDF tab — column 1: task navigation host -->
-                <div id="pdf-sidebar-section" class="pdf-sidebar pdf-v2 hidden" data-case-section="pdf-tools">
-                    <div id="pdf-task-navigation-sidebar-host" class="pdf-task-navigation-host pdf-task-navigation-host--sidebar"></div>
-                </div>
-
             </div>
 
             <footer id="sidebar-primary-footer" class="p-6 border-t border-gray-700" data-case-section="footer">
@@ -562,15 +555,12 @@
                     </button>
                 </div>
             </footer>
-        </aside>
-        <section id="stage-export-host" aria-label="Export your work"></section>
         </div>
-
-        <!-- Mobile sidebar backdrop -->
-        <div id="mobile-sidebar-backdrop" class="mobile-sidebar-backdrop"></div>
+        </div>
 
         <!-- Workspace -->
         <main class="workspace app-workspace relative flex-grow p-0 flex flex-col overflow-hidden">
+            <section id="workspace-source-controls" class="workspace-source-controls" data-case-section="import-image" aria-label="Choose or replace your source"></section>
             <div id="welcome-screen" class="h-full flex flex-col items-center justify-center text-center p-8">
                 <div id="workspace-dropzone" class="workspace-dropzone" onclick="document.getElementById('file-input').click()">
                     <div class="workspace-dropzone-inner">
@@ -611,7 +601,7 @@
                             <div class="flex justify-between items-center mb-3 original-image-header">
                                 <div>
                                     <h3 class="font-semibold text-gray-200" style="font-size: clamp(0.875rem, 1.5vw, 1rem);">Original Images</h3>
-                                    <div id="bulk-folder-summary" class="text-xs text-gray-400 mt-1">Choose a folder from the settings panel to scan PNG, JPG, JPEG, HEIC, WEBP, GIF, BMP, AVIF, SVG, ICO, TIFF, and other browser-compatible image files.</div>
+                                    <div id="bulk-folder-summary" class="text-xs text-gray-400 mt-1">Choose a folder above to scan PNG, JPG, JPEG, HEIC, WEBP, GIF, BMP, AVIF, SVG, ICO, TIFF, and other browser-compatible image files.</div>
                                 </div>
                             </div>
                             <div class="bulk-list-shell">
@@ -637,6 +627,8 @@
                     <div id="tab-annotate-slot"></div>
                 </div><!-- Close output-section -->
 
+                <section id="workspace-model-controls" class="workspace-model-controls" data-case-section="adjust" aria-label="Conversion and print settings"></section>
+
                 <div id="footer-svg-slot"></div>
                 <div id="footer-logo-slot"></div>
                 <div id="footer-raster-slot"></div>
@@ -647,7 +639,55 @@
         </main>
     </div>
 
-    <div id="footer-brand-slot"></div>
+    <!-- FOOTER:start -->
+<footer class="brand-footer" aria-label="Genesis Frameworks company information">
+    <div class="brand-footer-inner">
+        <div class="brand-footer-grid">
+            <div class="brand-footer-col-wide">
+                <div class="brand-footer-logo">
+                    <img src="/genesis-logo.png?v=1" width="64" height="64" alt="Genesis Frameworks" class="brand-footer-icon">
+                    <h3 class="brand-footer-title">Genesis Frameworks</h3>
+                </div>
+                <p class="brand-footer-desc">
+                    Genesis Frameworks builds practical creative tools — image editing, PDF workflows, and 3D printing, together in your browser.
+                </p>
+            </div>
+            <div>
+                <h4 class="brand-footer-heading">Links</h4>
+                <ul class="brand-footer-links">
+                    <li><a href="https://genesisframeworks.com/" target="_blank" rel="noopener noreferrer" class="brand-footer-link">Genesis Frameworks</a></li>
+                    <li><a href="https://genesischat.online/" target="_blank" rel="noopener noreferrer" class="brand-footer-link">Genesis Chat</a></li>
+                    <li><a href="https://aistudio.genesisframeworks.com/" target="_blank" rel="noopener noreferrer" class="brand-footer-link">Genesis AI Studio</a></li>
+                    <li><a href="https://editor.genesisframeworks.com/" target="_blank" rel="noopener noreferrer" class="brand-footer-link">Genesis Image Tools</a></li>
+                    <li><a href="https://id.genesisframeworks.com/account" target="_blank" rel="noopener noreferrer" class="brand-footer-link">Genesis ID account</a></li>
+                </ul>
+            </div>
+            <div>
+                <h4 class="brand-footer-heading">Contact</h4>
+                <ul class="brand-footer-links">
+                    <li><a href="mailto:jong@genesisframeworks.com" class="brand-footer-link">jong@genesisframeworks.com</a></li>
+                    <li><a href="https://www.linkedin.com/in/jonglee77/" target="_blank" rel="noopener noreferrer" class="brand-footer-link">LinkedIn — Jong Lee</a></li>
+                </ul>
+            </div>
+        </div>
+        <div class="brand-footer-bottom">
+            <p class="brand-footer-copy">&copy; <span data-footer-year>2026</span> Genesis Frameworks. All rights reserved.</p>
+            <div class="brand-footer-account">
+                <a href="https://id.genesisframeworks.com/account" target="_blank" rel="noopener noreferrer" class="brand-footer-account-link" title="Manage your shared Genesis ID account">
+                    <span class="brand-footer-account-icon" aria-hidden="true">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true" focusable="false">
+                            <circle cx="12" cy="7" r="3"/>
+                            <path d="M5 21v-2a7 7 0 0 1 14 0v2"/>
+                        </svg>
+                    </span>
+                    <span>Manage Genesis ID</span>
+                </a>
+            </div>
+            <p class="brand-footer-note">Local conversion. Optional account features use Genesis ID.</p>
+        </div>
+    </div>
+</footer>
+<!-- FOOTER:end -->
 
     <script>
         function toggleSidebarAccordion(btn, contentId) {
@@ -669,55 +709,6 @@
             }
         }
 
-        // Mobile sidebar sheet toggle
-        (function() {
-            var mq = window.matchMedia('(max-width: 1023px)');
-            var toggle = document.getElementById('mobile-controls-toggle');
-            var sidebar = document.querySelector('.app-sidebar');
-            var backdrop = document.getElementById('mobile-sidebar-backdrop');
-            function openSheet() {
-                sidebar.classList.add('mobile-open');
-                backdrop.classList.add('visible');
-                document.body.classList.add('mobile-controls-open');
-                sidebar.setAttribute('role', 'dialog');
-                sidebar.setAttribute('aria-modal', 'true');
-                sidebar.setAttribute('aria-label', 'Tool settings');
-                document.getElementById('mobile-controls-close')?.focus();
-                if (toggle) {
-                    toggle.setAttribute('aria-expanded', 'true');
-                    toggle.setAttribute('aria-label', 'Close settings panel');
-                }
-            }
-            function closeSheet(restoreFocus) {
-                sidebar.classList.remove('mobile-open');
-                backdrop.classList.remove('visible');
-                document.body.classList.remove('mobile-controls-open');
-                sidebar.removeAttribute('role');
-                sidebar.removeAttribute('aria-modal');
-                if (toggle) {
-                    toggle.setAttribute('aria-expanded', 'false');
-                    toggle.setAttribute('aria-label', 'Open settings panel');
-                    if (restoreFocus) toggle.focus();
-                }
-            }
-            if (toggle) toggle.addEventListener('click', function() {
-                sidebar.classList.contains('mobile-open') ? closeSheet() : openSheet();
-            });
-            if (backdrop) backdrop.addEventListener('click', function() { closeSheet(false); });
-            document.getElementById('mobile-controls-close')?.addEventListener('click', function() { closeSheet(true); });
-            document.addEventListener('keydown', function(event) {
-                if (event.key === 'Escape' && sidebar.classList.contains('mobile-open')) {
-                    closeSheet(true);
-                }
-                if (event.key === 'Tab' && sidebar.classList.contains('mobile-open')) {
-                    var focusable = Array.from(sidebar.querySelectorAll('button:not(:disabled), input:not(:disabled), select:not(:disabled), textarea:not(:disabled), a[href], [tabindex="0"]')).filter(function(node) { return node.getClientRects().length > 0; });
-                    var first = focusable[0], last = focusable[focusable.length - 1];
-                    if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last?.focus(); }
-                    if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus(); }
-                }
-            });
-            mq.addEventListener('change', function(e) { if (!e.matches) closeSheet(); });
-        })();
 
         // Workspace drop zone drag-and-drop
         (function() {

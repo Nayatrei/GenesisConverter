@@ -44,6 +44,7 @@ const releaseHashFiles = [...new Set([
     path.join(root, 'annotate.css'),
     path.join(root, 'landing.css'),
     path.join(root, 'landing.js'),
+    path.join(root, 'site-chrome.js'),
     path.join(root, '3d-obj.html'),
     path.join(root, 'index.html'),
     path.join(root, 'auth', 'callback', 'index.html'),
@@ -81,6 +82,7 @@ function normalizeTextForReleaseHash(filePath, source) {
             .replace(/(\/guides\/guide\.css)\?v=[^"']+/g, '$1?v=' + GENERATED_VERSION_PLACEHOLDER)
             .replace(/(landing\.css)\?v=[^"']+/g, '$1?v=' + GENERATED_VERSION_PLACEHOLDER)
             .replace(/(landing\.js)\?v=[^"']+/g, '$1?v=' + GENERATED_VERSION_PLACEHOLDER)
+            .replace(/(site-chrome\.js)\?v=[^"']+/g, '$1?v=' + GENERATED_VERSION_PLACEHOLDER)
             .replace(/(genesis-id\.css)\?v=[^"']+/g, '$1?v=' + GENERATED_VERSION_PLACEHOLDER)
             .replace(/(genesis-id\.js)\?v=[^"']+/g, '$1?v=' + GENERATED_VERSION_PLACEHOLDER);
     }
@@ -192,6 +194,17 @@ function main() {
         writeOrCheck(filePath, source
             .replace(/(stage-theme\.css)\?v=[^"']+/g, '$1?v=' + version)
             .replace(/(\/guides\/guide\.css)\?v=[^"']+/g, '$1?v=' + version), failures);
+    }
+
+    const chromePages = [...toolEntrypoints, 'index.html',
+        ...walkFiles(path.join(root, 'guides'), (_path, name) => name.endsWith('.html'))
+            .map(filepath => path.relative(root, filepath))];
+    for (const filename of chromePages) {
+        const filepath = path.join(root, filename);
+        const source = fs.readFileSync(filepath, 'utf8');
+        writeOrCheck(filepath, source
+            .replace(/(site-chrome\.js)\?v=[^"']+/g, '$1?v=' + version)
+            .replace(/(genesis-id\.(?:js|css))\?v=[^"']+/g, '$1?v=' + version), failures);
     }
 
     if (failures.length) {

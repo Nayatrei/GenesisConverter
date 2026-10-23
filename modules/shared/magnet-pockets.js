@@ -1,7 +1,7 @@
 import {
     createEmptyMask,
     subtractMaskData
-} from './print-geometry.js?v=r-dd34831b95192447';
+} from './print-geometry.js?v=r-8acb18e35a0108d5';
 
 export const MAGNET_DISC_PRESETS = Object.freeze([
     { id: 'disc-6x2', label: '6 × 2 mm', diameter: 6, height: 2 },

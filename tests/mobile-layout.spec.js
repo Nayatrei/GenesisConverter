@@ -63,8 +63,8 @@ for (const viewport of MOBILE_SIZES) {
 
         const layout = await readLayout(page, '#svg-export-footer');
         expect(layout.documentWidth).toBeLessThanOrEqual(layout.clientWidth + 1);
-        expect(layout.toggleHit).toBe('mobile-controls-toggle');
-        expect(layout.tabs.right).toBeLessThanOrEqual(layout.toggle.left - 6);
+        expect(layout.toggle).toBeNull();
+        expect(layout.tabs.right).toBeLessThanOrEqual(viewport.width);
         expect(layout.topbar.bottom).toBeLessThanOrEqual(layout.main.top + 1);
         expect(layout.output.bottom).toBeLessThanOrEqual(layout.footer.top + 1);
         expect(layout.footer.position).not.toBe('fixed');
@@ -99,22 +99,17 @@ test('every workflow finishes before the brand footer on mobile', async ({ page 
     }
 });
 
-test('mobile settings sheet is unobstructed, scroll-locking, and Escape dismissible', async ({ page }) => {
+test('mobile source and conversion settings are directly reachable without a sheet', async ({ page }) => {
     await page.setViewportSize({ width: 330, height: 720 });
     await page.goto('/3d-obj');
     await waitForShell(page);
 
-    const toggle = page.locator('#mobile-controls-toggle');
-    await toggle.click();
-    await expect(toggle).toHaveAttribute('aria-expanded', 'true');
-    await expect(toggle).toHaveAttribute('aria-label', 'Close settings panel');
-    await expect(page.locator('#app-sidebar')).toHaveClass(/mobile-open/);
-    await expect(page.locator('body')).toHaveClass(/mobile-controls-open/);
-
-    await page.keyboard.press('Escape');
-    await expect(toggle).toHaveAttribute('aria-expanded', 'false');
-    await expect(toggle).toHaveAttribute('aria-label', 'Open settings panel');
-    await expect(page.locator('#app-sidebar')).not.toHaveClass(/mobile-open/);
-    await expect(page.locator('body')).not.toHaveClass(/mobile-controls-open/);
-    await expect(toggle).toBeFocused();
+    await expect(page.locator('#mobile-controls-toggle, #app-sidebar, #mobile-sidebar-backdrop')).toHaveCount(0);
+    await expect(page.locator('main #import-btn')).toBeVisible();
+    await expect(page.locator('main #sidebar-adjust-section')).toBeVisible();
+    await expect(page.locator('main #generate-preview-btn')).toBeVisible();
+    await page.locator('main #sidebar-adjust-section').scrollIntoViewIfNeeded();
+    await page.getByRole('button', { name: /^AMS Colors$/i }).click();
+    await expect(page.locator('main #output-colors')).toBeVisible();
+    expect(await page.locator('body').evaluate(node => getComputedStyle(node).overflowY)).not.toBe('hidden');
 });
