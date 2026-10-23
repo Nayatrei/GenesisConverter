@@ -1,5 +1,5 @@
-import { compressPdf } from './pdf-compression.js?v=r-d45f015f257fd23c';
-import { sanitizePdfFilename } from './pdf-utils.js?v=r-d45f015f257fd23c';
+import { compressPdf } from './pdf-compression.js?v=r-d526179f322ffd3a';
+import { sanitizePdfFilename } from './pdf-utils.js?v=r-d526179f322ffd3a';
 
 const MODES = new Set(['optimize', 'simplify', 'rasterize']);
 const PRESETS = new Set(['high', 'balanced', 'small']);
@@ -27,14 +27,17 @@ export function createPdfCompressionController({ state, elements, downloadBlob, 
     let bound = false;
     let generation = 0;
     let activeJob = null;
+    let queuedGeneration = null;
     let resultBlob = null;
 
     state.pdf ||= {};
     state.pdf.compression ||= {
-        file: null, mode: 'optimize', preset: 'balanced', acknowledged: false,
+        file: null, mode: 'simplify', preset: 'balanced', acknowledged: false,
         status: 'idle', progress: 0, message: '', result: null
     };
     const model = state.pdf.compression;
+    if (!MODES.has(model.mode)) model.mode = 'simplify';
+    if (!PRESETS.has(model.preset)) model.preset = 'balanced';
 
     function listen(target, event, callback) {
         if (!target?.addEventListener) return;
@@ -44,6 +47,7 @@ export function createPdfCompressionController({ state, elements, downloadBlob, 
 
     function invalidate() {
         generation += 1;
+        queuedGeneration = null;
         activeJob?.abort.abort();
         resultBlob = null;
         model.result = null;
@@ -54,6 +58,7 @@ export function createPdfCompressionController({ state, elements, downloadBlob, 
         if (disposed) return;
         invalidate();
         model.file = null;
+        model.acknowledged = false;
         const files = Array.from(fileList || []);
         const file = files[0];
         if (files.length !== 1 || !(file?.type === 'application/pdf' || /\.pdf$/i.test(file?.name || ''))) {
@@ -65,11 +70,10 @@ export function createPdfCompressionController({ state, elements, downloadBlob, 
         } else {
             model.file = file;
             model.status = 'ready';
-            model.message = activeJob
-                ? 'Replacement selected. Stopping the previous job before another can start…'
-                : 'Ready. Your original file will not be changed or uploaded.';
+            model.message = 'The original is unchanged. Calculating a separate copy on this device…';
         }
         render();
+        queueCalculation();
     }
 
     function changeOption(key, value) {
@@ -79,14 +83,40 @@ export function createPdfCompressionController({ state, elements, downloadBlob, 
         model[key] = value;
         if (key === 'mode') model.acknowledged = false;
         model.status = model.file ? 'ready' : 'idle';
-        model.message = activeJob ? 'Stopping the previous job. The new settings will apply to the next copy.' : '';
+        model.message = '';
         render();
+        queueCalculation();
+    }
+
+    function canCalculate() {
+        return Boolean(model.file) && (model.mode !== 'rasterize' || model.acknowledged);
+    }
+
+    function queueCalculation() {
+        if (disposed || !model.file) return;
+        if (!canCalculate()) {
+            model.status = 'ready';
+            model.message = 'Confirm the image-only feature losses below before calculating this copy.';
+            render();
+            return;
+        }
+        queuedGeneration = generation;
+        model.status = activeJob ? 'queued' : 'working';
+        model.message = activeJob
+            ? 'Stopping the previous calculation. The latest file and settings will be measured next…'
+            : 'Calculating the separate copy on this device…';
+        render();
+        if (!activeJob) {
+            const owner = queuedGeneration;
+            queuedGeneration = null;
+            void calculate(owner);
+        }
     }
 
     function render() {
         const working = Boolean(activeJob);
         const requiresAcknowledgement = model.mode !== 'optimize';
-        const ready = Boolean(model.file) && (!requiresAcknowledgement || model.acknowledged);
+        const ready = canCalculate();
         if (ui.compressPanel) ui.compressPanel.setAttribute('aria-busy', String(working));
         if (ui.compressFileInput) ui.compressFileInput.multiple = false;
         if (ui.compressFilename) ui.compressFilename.textContent = model.file?.name || 'No PDF selected';
@@ -95,7 +125,7 @@ export function createPdfCompressionController({ state, elements, downloadBlob, 
         if (ui.compressMode) ui.compressMode.value = model.mode;
         if (ui.compressPreset) ui.compressPreset.value = model.preset;
         if (ui.compressOptionsSummary) {
-            const modes = { optimize: 'Standard', simplify: 'View-only', rasterize: 'Image-only' };
+            const modes = { optimize: 'Standard', simplify: 'Flattened', rasterize: 'Image-only' };
             const presets = { high: 'High quality', balanced: 'Balanced', small: 'Smaller file' };
             ui.compressOptionsSummary.textContent = `Optional settings · ${modes[model.mode]} · ${presets[model.preset]}`;
         }
@@ -110,11 +140,11 @@ export function createPdfCompressionController({ state, elements, downloadBlob, 
         }
         if (ui.compressStartBtn) {
             ui.compressStartBtn.disabled = !ready || working || disposed;
-            ui.compressStartBtn.textContent = working ? 'Working…' : 'Create copy';
+            ui.compressStartBtn.textContent = working ? 'Calculating…' : 'Recalculate size';
         }
         if (ui.compressCancelBtn) {
             ui.compressCancelBtn.hidden = !working;
-            ui.compressCancelBtn.disabled = !working || activeJob.abort.signal.aborted;
+            ui.compressCancelBtn.disabled = !working || (activeJob.abort.signal.aborted && queuedGeneration !== generation);
         }
         if (ui.compressClearBtn) ui.compressClearBtn.disabled = !model.file && !working;
         if (ui.compressProgress) {
@@ -128,10 +158,30 @@ export function createPdfCompressionController({ state, elements, downloadBlob, 
             ui.compressStatus.dataset.tone = model.status === 'error' ? 'error' : model.status === 'done' ? 'ready' : 'muted';
         }
         const hasResult = Boolean(model.result && resultBlob);
-        if (ui.compressResult) ui.compressResult.hidden = !hasResult;
-        if (ui.compressDownloadBtn) ui.compressDownloadBtn.disabled = !hasResult || working;
+        if (ui.compressResult) ui.compressResult.hidden = !model.file;
+        if (ui.compressDownloadBtn) ui.compressDownloadBtn.disabled = !hasResult || working || (requiresAcknowledgement && !model.acknowledged);
         if (ui.compressOriginalBtn) ui.compressOriginalBtn.disabled = !model.file;
-        if (!hasResult) return;
+        if (ui.compressBeforeSize) {
+            if (model.file) setMeasuredBytes(ui.compressBeforeSize, model.file.size);
+            else { ui.compressBeforeSize.textContent = '—'; ui.compressBeforeSize.removeAttribute('title'); }
+        }
+        if (!hasResult) {
+            if (ui.compressResultSize) {
+                ui.compressResultSize.textContent = !model.file ? '—'
+                    : model.status === 'working' || model.status === 'queued' ? 'Calculating…'
+                        : model.status === 'error' ? 'Unavailable'
+                            : model.mode === 'rasterize' && !model.acknowledged ? 'Awaiting confirmation' : 'Not calculated';
+                ui.compressResultSize.removeAttribute('title');
+            }
+            if (ui.compressReduction) ui.compressReduction.textContent = '';
+            if (ui.compressPageCount) ui.compressPageCount.textContent = '';
+            if (ui.compressResultNotice) ui.compressResultNotice.textContent = model.status === 'error'
+                ? 'No copy was created. Your original is unchanged; choose another mode or correct the reported PDF issue.'
+                : model.status === 'cancelled' ? 'Calculation stopped. Recalculate only when you are ready.'
+                    : 'The actual after-size will appear here. A smaller file is not guaranteed.';
+            if (ui.compressWarnings) { ui.compressWarnings.replaceChildren(); ui.compressWarnings.hidden = true; }
+            return;
+        }
         const { originalBytes, outputBytes, pageCount, warnings } = model.result;
         const percent = ((originalBytes - outputBytes) / originalBytes) * 100;
         setMeasuredBytes(ui.compressResultSize, outputBytes);
@@ -139,9 +189,10 @@ export function createPdfCompressionController({ state, elements, downloadBlob, 
             ? `${percent.toFixed(1)}% smaller`
             : percent < 0 ? `${Math.abs(percent).toFixed(1)}% larger — no size saving` : 'Same size — no size saving';
         if (ui.compressPageCount) ui.compressPageCount.textContent = `${pageCount} ${pageCount === 1 ? 'page' : 'pages'}`;
-        if (ui.compressResultNotice) ui.compressResultNotice.textContent = percent > 0
+        if (ui.compressResultNotice) ui.compressResultNotice.textContent = (percent > 0
             ? 'Check every page, especially small text, Korean characters, and photos, before sharing this copy.'
-            : 'This copy is not smaller. Keep the original, or choose another mode or quality preset. Simplifying a PDF does not guarantee a smaller file.';
+            : 'This copy is not smaller. Keep the original, or choose another mode or quality preset. Simplifying a PDF does not guarantee a smaller file.')
+            + (requiresAcknowledgement && !model.acknowledged ? ' Acknowledge the visible feature-loss notice to enable Download copy.' : '');
         if (ui.compressWarnings) {
             ui.compressWarnings.replaceChildren(...warnings.map((warning) => {
                 const li = document.createElement('li');
@@ -152,10 +203,8 @@ export function createPdfCompressionController({ state, elements, downloadBlob, 
         }
     }
 
-    async function start() {
-        if (disposed || activeJob || !model.file || (model.mode !== 'optimize' && !model.acknowledged)) return;
-        invalidate();
-        const owner = generation;
+    async function calculate(owner) {
+        if (disposed || activeJob || owner !== generation || !canCalculate()) return;
         const file = model.file;
         const mode = model.mode;
         const preset = model.preset;
@@ -187,7 +236,9 @@ export function createPdfCompressionController({ state, elements, downloadBlob, 
             };
             model.status = 'done';
             model.progress = 100;
-            model.message = 'Copy ready. Nothing is downloaded until you choose a download button.';
+            model.message = model.mode !== 'optimize' && !model.acknowledged
+                ? 'Size calculated. Review and acknowledge the feature losses to enable Download copy.'
+                : 'Size calculated. Nothing downloads until you choose Download copy.';
         } catch (error) {
             if (!isCurrent()) return;
             model.status = 'error';
@@ -196,17 +247,27 @@ export function createPdfCompressionController({ state, elements, downloadBlob, 
         } finally {
             if (activeJob === job) activeJob = null;
             if (!disposed) {
-                if (owner !== generation && model.status === 'ready') model.message = 'Ready. Your original file will not be changed or uploaded.';
                 render();
+                if (queuedGeneration === generation) {
+                    const next = queuedGeneration;
+                    queuedGeneration = null;
+                    void calculate(next);
+                }
             }
         }
+    }
+
+    function start() {
+        if (disposed || activeJob || !canCalculate()) return;
+        invalidate();
+        queueCalculation();
     }
 
     function cancel() {
         if (!activeJob || disposed) return;
         invalidate();
-        model.status = model.file ? 'ready' : 'idle';
-        model.message = 'Stopping compression… Your original file is unchanged.';
+        model.status = model.file ? 'cancelled' : 'idle';
+        model.message = 'Calculation stopped. Your original is unchanged. Use Recalculate size to try again.';
         render();
     }
 
@@ -244,14 +305,29 @@ export function createPdfCompressionController({ state, elements, downloadBlob, 
         listen(ui.compressDropzone, 'drop', (event) => { event.preventDefault(); setFiles(event.dataTransfer?.files); });
         listen(ui.compressMode, 'change', () => changeOption('mode', ui.compressMode.value));
         listen(ui.compressPreset, 'change', () => changeOption('preset', ui.compressPreset.value));
-        listen(ui.compressAcknowledge, 'change', () => { model.acknowledged = ui.compressAcknowledge.checked; render(); });
+        listen(ui.compressAcknowledge, 'change', () => {
+            model.acknowledged = ui.compressAcknowledge.checked;
+            if (model.mode === 'rasterize') {
+                if (!model.acknowledged) {
+                    if (activeJob) {
+                        invalidate();
+                        model.status = 'ready';
+                        model.message = 'Image-only processing stopped until its feature losses are confirmed.';
+                    }
+                } else if (!model.result) queueCalculation();
+            }
+            if (model.result) model.message = model.mode !== 'optimize' && !model.acknowledged
+                ? 'Size calculated. Review and acknowledge the feature losses to enable Download copy.'
+                : 'Size calculated. Nothing downloads until you choose Download copy.';
+            render();
+        });
         listen(ui.compressStartBtn, 'click', start);
         listen(ui.compressCancelBtn, 'click', cancel);
         listen(ui.compressClearBtn, 'click', () => {
             invalidate(); model.file = null; model.status = 'idle'; model.message = ''; render();
         });
         listen(ui.compressDownloadBtn, 'click', () => {
-            if (!resultBlob || !model.result || activeJob) return;
+            if (!resultBlob || !model.result || activeJob || (model.mode !== 'optimize' && !model.acknowledged)) return;
             const base = (model.file?.name || 'document.pdf').replace(/\.pdf$/i, '');
             save(resultBlob, sanitizePdfFilename(`${base}-${model.result.mode}-${model.result.preset}.pdf`));
         });

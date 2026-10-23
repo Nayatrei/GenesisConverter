@@ -1,4 +1,4 @@
-import { TRANSPARENT_ALPHA_CUTOFF } from '../config.js?v=r-d45f015f257fd23c';
+import { TRANSPARENT_ALPHA_CUTOFF } from '../config.js?v=r-d526179f322ffd3a';
 
 /**
  * Returns true if any pixel in imageData has alpha <= TRANSPARENT_ALPHA_CUTOFF.
