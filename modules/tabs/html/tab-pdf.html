@@ -590,8 +590,12 @@
             <header class="pdf-standalone-task-head">
                 <span class="pdf-eyebrow">Reduce Size · Free local tool</span>
                 <h4 id="pdf-compress-title">A lighter copy, not a changed original</h4>
-                <p>Choose a PDF, create a copy, then compare the size and download. Your file stays on this device.</p>
+                <p>Choose a PDF to automatically compare its original size with a flattened, view-only copy. Your file stays on this device.</p>
             </header>
+            <div class="pdf-compress-size-comparison" role="group" aria-label="PDF size comparison">
+                <div><span>Before</span><strong id="pdf-compress-before-size">—</strong></div>
+                <div><span>After</span><h5 id="pdf-compress-result-size">—</h5></div>
+            </div>
             <div class="pdf-compress-layout">
                 <div class="pdf-compress-source">
                     <input id="pdf-compress-file-input" type="file" accept="application/pdf,.pdf" class="hidden">
@@ -607,22 +611,17 @@
                         <span>Original <b id="pdf-compress-source-size">—</b></span>
                         <button id="pdf-compress-clear-btn" type="button" class="pdf-text-button" disabled>Remove file</button>
                     </div>
-                    <p class="pdf-tool-note">Use the defaults for everyday sharing, or open optional settings for different quality and view-only copies.</p>
+                    <p class="pdf-tool-note">The flattened copy is measured automatically; nothing is downloaded. Open optional settings to keep editable features or choose another quality.</p>
                     <details class="pdf-compress-options">
-                        <summary id="pdf-compress-options-summary">Optional settings · Standard · Balanced</summary>
+                        <summary id="pdf-compress-options-summary">Optional settings · Flattened · Balanced</summary>
                         <div class="pdf-compress-options-body">
                     <label class="pdf-form-field" for="pdf-compress-mode">
                         <span>What should the copy keep?</span>
                         <select id="pdf-compress-mode" aria-describedby="pdf-compress-loss-notice">
                             <option value="optimize">Standard compression — keep text and links</option>
-                            <option value="simplify">View-only — flatten and remove extras</option>
+                            <option value="simplify" selected>Flattened — view-only, remove extras</option>
                             <option value="rasterize">Image-only — stronger, with feature loss</option>
                         </select>
-                    </label>
-                    <p id="pdf-compress-loss-notice" class="pdf-compress-disclosure">Keeps existing text and links where supported, and optimizes supported images. Not every PDF can become smaller. Review the copy before sharing; this is not secure redaction.</p>
-                    <label id="pdf-compress-acknowledge-row" class="pdf-compress-acknowledge" hidden>
-                        <input id="pdf-compress-acknowledge" type="checkbox">
-                        <span>I understand the feature losses above and will review the copy.</span>
                     </label>
                     <label class="pdf-form-field" for="pdf-compress-preset">
                         <span>Image quality</span>
@@ -635,8 +634,13 @@
                     <p class="pdf-tool-note">Quality presets affect supported images, not your original. Small text in scans and photos can become less clear. Signed and password-protected PDFs are not supported.</p>
                         </div>
                     </details>
+                    <p id="pdf-compress-loss-notice" class="pdf-compress-disclosure">Creates a view-only copy: supported visible forms and annotations are flattened; links, editable forms, comments, bookmarks, attachments, and document metadata are removed. Unsupported visible features stop the export. Text may remain searchable. This is not secure redaction.</p>
+                    <label id="pdf-compress-acknowledge-row" class="pdf-compress-acknowledge">
+                        <input id="pdf-compress-acknowledge" type="checkbox">
+                        <span>I understand the feature losses above and will review the copy before sharing.</span>
+                    </label>
                     <div class="pdf-compress-actions">
-                        <button id="pdf-compress-start-btn" type="button" class="pdf-footer-primary" disabled>Create copy</button>
+                        <button id="pdf-compress-start-btn" type="button" class="pdf-footer-primary" disabled>Recalculate size</button>
                         <button id="pdf-compress-cancel-btn" type="button" class="pdf-footer-secondary" hidden disabled>Cancel</button>
                     </div>
                     <progress id="pdf-compress-progress" max="100" value="0" hidden aria-label="PDF compression progress"></progress>
@@ -644,8 +648,7 @@
                 </div>
                 <aside class="pdf-compress-output" aria-label="Compression result">
                     <div id="pdf-compress-result" hidden>
-                        <span class="pdf-eyebrow">Measured result</span>
-                        <h5 id="pdf-compress-result-size">—</h5>
+                        <span class="pdf-eyebrow">Your copy</span>
                         <strong id="pdf-compress-reduction"></strong>
                         <p id="pdf-compress-page-count"></p>
                         <p id="pdf-compress-result-notice"></p>

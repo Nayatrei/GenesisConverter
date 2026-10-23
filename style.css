@@ -7706,31 +7706,53 @@ body.app-shell-v2 .app-shell[data-active-case="pdf"] .workspace-card-header {
 }
 
 body.app-shell-v2 .app-shell[data-active-case="pdf"] {
-    height: 100dvh;
+    height: auto;
     min-height: 100dvh;
-    max-height: 100dvh;
-    overflow: hidden;
+    max-height: none;
+    overflow: visible;
 }
 
 body.app-shell-v2[data-active-case="pdf"] {
-    overflow-y: hidden;
-    overscroll-behavior: none;
+    overflow-y: auto;
+    overscroll-behavior: auto;
 }
 
-body.app-shell-v2 .app-shell[data-active-case="pdf"] .app-sidebar,
 body.app-shell-v2 .app-shell[data-active-case="pdf"] .app-workspace {
-    height: 100%;
+    height: auto;
     min-height: 0;
+    overflow: visible;
 }
 
 body.app-shell-v2 .app-shell[data-active-case="pdf"] #main-content,
 body.app-shell-v2 .app-shell[data-active-case="pdf"] #output-section.card {
+    flex: 0 0 auto;
+    height: auto;
     min-height: 0;
-    overflow: hidden;
+    overflow: visible;
 }
 
 body.app-shell-v2 .app-shell[data-active-case="pdf"] #output-section.card {
     padding: 1rem 1.15rem 1.1rem !important;
+}
+
+@media (min-width: 1024px) {
+    /* Only the task rail owns a nested scroll area. The PDF document itself
+       participates in the normal page, including the shared footer. */
+    body.app-shell-v2 .app-shell[data-active-case="pdf"] .app-sidebar {
+        position: sticky;
+        top: 0;
+        align-self: start;
+        height: 100dvh;
+        max-height: 100dvh;
+        min-height: 0;
+        overflow: hidden;
+    }
+
+    body.app-shell-v2 .app-shell[data-active-case="pdf"] .app-sidebar .sidebar-scroll {
+        flex: 1 1 0;
+        min-height: 0;
+        overflow-y: auto;
+    }
 }
 
 body.app-shell-v2 .workspace-topbar .segmented-control-tab.active {
@@ -8850,22 +8872,35 @@ body.app-shell-v2 .pdf-footer-actions {
     }
 }
 
+/* One PDF scroll contract at every width. Hidden/height-constrained ancestors
+   can move via focus or scrollIntoView while trapping normal wheel gestures.
+   Keep the existing column designs, but let their natural content determine
+   the document height instead of creating nested tool-panel scroll traps. */
+body.app-shell-v2 .app-shell[data-active-case="pdf"] :is(
+    .pdf-converter-shell,
+    .pdf-document-tools-panel,
+    .pdf-guided-stage,
+    .pdf-step-panel,
+    .pdf-standalone-task,
+    .pdf-choose-layout,
+    .pdf-choose-main,
+    .pdf-document-action-rail,
+    .pdf-workspace-source-column,
+    .pdf-workspace-help-column,
+    .pdf-images-to-pdf-layout,
+    .pdf-ocr-layout,
+    .pdf-finish-layout,
+    .pdf-finish-inspector,
+    .pdf-review-body,
+    .pdf-review-summary-panel
+) {
+    height: auto;
+    max-height: none;
+    min-height: 0;
+    overflow: visible;
+}
+
 @media (max-width: 900px) {
-    body.app-shell-v2[data-active-case="pdf"] {
-        overflow-y: auto;
-        overscroll-behavior: auto;
-    }
-
-    body.app-shell-v2 .app-shell[data-active-case="pdf"] {
-        height: auto;
-        max-height: none;
-        overflow: visible;
-    }
-
-    body.app-shell-v2 .app-shell[data-active-case="pdf"] #output-section.card {
-        overflow: auto;
-    }
-
     body.app-shell-v2 .pdf-guided-shell {
         height: auto;
         min-height: 42rem;
@@ -14470,6 +14505,40 @@ body.app-shell-v2 #pdf-compress-result-size {
     color: var(--clay-text);
     font-size: clamp(1.7rem, 3vw, 2.5rem);
     font-weight: 800;
+    overflow-wrap: anywhere;
+}
+
+body.app-shell-v2 .pdf-compress-size-comparison {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.65rem;
+    margin: 0.75rem 0;
+}
+
+body.app-shell-v2 .pdf-compress-size-comparison > div {
+    min-width: 0;
+    padding: 0.7rem;
+    border: 1px solid var(--clay-border);
+    border-radius: 10px;
+    background: var(--clay-surface);
+}
+
+body.app-shell-v2 .pdf-compress-size-comparison > div > span {
+    display: block;
+    color: var(--clay-muted);
+    font-size: 0.8rem;
+    font-weight: 700;
+}
+
+body.app-shell-v2 .pdf-compress-size-comparison #pdf-compress-before-size,
+body.app-shell-v2 .pdf-compress-size-comparison #pdf-compress-result-size {
+    display: block;
+    min-width: 0;
+    margin: 0.35rem 0 0;
+    color: var(--clay-text);
+    font-size: clamp(1.05rem, 2vw, 1.65rem);
+    font-weight: 800;
+    line-height: 1.35;
     overflow-wrap: anywhere;
 }
 

@@ -273,6 +273,7 @@ export function createElements() {
             compressStatus: document.getElementById('pdf-compress-status'),
             compressProgress: document.getElementById('pdf-compress-progress'),
             compressResult: document.getElementById('pdf-compress-result'),
+            compressBeforeSize: document.getElementById('pdf-compress-before-size'),
             compressResultSize: document.getElementById('pdf-compress-result-size'),
             compressReduction: document.getElementById('pdf-compress-reduction'),
             compressPageCount: document.getElementById('pdf-compress-page-count'),

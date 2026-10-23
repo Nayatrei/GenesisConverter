@@ -14,7 +14,7 @@ async function installHarness(page, behavior = 'larger', fallbackDownload = fals
             <p id="c-loss"></p><label id="c-ack-row"><input id="c-ack" type="checkbox">Acknowledge</label>
             <button id="c-start">Start</button><button id="c-cancel">Cancel</button><button id="c-clear">Clear</button>
             <p id="c-status"></p><progress id="c-progress" max="100"></progress>
-            <div id="c-result"><span id="c-size"></span><span id="c-reduction"></span><span id="c-pages"></span><p id="c-notice"></p><ul id="c-warnings"></ul></div>
+            <div id="c-result"><span id="c-before"></span><span id="c-size"></span><span id="c-reduction"></span><span id="c-pages"></span><p id="c-notice"></p><ul id="c-warnings"></ul></div>
             <button id="c-download">Copy</button><button id="c-original">Original</button>`;
         document.body.append(shell);
         const names = {
@@ -22,7 +22,7 @@ async function installHarness(page, behavior = 'larger', fallbackDownload = fals
             compressSourceSize: '#c-source', compressMode: '#c-mode', compressPreset: '#c-preset', compressLossNotice: '#c-loss',
             compressAcknowledgeRow: '#c-ack-row', compressAcknowledge: '#c-ack', compressStartBtn: '#c-start',
             compressCancelBtn: '#c-cancel', compressClearBtn: '#c-clear', compressStatus: '#c-status', compressProgress: '#c-progress',
-            compressResult: '#c-result', compressResultSize: '#c-size', compressReduction: '#c-reduction', compressPageCount: '#c-pages',
+            compressResult: '#c-result', compressBeforeSize: '#c-before', compressResultSize: '#c-size', compressReduction: '#c-reduction', compressPageCount: '#c-pages',
             compressResultNotice: '#c-notice', compressWarnings: '#c-warnings', compressDownloadBtn: '#c-download', compressOriginalBtn: '#c-original'
         };
         const pdf = Object.fromEntries(Object.entries(names).map(([key, value]) => [key, typeof value === 'string' ? shell.querySelector(value) : value]));
@@ -46,7 +46,11 @@ async function installHarness(page, behavior = 'larger', fallbackDownload = fals
     }, { behavior, fallbackDownload });
 }
 
-test('Reduce Size is the first public task, responsive, and requires loss acknowledgement only for destructive modes', async ({ page }) => {
+test('Reduce Size defaults to flattened automatic measurement with visible loss disclosure and consent-gated download', async ({ page }) => {
+    const source = await PDFDocument.create();
+    source.addPage([240, 180]).drawText('Automatic flattened measurement', { x: 10, y: 100, size: 12 });
+    const bytes = Buffer.from(await source.save());
+    await page.setViewportSize({ width: 1280, height: 720 });
     await page.goto('/pdf');
     await expect(page.locator('[data-pdf-task]').first()).toHaveAttribute('data-pdf-task', 'compress');
     await expect(page.locator('#pdf-task-compress-btn .pdf-task-copy strong')).toHaveText('Reduce Size');
@@ -56,18 +60,36 @@ test('Reduce Size is the first public task, responsive, and requires loss acknow
     await expect(page.locator('#pdf-compress-panel')).toBeVisible();
     await expect(page.locator('#pdf-merge-footer')).toBeHidden();
     await expect(page.locator('#pdf-compress-mode option')).toHaveCount(3);
-    await expect(page.locator('#pdf-compress-start-btn')).toBeDisabled();
-    await page.locator('#pdf-compress-file-input').setInputFiles({ name: 'example.pdf', mimeType: 'application/pdf', buffer: Buffer.from('%PDF-example') });
-    await expect(page.locator('#pdf-compress-start-btn')).toBeEnabled();
-    await expect(page.locator('#pdf-compress-acknowledge-row')).toBeHidden();
-    await page.locator('#pdf-compress-options-summary').click();
-    await page.locator('#pdf-compress-mode').selectOption('simplify');
+    await expect(page.locator('#pdf-compress-mode')).toHaveValue('simplify');
+    await expect(page.locator('#pdf-compress-loss-notice')).toBeVisible();
     await expect(page.locator('#pdf-compress-loss-notice')).toContainText('flattened');
+    expect(await page.locator('#pdf-compress-loss-notice').evaluate((element) => element.closest('details') === null)).toBe(true);
+    expect(await page.locator('.pdf-compress-size-comparison').evaluate((element) => Boolean(
+        element.compareDocumentPosition(document.querySelector('.pdf-compress-options')) & Node.DOCUMENT_POSITION_FOLLOWING
+    ))).toBe(true);
     await expect(page.locator('#pdf-compress-start-btn')).toBeDisabled();
-    await page.locator('#pdf-compress-acknowledge').check();
+    await page.locator('#pdf-compress-file-input').setInputFiles({ name: 'example.pdf', mimeType: 'application/pdf', buffer: bytes });
+    await expect(page.locator('#pdf-compress-before-size')).toHaveText(bytes.length < 1000 ? `${bytes.length} B` : `${(bytes.length / 1000).toFixed(2)} KB`);
+    await expect(page.locator('#pdf-compress-result')).toBeVisible();
+    await expect(page.locator('#pdf-compress-result-size')).toHaveAttribute('title', /bytes \(decimal units\)/);
+    expect(await page.locator('.pdf-compress-size-comparison').evaluate((element) => {
+        const comparison = element.getBoundingClientRect();
+        const panel = element.closest('#pdf-compress-panel').getBoundingClientRect();
+        return comparison.top >= panel.top && comparison.bottom <= Math.min(panel.bottom, innerHeight);
+    })).toBe(true);
+    await expect(page.locator('#pdf-compress-acknowledge-row')).toBeVisible();
+    await expect(page.locator('#pdf-compress-download-btn')).toBeDisabled();
     await expect(page.locator('#pdf-compress-start-btn')).toBeEnabled();
+    await page.locator('#pdf-compress-acknowledge').check();
+    await expect(page.locator('#pdf-compress-download-btn')).toBeEnabled();
+    await page.locator('#pdf-compress-options-summary').click();
+    await page.locator('#pdf-compress-mode').selectOption('optimize');
+    await expect(page.locator('#pdf-compress-acknowledge-row')).toBeHidden();
     await page.locator('#pdf-compress-mode').selectOption('rasterize');
     await expect(page.locator('#pdf-compress-acknowledge')).not.toBeChecked();
+    await expect(page.locator('#pdf-compress-start-btn')).toBeDisabled();
+    await expect(page.locator('#pdf-compress-download-btn')).toBeDisabled();
+    await expect(page.locator('#pdf-compress-result-size')).toHaveText('Awaiting confirmation');
     await expect(page.locator('#pdf-compress-loss-notice')).toContainText('Text search, text selection, links');
     await page.setViewportSize({ width: 390, height: 844 });
     await expect(page.locator('#pdf-compress-panel')).toBeVisible();
@@ -77,54 +99,108 @@ test('Reduce Size is the first public task, responsive, and requires loss acknow
 test('Measured larger results are honest, inert warnings and downloads retain original bytes', async ({ page }) => {
     await page.goto('/pdf');
     await installHarness(page);
-    await page.locator('#c-start').click();
     await expect(page.locator('#c-result')).toBeVisible();
     await expect(page.locator('#c-reduction')).toHaveText('100.0% larger — no size saving');
     await expect(page.locator('#c-notice')).toContainText('not smaller');
     await expect(page.locator('#c-warnings')).toContainText('<img src=x');
     await expect(page.locator('#c-warnings img')).toHaveCount(0);
+    await expect(page.locator('#c-download')).toBeDisabled();
+    await page.locator('#c-download').dispatchEvent('click');
+    expect(await page.evaluate(() => window.__compression.downloads.length)).toBe(0);
+    await page.locator('#c-ack').check();
     await page.locator('#c-download').click();
     await page.locator('#c-original').click();
     expect(await page.evaluate(async () => ({
         downloads: await Promise.all(window.__compression.downloads.map(async ({ blob, name }) => ({ name, size: blob.size, firstByte: new Uint8Array(await blob.arrayBuffer())[0] }))),
         mode: window.__compression.calls[0].mode, preset: window.__compression.calls[0].preset
     }))).toEqual({ downloads: [
-        { name: '한글 newsletter-optimize-balanced.pdf', size: 200, firstByte: 0 },
+        { name: '한글 newsletter-simplify-balanced.pdf', size: 200, firstByte: 0 },
         { name: '한글 newsletter.pdf', size: 100, firstByte: 0 }
-    ], mode: 'optimize', preset: 'balanced' });
+    ], mode: 'simplify', preset: 'balanced' });
     await page.locator('#c-preset').selectOption('small');
-    await expect(page.locator('#c-result')).toBeHidden();
-    await expect(page.locator('#c-download')).toBeDisabled();
+    await expect.poll(() => page.evaluate(() => window.__compression.calls.length)).toBe(2);
+    expect(await page.evaluate(() => window.__compression.calls[1].preset)).toBe('small');
+    await expect(page.locator('#c-size')).toHaveText('200 B');
 });
 
 test('Replacement aborts old work, rejects stale results and never runs two PDF engines concurrently', async ({ page }) => {
     await page.goto('/pdf');
     await installHarness(page, 'deferred');
-    await page.locator('#c-start').click();
     await expect(page.locator('#c-status')).toHaveText('Halfway through PDF');
+    await expect(page.locator('#c-before')).toHaveText('100 B');
+    await expect(page.locator('#c-size')).toHaveText('Calculating…');
     await page.evaluate(() => {
         window.__compression.controller.setFiles([new File([new Uint8Array(300)], 'replacement.pdf', { type: 'application/pdf' })]);
         window.__compression.controller.start();
     });
     await expect(page.locator('#c-start')).toBeDisabled();
     expect(await page.evaluate(() => ({ count: window.__compression.calls.length, aborted: window.__compression.calls[0].signal.aborted }))).toEqual({ count: 1, aborted: true });
+    await page.locator('#c-preset').selectOption('small');
+    await page.locator('#c-preset').selectOption('high');
     await page.evaluate(() => window.__compression.calls[0].resolve({ bytes: new Uint8Array(5), pageCount: 1, warnings: [] }));
-    await expect(page.locator('#c-result')).toBeHidden();
-    await expect(page.locator('#c-start')).toBeEnabled();
+    await expect.poll(() => page.evaluate(() => window.__compression.calls.length)).toBe(2);
+    await expect(page.locator('#c-size')).toHaveText('Calculating…');
+    await expect(page.locator('#c-before')).toHaveText('300 B');
+    expect(await page.evaluate(() => window.__compression.calls[1].preset)).toBe('high');
     await expect(page.locator('#c-name')).toHaveText('replacement.pdf');
-    await page.locator('#c-start').click();
     await page.locator('#c-cancel').click();
     expect(await page.evaluate(() => window.__compression.calls[1].signal.aborted)).toBe(true);
     await page.evaluate(() => window.__compression.calls[1].resolve({ bytes: new Uint8Array(5), pageCount: 1, warnings: [] }));
-    await expect(page.locator('#c-result')).toBeHidden();
+    await expect(page.locator('#c-size')).toHaveText('Not calculated');
     await expect(page.locator('#c-start')).toBeEnabled();
+    expect(await page.evaluate(() => window.__compression.calls.length)).toBe(2);
+    expect(await page.evaluate(() => window.__compression.state.pdf.compression.result)).toBeNull();
+});
+
+test('Image-only never processes without explicit acknowledgement and withdrawing consent cancels without retry', async ({ page }) => {
+    await page.goto('/pdf');
+    await installHarness(page, 'deferred');
+    await expect.poll(() => page.evaluate(() => window.__compression.calls.length)).toBe(1);
+    await page.locator('#c-mode').selectOption('rasterize');
+    expect(await page.evaluate(() => window.__compression.calls[0].signal.aborted)).toBe(true);
+    await page.evaluate(() => window.__compression.calls[0].resolve({ bytes: new Uint8Array(5), pageCount: 1, warnings: [] }));
+    await expect(page.locator('#c-size')).toHaveText('Awaiting confirmation');
+    await expect(page.locator('#c-start')).toBeDisabled();
+    expect(await page.evaluate(() => window.__compression.calls.length)).toBe(1);
+    await page.locator('#c-ack').check();
+    await expect.poll(() => page.evaluate(() => window.__compression.calls.length)).toBe(2);
+    expect(await page.evaluate(() => window.__compression.calls[1].mode)).toBe('rasterize');
+    await page.locator('#c-ack').uncheck();
+    expect(await page.evaluate(() => window.__compression.calls[1].signal.aborted)).toBe(true);
+    await page.evaluate(() => window.__compression.calls[1].resolve({ bytes: new Uint8Array(5), pageCount: 1, warnings: [] }));
+    await expect(page.locator('#c-size')).toHaveText('Awaiting confirmation');
+    await expect(page.locator('#c-download')).toBeDisabled();
+    await expect(page.locator('#c-original')).toBeEnabled();
+    expect(await page.evaluate(() => window.__compression.calls.length)).toBe(2);
+    expect(await page.evaluate(() => window.__compression.state.pdf.compression.result)).toBeNull();
+});
+
+test('Cancel stops the queued replacement while an aborted predecessor is still settling', async ({ page }) => {
+    await page.goto('/pdf');
+    await installHarness(page, 'deferred');
+    await expect.poll(() => page.evaluate(() => window.__compression.calls.length)).toBe(1);
+    await page.evaluate(() => window.__compression.controller.setFiles([
+        new File([new Uint8Array(300)], 'queued-replacement.pdf', { type: 'application/pdf' })
+    ]));
+    expect(await page.evaluate(() => window.__compression.calls[0].signal.aborted)).toBe(true);
+    await expect(page.locator('#c-size')).toHaveText('Calculating…');
+    await expect(page.locator('#c-cancel')).toBeEnabled();
+    await page.locator('#c-cancel').click();
+    await page.evaluate(() => window.__compression.calls[0].resolve({ bytes: new Uint8Array(5), pageCount: 1, warnings: [] }));
+    await expect(page.locator('#c-start')).toBeEnabled();
+    await expect(page.locator('#c-size')).toHaveText('Not calculated');
+    await expect(page.locator('#c-before')).toHaveText('300 B');
+    await expect(page.locator('#c-download')).toBeDisabled();
+    expect(await page.evaluate(() => window.__compression.calls.length)).toBe(1);
+    expect(await page.evaluate(() => window.__compression.state.pdf.compression.result)).toBeNull();
 });
 
 test('Signed PDF errors leave the original downloadable and invalid replacements clear all output', async ({ page }) => {
     await page.goto('/pdf');
     await installHarness(page, 'signed');
-    await page.locator('#c-start').click();
     await expect(page.locator('#c-status')).toContainText('Digitally signed PDFs cannot be compressed');
+    await expect(page.locator('#c-size')).toHaveText('Unavailable');
+    expect(await page.evaluate(() => window.__compression.calls.length)).toBe(1);
     await expect(page.locator('#c-original')).toBeEnabled();
     await expect(page.locator('#c-download')).toBeDisabled();
     await page.evaluate(() => window.__compression.controller.setFiles([new File(['bad'], 'not-a-pdf.txt', { type: 'text/plain' })]));
@@ -143,15 +219,14 @@ test('Disposal aborts pending work, releases files and revokes owned download UR
         URL.createObjectURL = (blob) => { const url = create(blob); window.__urls.created.push(url); return url; };
         URL.revokeObjectURL = (url) => { window.__urls.revoked.push(url); revoke(url); };
     });
-    await page.locator('#c-start').click();
-    await expect(page.locator('#c-result')).toBeVisible();
+    await expect(page.locator('#c-size')).toHaveText('200 B');
+    await page.locator('#c-ack').check();
     const download = page.waitForEvent('download');
     await page.locator('#c-download').click();
     await download;
     await page.evaluate(() => window.__compression.controller.dispose());
     expect(await page.evaluate(() => ({ sameUrls: window.__urls.created.length === 1 && window.__urls.revoked.includes(window.__urls.created[0]), file: window.__compression.state.pdf.compression.file, result: window.__compression.state.pdf.compression.result }))).toEqual({ sameUrls: true, file: null, result: null });
     await installHarness(page, 'deferred');
-    await page.evaluate(() => { window.__compression.controller.start(); });
     await expect.poll(() => page.evaluate(() => window.__compression.calls.length)).toBe(1);
     await page.evaluate(() => window.__compression.controller.dispose());
     expect(await page.evaluate(() => window.__compression.calls[0].signal.aborted)).toBe(true);
@@ -191,11 +266,12 @@ test('Mobile Reduce Size click reveals the chooser below the sticky header and k
     expect(position.chooserTop).toBeGreaterThan(position.headerBottom);
     expect(position.chooserBottom).toBeLessThanOrEqual(position.viewportHeight);
     await expect(page.locator('[data-pdf-task].active')).toHaveCount(1);
-    await page.locator('#pdf-compress-start-btn').click();
     await expect(page.locator('#pdf-compress-result')).toBeVisible();
+    await expect(page.locator('#pdf-compress-result-size')).toHaveAttribute('title', /bytes \(decimal units\)/);
+    await page.locator('#pdf-compress-acknowledge').check();
     const downloadPromise = page.waitForEvent('download');
     await page.locator('#pdf-compress-download-btn').click();
     const download = await downloadPromise;
-    expect(download.suggestedFilename()).toBe('mobile-optimize-balanced.pdf');
+    expect(download.suggestedFilename()).toBe('mobile-simplify-balanced.pdf');
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBe(true);
 });
