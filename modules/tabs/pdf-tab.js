@@ -5,7 +5,7 @@ import {
     PDF_IMAGE_EXPORT_MAX_TOTAL_BYTES,
     sanitizePdfFilename,
     validatePdfImageExportPlan
-} from './pdf-utils.js?v=r-d9def9dcf7c56c8d';
+} from './pdf-utils.js?v=r-d45f015f257fd23c';
 import {
     canvasToBlobAsync,
     estimateSizeBytes,
@@ -13,11 +13,11 @@ import {
     formatBytes,
     getRasterExtension,
     sanitizeFileComponent
-} from '../raster-utils.js?v=r-d9def9dcf7c56c8d';
-import { createZipFile } from '../export3d.js?v=r-d9def9dcf7c56c8d';
-import { createImageToPdfController } from './pdf-image-to-pdf.js?v=r-d9def9dcf7c56c8d';
-import { createPdfOcrController } from './pdf-ocr.js?v=r-d9def9dcf7c56c8d';
-import { createPdfCompressionController } from './pdf-compress-ui.js?v=r-d9def9dcf7c56c8d';
+} from '../raster-utils.js?v=r-d45f015f257fd23c';
+import { createZipFile } from '../export3d.js?v=r-d45f015f257fd23c';
+import { createImageToPdfController } from './pdf-image-to-pdf.js?v=r-d45f015f257fd23c';
+import { createPdfOcrController } from './pdf-ocr.js?v=r-d45f015f257fd23c';
+import { createPdfCompressionController } from './pdf-compress-ui.js?v=r-d45f015f257fd23c';
 
 let pdfLibPromise = null;
 let pdfJsPromise = null;
@@ -60,16 +60,16 @@ async function exportCanvasToImageBlob(canvas, format) {
 
 async function getPdfLib() {
     if (!pdfLibPromise) {
-        pdfLibPromise = import('../../vendor/pdf-lib/pdf-lib.esm.min.js?v=r-d9def9dcf7c56c8d');
+        pdfLibPromise = import('../../vendor/pdf-lib/pdf-lib.esm.min.js?v=r-d45f015f257fd23c');
     }
     return pdfLibPromise;
 }
 
 async function getPdfJs() {
     if (!pdfJsPromise) {
-        pdfJsPromise = import('../../vendor/pdfjs/pdf.min.mjs?v=r-d9def9dcf7c56c8d').then((pdfjs) => {
+        pdfJsPromise = import('../../vendor/pdfjs/pdf.min.mjs?v=r-d45f015f257fd23c').then((pdfjs) => {
             pdfjs.GlobalWorkerOptions.workerSrc =
-                new URL('../../vendor/pdfjs/pdf.worker.min.mjs?v=r-d9def9dcf7c56c8d', import.meta.url).href;
+                new URL('../../vendor/pdfjs/pdf.worker.min.mjs?v=r-d45f015f257fd23c', import.meta.url).href;
             return pdfjs;
         });
     }
@@ -178,6 +178,25 @@ export function createPdfTabController({
         } else if (task === 'pdf-images') {
             setStatus('Choose the PDF pages you want to save as images.', getOutputEntries().length ? 'ready' : 'muted');
         }
+    }
+
+    function revealCompressionOnMobile() {
+        // This is an explicit task-selection action only. Rendering or moving
+        // the shared navigation during a resize must not steal scroll/focus.
+        if (!window.matchMedia?.('(max-width: 1023px)').matches) return;
+        const panel = elements.pdf.compressPanel;
+        if (!panel || getActiveTask() !== 'compress') return;
+        const topbar = panel.closest('.app-workspace')?.querySelector('.workspace-topbar');
+        let headerOffset = 0;
+        if (topbar) {
+            const style = window.getComputedStyle(topbar);
+            if (style.position === 'sticky' || style.position === 'fixed') {
+                headerOffset = topbar.getBoundingClientRect().height + Math.max(0, parseFloat(style.top) || 0);
+            }
+        }
+        panel.style.scrollMarginTop = `${Math.ceil(headerOffset) + 12}px`;
+        panel.scrollIntoView({ block: 'start', behavior: 'auto' });
+        elements.pdf.compressDropzone?.focus({ preventScroll: true });
     }
 
     function syncTaskUi() {
@@ -1590,7 +1609,10 @@ export function createPdfTabController({
         bindTaskNavigationLocation();
 
         elements.pdf.taskButtons?.forEach((button) => {
-            button.addEventListener('click', () => setActiveTask(button.dataset.pdfTask));
+            button.addEventListener('click', () => {
+                setActiveTask(button.dataset.pdfTask);
+                if (button.dataset.pdfTask === 'compress') revealCompressionOnMobile();
+            });
         });
 
         elements.pdf.dropzone?.addEventListener('click', () => elements.pdf.fileInput?.click());

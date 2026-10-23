@@ -17,14 +17,14 @@ let pdfLibPromise;
 let pdfJsPromise;
 
 async function getPdfLib() {
-    pdfLibPromise ||= import('../../vendor/pdf-lib/pdf-lib.esm.min.js?v=r-d9def9dcf7c56c8d');
+    pdfLibPromise ||= import('../../vendor/pdf-lib/pdf-lib.esm.min.js?v=r-d45f015f257fd23c');
     return pdfLibPromise;
 }
 
 async function getPdfJs() {
-    pdfJsPromise ||= import('../../vendor/pdfjs/pdf.min.mjs?v=r-d9def9dcf7c56c8d').then((pdfjs) => {
+    pdfJsPromise ||= import('../../vendor/pdfjs/pdf.min.mjs?v=r-d45f015f257fd23c').then((pdfjs) => {
         pdfjs.GlobalWorkerOptions.workerSrc = new URL(
-            '../../vendor/pdfjs/pdf.worker.min.mjs?v=r-d9def9dcf7c56c8d', import.meta.url
+            '../../vendor/pdfjs/pdf.worker.min.mjs?v=r-d45f015f257fd23c', import.meta.url
         ).href;
         return pdfjs;
     });
