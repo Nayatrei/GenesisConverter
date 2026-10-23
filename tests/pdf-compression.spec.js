@@ -62,6 +62,9 @@ test('Reduce Size balances upload/download cards and enables direct download aft
     await expect(page.locator('#pdf-compress-mode option')).toHaveCount(3);
     await expect(page.locator('#pdf-compress-mode')).toHaveValue('simplify');
     await expect(page.locator('#pdf-compress-panel input[type="checkbox"]')).toHaveCount(0);
+    await expect(page.locator('.pdf-compress-download-card > svg')).toHaveCount(0);
+    await expect(page.locator('#pdf-compress-download-btn > svg')).toHaveAttribute('width', '22');
+    await expect(page.locator('#pdf-compress-download-btn > svg')).toHaveAttribute('height', '22');
     await expect(page.locator('#pdf-compress-download-btn')).toBeVisible();
     await expect(page.locator('#pdf-compress-download-btn')).toBeDisabled();
     await expect(page.locator('#pdf-compress-loss-notice')).toBeVisible();

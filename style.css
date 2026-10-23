@@ -14492,12 +14492,6 @@ body.app-shell-v2 .pdf-compress-download-card {
     text-align: center;
 }
 
-body.app-shell-v2 .pdf-compress-download-card > svg {
-    width: 3rem;
-    height: 3rem;
-    color: var(--clay-accent-deep);
-}
-
 body.app-shell-v2 .pdf-compress-download-card #pdf-compress-page-count {
     margin: 0;
 }
