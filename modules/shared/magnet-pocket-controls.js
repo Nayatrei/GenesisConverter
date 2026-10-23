@@ -1,7 +1,7 @@
 import {
     getMagnetPresets,
     normalizeMagnetPocketConfig
-} from './magnet-pockets.js?v=r-5fd581cf97360d61';
+} from './magnet-pockets.js?v=r-9313d20c2a08ff72';
 
 function setInputValue(input, value) {
     if (input) input.value = String(value);

@@ -5,7 +5,7 @@ import {
     PDF_IMAGE_EXPORT_MAX_TOTAL_BYTES,
     sanitizePdfFilename,
     validatePdfImageExportPlan
-} from './pdf-utils.js?v=r-5fd581cf97360d61';
+} from './pdf-utils.js?v=r-9313d20c2a08ff72';
 import {
     canvasToBlobAsync,
     estimateSizeBytes,
@@ -13,10 +13,11 @@ import {
     formatBytes,
     getRasterExtension,
     sanitizeFileComponent
-} from '../raster-utils.js?v=r-5fd581cf97360d61';
-import { createZipFile } from '../export3d.js?v=r-5fd581cf97360d61';
-import { createImageToPdfController } from './pdf-image-to-pdf.js?v=r-5fd581cf97360d61';
-import { createPdfOcrController } from './pdf-ocr.js?v=r-5fd581cf97360d61';
+} from '../raster-utils.js?v=r-9313d20c2a08ff72';
+import { createZipFile } from '../export3d.js?v=r-9313d20c2a08ff72';
+import { createImageToPdfController } from './pdf-image-to-pdf.js?v=r-9313d20c2a08ff72';
+import { createPdfOcrController } from './pdf-ocr.js?v=r-9313d20c2a08ff72';
+import { createPdfCompressionController } from './pdf-compress-ui.js?v=r-9313d20c2a08ff72';
 
 let pdfLibPromise = null;
 let pdfJsPromise = null;
@@ -31,7 +32,7 @@ const IMAGE_EXPORT_LOSSY_QUALITY = 0.92;
 const WEBP_SIZE_RATIO_TO_JPG = 0.8;
 const IMAGE_WIDTH_MIN = 16;
 const IMAGE_WIDTH_MAX = 8192;
-const PDF_TASKS = ['combine', 'pdf-images', 'images-pdf', 'ocr'];
+const PDF_TASKS = ['combine', 'pdf-images', 'images-pdf', 'ocr', 'compress'];
 const PDF_DOCUMENT_TASKS = new Set(['combine', 'pdf-images']);
 
 function getImageExportExtension(format) {
@@ -59,16 +60,16 @@ async function exportCanvasToImageBlob(canvas, format) {
 
 async function getPdfLib() {
     if (!pdfLibPromise) {
-        pdfLibPromise = import('../../vendor/pdf-lib/pdf-lib.esm.min.js?v=r-5fd581cf97360d61');
+        pdfLibPromise = import('../../vendor/pdf-lib/pdf-lib.esm.min.js?v=r-9313d20c2a08ff72');
     }
     return pdfLibPromise;
 }
 
 async function getPdfJs() {
     if (!pdfJsPromise) {
-        pdfJsPromise = import('../../vendor/pdfjs/pdf.min.mjs?v=r-5fd581cf97360d61').then((pdfjs) => {
+        pdfJsPromise = import('../../vendor/pdfjs/pdf.min.mjs?v=r-9313d20c2a08ff72').then((pdfjs) => {
             pdfjs.GlobalWorkerOptions.workerSrc =
-                new URL('../../vendor/pdfjs/pdf.worker.min.mjs?v=r-5fd581cf97360d61', import.meta.url).href;
+                new URL('../../vendor/pdfjs/pdf.worker.min.mjs?v=r-9313d20c2a08ff72', import.meta.url).href;
             return pdfjs;
         });
     }
@@ -97,6 +98,7 @@ export function createPdfTabController({
         showLoader,
         downloadBlob
     });
+    const compressionController = createPdfCompressionController({ state, elements, downloadBlob });
 
     function getActiveTask() {
         return PDF_TASKS.includes(state.pdf.activeTask)
@@ -169,6 +171,7 @@ export function createPdfTabController({
         syncTaskUi();
         if (task === 'images-pdf') imageToPdfController.render();
         if (task === 'ocr') ocrController.render();
+        if (task === 'compress') compressionController.render();
 
         if (task === 'combine') {
             setStatus('Choose pages, then save one combined PDF.', getOutputEntries().length ? 'ready' : 'muted');
@@ -1728,6 +1731,7 @@ export function createPdfTabController({
 
         imageToPdfController.bindEvents();
         ocrController.bindEvents();
+        compressionController.bindEvents();
 
         syncFinishControlsFromState();
         syncTaskUi();
@@ -1741,6 +1745,7 @@ export function createPdfTabController({
         syncTaskUi();
         imageToPdfController.render();
         ocrController.render();
+        compressionController.render();
     }
 
     return {
@@ -1751,6 +1756,7 @@ export function createPdfTabController({
             disposeTaskNavigationLocation();
             imageToPdfController.dispose();
             ocrController.dispose();
+            compressionController.dispose();
         }
     };
 }

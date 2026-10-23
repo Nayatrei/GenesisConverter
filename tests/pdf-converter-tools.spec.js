@@ -6,7 +6,7 @@ const { PDFDocument, StandardFonts, rgb } = require('pdf-lib');
 async function openPdfConverter(page) {
     await page.goto('/pdf');
     await expect(page.getByRole('heading', { name: 'PDF Converter' })).toBeVisible();
-    await expect(page.locator('[data-pdf-task]')).toHaveCount(4);
+    await expect(page.locator('[data-pdf-task]')).toHaveCount(5);
 }
 
 async function buildNativeTextPdf(text) {
@@ -74,7 +74,7 @@ function crc32(buffer) {
     return (crc ^ 0xffffffff) >>> 0;
 }
 
-test('PDF Converter exposes four clear tasks and builds a PDF from ordered images', async ({ page }) => {
+test('PDF Converter exposes five clear tasks and builds a PDF from ordered images', async ({ page }) => {
     await openPdfConverter(page);
 
     const taskButtons = page.locator('[data-pdf-task]');
@@ -82,7 +82,8 @@ test('PDF Converter exposes four clear tasks and builds a PDF from ordered image
         /Combine PDFs/,
         /PDF to Images/,
         /Files to PDF/,
-        /Scanned PDF to Text/
+        /Scanned PDF to Text/,
+        /Compress PDF/
     ]);
 
     await page.locator('[data-pdf-task="pdf-images"]').click();
