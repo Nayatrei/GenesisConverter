@@ -265,8 +265,6 @@ export function createElements() {
             compressPreset: document.getElementById('pdf-compress-preset'),
             compressOptionsSummary: document.getElementById('pdf-compress-options-summary'),
             compressLossNotice: document.getElementById('pdf-compress-loss-notice'),
-            compressAcknowledgeRow: document.getElementById('pdf-compress-acknowledge-row'),
-            compressAcknowledge: document.getElementById('pdf-compress-acknowledge'),
             compressStartBtn: document.getElementById('pdf-compress-start-btn'),
             compressCancelBtn: document.getElementById('pdf-compress-cancel-btn'),
             compressClearBtn: document.getElementById('pdf-compress-clear-btn'),

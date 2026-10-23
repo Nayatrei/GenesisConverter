@@ -2,8 +2,8 @@ import {
     DEFAULT_AMS_PRINT_STYLE,
     getAmsPrintStylePreset,
     normalizeAmsPrintStyle
-} from '../config.js?v=r-d526179f322ffd3a';
-import { waitForBrowserPaint } from './bambu-send-progress.js?v=r-d526179f322ffd3a';
+} from '../config.js?v=r-b71f5e6f86690950';
+import { waitForBrowserPaint } from './bambu-send-progress.js?v=r-b71f5e6f86690950';
 
 const STYLE_HELPERS = Object.freeze({
     'raised-efficient': '2.4mm base with a 0.6mm color surface. Keeps the raised look while limiting AMS swaps.',

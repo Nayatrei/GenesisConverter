@@ -11,7 +11,7 @@ async function installHarness(page, behavior = 'larger', fallbackDownload = fals
             <span id="c-name"></span><span id="c-source"></span>
             <select id="c-mode"><option value="optimize">Standard</option><option value="simplify">View-only</option><option value="rasterize">Image-only</option></select>
             <select id="c-preset"><option value="high">High</option><option value="balanced">Balanced</option><option value="small">Small</option></select>
-            <p id="c-loss"></p><label id="c-ack-row"><input id="c-ack" type="checkbox">Acknowledge</label>
+            <p id="c-loss"></p>
             <button id="c-start">Start</button><button id="c-cancel">Cancel</button><button id="c-clear">Clear</button>
             <p id="c-status"></p><progress id="c-progress" max="100"></progress>
             <div id="c-result"><span id="c-before"></span><span id="c-size"></span><span id="c-reduction"></span><span id="c-pages"></span><p id="c-notice"></p><ul id="c-warnings"></ul></div>
@@ -20,7 +20,7 @@ async function installHarness(page, behavior = 'larger', fallbackDownload = fals
         const names = {
             compressPanel: shell, compressFileInput: '#c-file', compressDropzone: '#c-drop', compressFilename: '#c-name',
             compressSourceSize: '#c-source', compressMode: '#c-mode', compressPreset: '#c-preset', compressLossNotice: '#c-loss',
-            compressAcknowledgeRow: '#c-ack-row', compressAcknowledge: '#c-ack', compressStartBtn: '#c-start',
+            compressStartBtn: '#c-start',
             compressCancelBtn: '#c-cancel', compressClearBtn: '#c-clear', compressStatus: '#c-status', compressProgress: '#c-progress',
             compressResult: '#c-result', compressBeforeSize: '#c-before', compressResultSize: '#c-size', compressReduction: '#c-reduction', compressPageCount: '#c-pages',
             compressResultNotice: '#c-notice', compressWarnings: '#c-warnings', compressDownloadBtn: '#c-download', compressOriginalBtn: '#c-original'
@@ -46,7 +46,7 @@ async function installHarness(page, behavior = 'larger', fallbackDownload = fals
     }, { behavior, fallbackDownload });
 }
 
-test('Reduce Size defaults to flattened automatic measurement with visible loss disclosure and consent-gated download', async ({ page }) => {
+test('Reduce Size balances upload/download cards and enables direct download after automatic flattened measurement', async ({ page }) => {
     const source = await PDFDocument.create();
     source.addPage([240, 180]).drawText('Automatic flattened measurement', { x: 10, y: 100, size: 12 });
     const bytes = Buffer.from(await source.save());
@@ -61,6 +61,9 @@ test('Reduce Size defaults to flattened automatic measurement with visible loss 
     await expect(page.locator('#pdf-merge-footer')).toBeHidden();
     await expect(page.locator('#pdf-compress-mode option')).toHaveCount(3);
     await expect(page.locator('#pdf-compress-mode')).toHaveValue('simplify');
+    await expect(page.locator('#pdf-compress-panel input[type="checkbox"]')).toHaveCount(0);
+    await expect(page.locator('#pdf-compress-download-btn')).toBeVisible();
+    await expect(page.locator('#pdf-compress-download-btn')).toBeDisabled();
     await expect(page.locator('#pdf-compress-loss-notice')).toBeVisible();
     await expect(page.locator('#pdf-compress-loss-notice')).toContainText('flattened');
     expect(await page.locator('#pdf-compress-loss-notice').evaluate((element) => element.closest('details') === null)).toBe(true);
@@ -77,20 +80,29 @@ test('Reduce Size defaults to flattened automatic measurement with visible loss 
         const panel = element.closest('#pdf-compress-panel').getBoundingClientRect();
         return comparison.top >= panel.top && comparison.bottom <= Math.min(panel.bottom, innerHeight);
     })).toBe(true);
-    await expect(page.locator('#pdf-compress-acknowledge-row')).toBeVisible();
-    await expect(page.locator('#pdf-compress-download-btn')).toBeDisabled();
     await expect(page.locator('#pdf-compress-start-btn')).toBeEnabled();
-    await page.locator('#pdf-compress-acknowledge').check();
     await expect(page.locator('#pdf-compress-download-btn')).toBeEnabled();
+    const layout = await page.evaluate(() => {
+        const source = document.querySelector('.pdf-compress-source').getBoundingClientRect();
+        const output = document.querySelector('.pdf-compress-output').getBoundingClientRect();
+        const button = document.querySelector('#pdf-compress-download-btn').getBoundingClientRect();
+        const notice = document.querySelector('#pdf-compress-result-notice').getBoundingClientRect();
+        return { sourceWidth: source.width, outputWidth: output.width, sourceTop: source.top, outputTop: output.top,
+            sourceHeight: source.height, outputHeight: output.height, buttonWidth: button.width, buttonHeight: button.height,
+            buttonBottom: button.bottom, noticeTop: notice.top };
+    });
+    expect(Math.abs(layout.sourceWidth - layout.outputWidth)).toBeLessThan(2);
+    expect(Math.abs(layout.sourceTop - layout.outputTop)).toBeLessThan(2);
+    expect(Math.abs(layout.sourceHeight - layout.outputHeight)).toBeLessThan(2);
+    expect(layout.buttonWidth).toBeGreaterThan(layout.outputWidth * 0.7);
+    expect(layout.buttonHeight).toBeGreaterThanOrEqual(64);
+    expect(layout.buttonBottom).toBeLessThanOrEqual(layout.noticeTop);
     await page.locator('#pdf-compress-options-summary').click();
     await page.locator('#pdf-compress-mode').selectOption('optimize');
-    await expect(page.locator('#pdf-compress-acknowledge-row')).toBeHidden();
+    await expect(page.locator('#pdf-compress-result-size')).toHaveAttribute('title', /bytes \(decimal units\)/);
     await page.locator('#pdf-compress-mode').selectOption('rasterize');
-    await expect(page.locator('#pdf-compress-acknowledge')).not.toBeChecked();
-    await expect(page.locator('#pdf-compress-start-btn')).toBeDisabled();
-    await expect(page.locator('#pdf-compress-download-btn')).toBeDisabled();
-    await expect(page.locator('#pdf-compress-result-size')).toHaveText('Awaiting confirmation');
     await expect(page.locator('#pdf-compress-loss-notice')).toContainText('Text search, text selection, links');
+    await expect(page.locator('#pdf-compress-download-btn')).toBeEnabled();
     await page.setViewportSize({ width: 390, height: 844 });
     await expect(page.locator('#pdf-compress-panel')).toBeVisible();
     expect(await page.locator('#pdf-compress-panel').evaluate((element) => element.scrollWidth <= element.clientWidth + 1)).toBe(true);
@@ -104,10 +116,7 @@ test('Measured larger results are honest, inert warnings and downloads retain or
     await expect(page.locator('#c-notice')).toContainText('not smaller');
     await expect(page.locator('#c-warnings')).toContainText('<img src=x');
     await expect(page.locator('#c-warnings img')).toHaveCount(0);
-    await expect(page.locator('#c-download')).toBeDisabled();
-    await page.locator('#c-download').dispatchEvent('click');
-    expect(await page.evaluate(() => window.__compression.downloads.length)).toBe(0);
-    await page.locator('#c-ack').check();
+    await expect(page.locator('#c-download')).toBeEnabled();
     await page.locator('#c-download').click();
     await page.locator('#c-original').click();
     expect(await page.evaluate(async () => ({
@@ -129,6 +138,9 @@ test('Replacement aborts old work, rejects stale results and never runs two PDF 
     await expect(page.locator('#c-status')).toHaveText('Halfway through PDF');
     await expect(page.locator('#c-before')).toHaveText('100 B');
     await expect(page.locator('#c-size')).toHaveText('Calculating…');
+    await expect(page.locator('#c-download')).toBeDisabled();
+    await page.locator('#c-download').dispatchEvent('click');
+    expect(await page.evaluate(() => window.__compression.downloads.length)).toBe(0);
     await page.evaluate(() => {
         window.__compression.controller.setFiles([new File([new Uint8Array(300)], 'replacement.pdf', { type: 'application/pdf' })]);
         window.__compression.controller.start();
@@ -152,23 +164,22 @@ test('Replacement aborts old work, rejects stale results and never runs two PDF 
     expect(await page.evaluate(() => window.__compression.state.pdf.compression.result)).toBeNull();
 });
 
-test('Image-only never processes without explicit acknowledgement and withdrawing consent cancels without retry', async ({ page }) => {
+test('Explicit image-only selection auto-calculates without a checkbox and Cancel still stops processing', async ({ page }) => {
     await page.goto('/pdf');
     await installHarness(page, 'deferred');
     await expect.poll(() => page.evaluate(() => window.__compression.calls.length)).toBe(1);
     await page.locator('#c-mode').selectOption('rasterize');
     expect(await page.evaluate(() => window.__compression.calls[0].signal.aborted)).toBe(true);
     await page.evaluate(() => window.__compression.calls[0].resolve({ bytes: new Uint8Array(5), pageCount: 1, warnings: [] }));
-    await expect(page.locator('#c-size')).toHaveText('Awaiting confirmation');
-    await expect(page.locator('#c-start')).toBeDisabled();
-    expect(await page.evaluate(() => window.__compression.calls.length)).toBe(1);
-    await page.locator('#c-ack').check();
     await expect.poll(() => page.evaluate(() => window.__compression.calls.length)).toBe(2);
     expect(await page.evaluate(() => window.__compression.calls[1].mode)).toBe('rasterize');
-    await page.locator('#c-ack').uncheck();
+    await expect(page.locator('#c-loss')).toContainText('Every page becomes a JPEG image');
+    await expect(page.locator('#c-size')).toHaveText('Calculating…');
+    await expect(page.locator('#c-download')).toBeDisabled();
+    await page.locator('#c-cancel').click();
     expect(await page.evaluate(() => window.__compression.calls[1].signal.aborted)).toBe(true);
     await page.evaluate(() => window.__compression.calls[1].resolve({ bytes: new Uint8Array(5), pageCount: 1, warnings: [] }));
-    await expect(page.locator('#c-size')).toHaveText('Awaiting confirmation');
+    await expect(page.locator('#c-size')).toHaveText('Not calculated');
     await expect(page.locator('#c-download')).toBeDisabled();
     await expect(page.locator('#c-original')).toBeEnabled();
     expect(await page.evaluate(() => window.__compression.calls.length)).toBe(2);
@@ -220,7 +231,6 @@ test('Disposal aborts pending work, releases files and revokes owned download UR
         URL.revokeObjectURL = (url) => { window.__urls.revoked.push(url); revoke(url); };
     });
     await expect(page.locator('#c-size')).toHaveText('200 B');
-    await page.locator('#c-ack').check();
     const download = page.waitForEvent('download');
     await page.locator('#c-download').click();
     await download;
@@ -268,7 +278,6 @@ test('Mobile Reduce Size click reveals the chooser below the sticky header and k
     await expect(page.locator('[data-pdf-task].active')).toHaveCount(1);
     await expect(page.locator('#pdf-compress-result')).toBeVisible();
     await expect(page.locator('#pdf-compress-result-size')).toHaveAttribute('title', /bytes \(decimal units\)/);
-    await page.locator('#pdf-compress-acknowledge').check();
     const downloadPromise = page.waitForEvent('download');
     await page.locator('#pdf-compress-download-btn').click();
     const download = await downloadPromise;

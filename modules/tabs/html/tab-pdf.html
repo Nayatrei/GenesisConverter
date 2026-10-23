@@ -635,10 +635,6 @@
                         </div>
                     </details>
                     <p id="pdf-compress-loss-notice" class="pdf-compress-disclosure">Creates a view-only copy: supported visible forms and annotations are flattened; links, editable forms, comments, bookmarks, attachments, and document metadata are removed. Unsupported visible features stop the export. Text may remain searchable. This is not secure redaction.</p>
-                    <label id="pdf-compress-acknowledge-row" class="pdf-compress-acknowledge">
-                        <input id="pdf-compress-acknowledge" type="checkbox">
-                        <span>I understand the feature losses above and will review the copy before sharing.</span>
-                    </label>
                     <div class="pdf-compress-actions">
                         <button id="pdf-compress-start-btn" type="button" class="pdf-footer-primary" disabled>Recalculate size</button>
                         <button id="pdf-compress-cancel-btn" type="button" class="pdf-footer-secondary" hidden disabled>Cancel</button>
@@ -647,18 +643,26 @@
                     <p id="pdf-compress-status" class="pdf-footer-status" role="status" aria-live="polite" aria-atomic="true">Choose one PDF. Processing stays on this device; no account is needed.</p>
                 </div>
                 <aside class="pdf-compress-output" aria-label="Compression result">
-                    <div id="pdf-compress-result" hidden>
-                        <span class="pdf-eyebrow">Your copy</span>
-                        <strong id="pdf-compress-reduction"></strong>
-                        <p id="pdf-compress-page-count"></p>
+                    <div id="pdf-compress-result">
+                        <div class="pdf-compress-download-card">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                <path d="M6 2h8l4 4v16H6zM14 2v4h4M12 10v8m-3-3 3 3 3-3"></path>
+                            </svg>
+                            <span class="pdf-eyebrow">Your copy</span>
+                            <strong id="pdf-compress-reduction"></strong>
+                            <p id="pdf-compress-page-count"></p>
+                            <button id="pdf-compress-download-btn" type="button" class="pdf-footer-primary" disabled>
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12m-4-4 4 4 4-4M5 16v5h14v-5"></path></svg>
+                                <span>Download copy</span>
+                            </button>
+                        </div>
                         <p id="pdf-compress-result-notice"></p>
                         <ul id="pdf-compress-warnings" class="pdf-compress-warnings" hidden></ul>
-                        <button id="pdf-compress-download-btn" type="button" class="pdf-footer-primary" disabled>Download copy</button>
                     </div>
                     <div class="pdf-compress-original-note">
                         <strong>Your original stays intact.</strong>
-                        <p>A smaller file is not guaranteed. If the copy is larger, keep the original. Nothing is uploaded, overwritten, or sent to a printer.</p>
-                        <button id="pdf-compress-original-btn" type="button" class="pdf-footer-secondary" disabled>Download unchanged original</button>
+                        <p>Only a separate copy is downloaded. If it is larger, keep the original.</p>
+                        <button id="pdf-compress-original-btn" type="button" class="pdf-text-button" disabled>Download unchanged original</button>
                     </div>
                 </aside>
             </div>
