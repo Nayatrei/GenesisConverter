@@ -2,11 +2,11 @@ import {
     launchBambuStudio,
     probeBambuTransferBackend,
     publishBambuProject
-} from './bambu-bridge.js?v=r-b71f5e6f86690950';
+} from './bambu-bridge.js?v=r-a962f21ef9708c00';
 import {
     createBambuSendProgress,
     waitForBrowserPaint
-} from './shared/bambu-send-progress.js?v=r-b71f5e6f86690950';
+} from './shared/bambu-send-progress.js?v=r-a962f21ef9708c00';
 
 const THREE_MF_BLOB_TYPE = 'model/3mf';
 

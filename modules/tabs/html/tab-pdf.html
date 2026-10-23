@@ -588,30 +588,25 @@
 
         <section id="pdf-compress-panel" class="pdf-standalone-task pdf-compress-panel hidden" data-pdf-task-panel="compress" aria-labelledby="pdf-compress-title">
             <header class="pdf-standalone-task-head">
-                <span class="pdf-eyebrow">Reduce Size · Free local tool</span>
-                <h4 id="pdf-compress-title">A lighter copy, not a changed original</h4>
-                <p>Choose a PDF to automatically compare its original size with a flattened, view-only copy. Your file stays on this device.</p>
+                <span class="pdf-eyebrow">Private browser tool</span>
+                <h4 id="pdf-compress-title">Reduce PDF size</h4>
+                <p>Choose a file. A separate copy is calculated automatically on your device.</p>
             </header>
-            <div class="pdf-compress-size-comparison" role="group" aria-label="PDF size comparison">
-                <div><span>Before</span><strong id="pdf-compress-before-size">—</strong></div>
-                <div><span>After</span><h5 id="pdf-compress-result-size">—</h5></div>
-            </div>
             <div class="pdf-compress-layout">
                 <div class="pdf-compress-source">
                     <input id="pdf-compress-file-input" type="file" accept="application/pdf,.pdf" class="hidden">
                     <div id="pdf-compress-dropzone" class="pdf-task-dropzone" role="button" tabindex="0" aria-label="Choose or replace one PDF to compress">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                             <path d="M6 2h8l4 4v16H6zM14 2v4h4M9 12h6m-3-3v6m-3 3h6"></path>
                         </svg>
                         <strong>Choose one PDF</strong>
-                        <span>Drop a PDF here, or choose a replacement · Up to 100 MB / 200 pages</span>
+                        <span>Drop a file or browse · Up to 100 MB / 200 pages</span>
                     </div>
                     <div class="pdf-compress-file-summary">
                         <strong id="pdf-compress-filename">No PDF selected</strong>
                         <span>Original <b id="pdf-compress-source-size">—</b></span>
                         <button id="pdf-compress-clear-btn" type="button" class="pdf-text-button" disabled>Remove file</button>
                     </div>
-                    <p class="pdf-tool-note">The flattened copy is measured automatically; nothing is downloaded. Open optional settings to keep editable features or choose another quality.</p>
                     <details class="pdf-compress-options">
                         <summary id="pdf-compress-options-summary">Optional settings · Flattened · Balanced</summary>
                         <div class="pdf-compress-options-body">
@@ -631,12 +626,12 @@
                             <option value="small">Smaller file — less image detail</option>
                         </select>
                     </label>
-                    <p class="pdf-tool-note">Quality presets affect supported images, not your original. Small text in scans and photos can become less clear. Signed and password-protected PDFs are not supported.</p>
+                    <p class="pdf-tool-note">Image quality affects the copy, not the original. Small text and photos may lose detail.</p>
                         </div>
                     </details>
-                    <p id="pdf-compress-loss-notice" class="pdf-compress-disclosure">Creates a view-only copy: supported visible forms and annotations are flattened; links, editable forms, comments, bookmarks, attachments, and document metadata are removed. Unsupported visible features stop the export. Text may remain searchable. This is not secure redaction.</p>
+                    <p id="pdf-compress-loss-notice" class="pdf-compress-disclosure">A flattened viewing copy removes links and editable features. Your original stays unchanged.</p>
                     <div class="pdf-compress-actions">
-                        <button id="pdf-compress-start-btn" type="button" class="pdf-footer-primary" disabled>Recalculate size</button>
+                        <button id="pdf-compress-start-btn" type="button" class="pdf-text-button" disabled>Recalculate size</button>
                         <button id="pdf-compress-cancel-btn" type="button" class="pdf-footer-secondary" hidden disabled>Cancel</button>
                     </div>
                     <progress id="pdf-compress-progress" max="100" value="0" hidden aria-label="PDF compression progress"></progress>
@@ -644,26 +639,27 @@
                 </div>
                 <aside class="pdf-compress-output" aria-label="Compression result">
                     <div id="pdf-compress-result">
-                        <div class="pdf-compress-download-card">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                                <path d="M6 2h8l4 4v16H6zM14 2v4h4M12 10v8m-3-3 3 3 3-3"></path>
-                            </svg>
-                            <span class="pdf-eyebrow">Your copy</span>
+                        <span class="pdf-eyebrow">Your result</span>
+                        <div class="pdf-compress-size-comparison" role="group" aria-label="PDF size comparison">
+                            <div><span>Original</span><strong id="pdf-compress-before-size">—</strong></div>
+                            <div><span>Your copy</span><h5 id="pdf-compress-result-size">—</h5></div>
+                        </div>
+                        <div class="pdf-compress-result-meta">
                             <strong id="pdf-compress-reduction"></strong>
                             <p id="pdf-compress-page-count"></p>
-                            <button id="pdf-compress-download-btn" type="button" class="pdf-footer-primary" disabled>
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12m-4-4 4 4 4-4M5 16v5h14v-5"></path></svg>
-                                <span>Download copy</span>
-                            </button>
                         </div>
+                        <button id="pdf-compress-download-btn" type="button" class="pdf-footer-primary" disabled>
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12m-4-4 4 4 4-4M5 16v5h14v-5"></path></svg>
+                            <span>Download copy</span>
+                        </button>
                         <p id="pdf-compress-result-notice"></p>
+                    </div>
+                    <button id="pdf-compress-original-btn" type="button" class="pdf-text-button" disabled>Download unchanged original</button>
+                    <details class="pdf-compress-result-details">
+                        <summary>About this copy</summary>
+                        <p>Flattened copies remove links, editable forms, comments, bookmarks, attachments, metadata and tags. Image-only mode also removes searchable text. Review the copy before sharing. This is not secure redaction. Signed and password-protected PDFs are not supported.</p>
                         <ul id="pdf-compress-warnings" class="pdf-compress-warnings" hidden></ul>
-                    </div>
-                    <div class="pdf-compress-original-note">
-                        <strong>Your original stays intact.</strong>
-                        <p>Only a separate copy is downloaded. If it is larger, keep the original.</p>
-                        <button id="pdf-compress-original-btn" type="button" class="pdf-text-button" disabled>Download unchanged original</button>
-                    </div>
+                    </details>
                 </aside>
             </div>
         </section>

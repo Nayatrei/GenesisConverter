@@ -1,5 +1,5 @@
-import { compressPdf } from './pdf-compression.js?v=r-b71f5e6f86690950';
-import { sanitizePdfFilename } from './pdf-utils.js?v=r-b71f5e6f86690950';
+import { compressPdf } from './pdf-compression.js?v=r-a962f21ef9708c00';
+import { sanitizePdfFilename } from './pdf-utils.js?v=r-a962f21ef9708c00';
 
 const MODES = new Set(['optimize', 'simplify', 'rasterize']);
 const PRESETS = new Set(['high', 'balanced', 'small']);
@@ -29,6 +29,7 @@ export function createPdfCompressionController({ state, elements, downloadBlob, 
     let activeJob = null;
     let queuedGeneration = null;
     let resultBlob = null;
+    let resultLayoutObserver = null;
 
     state.pdf ||= {};
     state.pdf.compression ||= {
@@ -43,6 +44,22 @@ export function createPdfCompressionController({ state, elements, downloadBlob, 
         if (!target?.addEventListener) return;
         target.addEventListener(event, callback);
         listeners.push([target, event, callback]);
+    }
+
+    function syncResultPosition() {
+        if (disposed || !ui.compressPanel) return;
+        const output = ui.compressPanel.querySelector('.pdf-compress-output');
+        if (!output) return;
+        // Read the existing navigation; never resize or restyle it. A tall
+        // result must rejoin normal document flow rather than trap controls.
+        const topbar = ui.compressPanel.closest('.app-workspace')?.querySelector('.workspace-topbar');
+        const headerStyle = topbar && getComputedStyle(topbar);
+        const offset = headerStyle && ['sticky', 'fixed'].includes(headerStyle.position)
+            ? topbar.getBoundingClientRect().height + Math.max(0, parseFloat(headerStyle.top) || 0) : 0;
+        const top = Math.ceil(offset) + 16;
+        ui.compressPanel.style.setProperty('--pdf-compress-sticky-top', `${top}px`);
+        const height = output.getBoundingClientRect().height;
+        ui.compressPanel.dataset.resultSticky = String(window.innerWidth > 1100 && height > 0 && height <= window.innerHeight - top - 16);
     }
 
     function invalidate() {
@@ -122,10 +139,10 @@ export function createPdfCompressionController({ state, elements, downloadBlob, 
         }
         if (ui.compressLossNotice) {
             ui.compressLossNotice.textContent = model.mode === 'rasterize'
-                ? 'Every page becomes a JPEG image. Text search, text selection, links, accessibility tags, forms, bookmarks, and editable annotations are lost. Small text and photos may lose detail. This is not secure redaction.'
+                ? 'Every page becomes a JPEG image. Text search, text selection, links and editable features are removed. Your original stays unchanged.'
                 : model.mode === 'simplify'
-                    ? 'Creates a view-only copy: supported visible forms and annotations are flattened; links, editable forms, comments, bookmarks, attachments, and document metadata are removed. Unsupported visible features stop the export. Text may remain searchable. This is not secure redaction.'
-                    : 'Keeps existing text and links where supported, and optimizes supported images. Not every PDF can become smaller. Review the copy before sharing; this is not secure redaction.';
+                    ? 'A flattened viewing copy removes links and editable features. Your original stays unchanged.'
+                    : 'Keeps supported text and links. Images may lose detail. Your original stays unchanged.';
         }
         if (ui.compressStartBtn) {
             ui.compressStartBtn.disabled = !ready || working || disposed;
@@ -164,10 +181,10 @@ export function createPdfCompressionController({ state, elements, downloadBlob, 
             if (ui.compressReduction) ui.compressReduction.textContent = '';
             if (ui.compressPageCount) ui.compressPageCount.textContent = '';
             if (ui.compressResultNotice) ui.compressResultNotice.textContent = model.status === 'error'
-                ? 'No copy was created. Your original is unchanged; choose another mode or correct the reported PDF issue.'
+                ? 'No copy was created. Your original is unchanged.'
                 : model.status === 'cancelled' ? 'Calculation stopped. Recalculate only when you are ready.'
-                    : !model.file ? 'Choose a PDF to calculate your copy. The download will be ready here.'
-                        : 'The actual after-size will appear here. A smaller file is not guaranteed.';
+                    : !model.file ? 'Choose a PDF to see the result.'
+                        : 'Calculating a separate copy on this device…';
             if (ui.compressWarnings) { ui.compressWarnings.replaceChildren(); ui.compressWarnings.hidden = true; }
             return;
         }
@@ -179,8 +196,8 @@ export function createPdfCompressionController({ state, elements, downloadBlob, 
             : percent < 0 ? `${Math.abs(percent).toFixed(1)}% larger — no size saving` : 'Same size — no size saving';
         if (ui.compressPageCount) ui.compressPageCount.textContent = `${pageCount} ${pageCount === 1 ? 'page' : 'pages'}`;
         if (ui.compressResultNotice) ui.compressResultNotice.textContent = percent > 0
-            ? 'Check every page, especially small text, Korean characters, and photos, before sharing this copy.'
-            : 'This copy is not smaller. Keep the original, or choose another mode or quality preset. Simplifying a PDF does not guarantee a smaller file.';
+            ? 'Ready to download. Your original stays unchanged.'
+            : 'This copy is not smaller. Try another preset or keep the original.';
         if (ui.compressWarnings) {
             ui.compressWarnings.replaceChildren(...warnings.map((warning) => {
                 const li = document.createElement('li');
@@ -302,7 +319,16 @@ export function createPdfCompressionController({ state, elements, downloadBlob, 
             save(resultBlob, sanitizePdfFilename(`${base}-${model.result.mode}-${model.result.preset}.pdf`));
         });
         listen(ui.compressOriginalBtn, 'click', () => save(model.file, sanitizePdfFilename(model.file?.name || 'original.pdf')));
+        listen(window, 'resize', syncResultPosition);
+        const output = ui.compressPanel?.querySelector('.pdf-compress-output');
+        if (output && typeof ResizeObserver === 'function') {
+            resultLayoutObserver = new ResizeObserver(syncResultPosition);
+            resultLayoutObserver.observe(output);
+            const topbar = ui.compressPanel.closest('.app-workspace')?.querySelector('.workspace-topbar');
+            if (topbar) resultLayoutObserver.observe(topbar);
+        }
         render();
+        syncResultPosition();
     }
 
     return {
@@ -311,6 +337,7 @@ export function createPdfCompressionController({ state, elements, downloadBlob, 
             if (disposed) return;
             disposed = true;
             invalidate();
+            resultLayoutObserver?.disconnect();
             model.file = null;
             for (const [target, event, callback] of listeners) target.removeEventListener(event, callback);
             listeners.length = 0;

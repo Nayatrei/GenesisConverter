@@ -5,7 +5,7 @@ import {
     PDF_IMAGE_EXPORT_MAX_TOTAL_BYTES,
     sanitizePdfFilename,
     validatePdfImageExportPlan
-} from './pdf-utils.js?v=r-b71f5e6f86690950';
+} from './pdf-utils.js?v=r-a962f21ef9708c00';
 import {
     canvasToBlobAsync,
     estimateSizeBytes,
@@ -13,11 +13,11 @@ import {
     formatBytes,
     getRasterExtension,
     sanitizeFileComponent
-} from '../raster-utils.js?v=r-b71f5e6f86690950';
-import { createZipFile } from '../export3d.js?v=r-b71f5e6f86690950';
-import { createImageToPdfController } from './pdf-image-to-pdf.js?v=r-b71f5e6f86690950';
-import { createPdfOcrController } from './pdf-ocr.js?v=r-b71f5e6f86690950';
-import { createPdfCompressionController } from './pdf-compress-ui.js?v=r-b71f5e6f86690950';
+} from '../raster-utils.js?v=r-a962f21ef9708c00';
+import { createZipFile } from '../export3d.js?v=r-a962f21ef9708c00';
+import { createImageToPdfController } from './pdf-image-to-pdf.js?v=r-a962f21ef9708c00';
+import { createPdfOcrController } from './pdf-ocr.js?v=r-a962f21ef9708c00';
+import { createPdfCompressionController } from './pdf-compress-ui.js?v=r-a962f21ef9708c00';
 
 let pdfLibPromise = null;
 let pdfJsPromise = null;
@@ -60,16 +60,16 @@ async function exportCanvasToImageBlob(canvas, format) {
 
 async function getPdfLib() {
     if (!pdfLibPromise) {
-        pdfLibPromise = import('../../vendor/pdf-lib/pdf-lib.esm.min.js?v=r-b71f5e6f86690950');
+        pdfLibPromise = import('../../vendor/pdf-lib/pdf-lib.esm.min.js?v=r-a962f21ef9708c00');
     }
     return pdfLibPromise;
 }
 
 async function getPdfJs() {
     if (!pdfJsPromise) {
-        pdfJsPromise = import('../../vendor/pdfjs/pdf.min.mjs?v=r-b71f5e6f86690950').then((pdfjs) => {
+        pdfJsPromise = import('../../vendor/pdfjs/pdf.min.mjs?v=r-a962f21ef9708c00').then((pdfjs) => {
             pdfjs.GlobalWorkerOptions.workerSrc =
-                new URL('../../vendor/pdfjs/pdf.worker.min.mjs?v=r-b71f5e6f86690950', import.meta.url).href;
+                new URL('../../vendor/pdfjs/pdf.worker.min.mjs?v=r-a962f21ef9708c00', import.meta.url).href;
             return pdfjs;
         });
     }
