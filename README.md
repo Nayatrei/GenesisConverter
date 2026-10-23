@@ -19,7 +19,7 @@ The frontend is a client-side multi-tab app served by a lightweight Node transfe
 - **SVG** — Image tracing via ImageTracer.js with presets for 3D-print, sharp detail, silhouette, multi-color.
 - **Raster** — Raster-level color quantization utilities.
 - **Bulk** — Batch conversion across multiple inputs.
-- **PDF** — Combine and arrange pages, convert between images and PDF, read scanned text, and create a compressed copy. Standard compression keeps text and links while optimizing supported images; optional view-only and image-only modes disclose the features they remove. Quality presets, measured byte savings and a separate unchanged-original download keep the default flow simple. All compression runs locally without an account or upload; signed/encrypted or unsupported documents fail without modifying the source. A smaller file is never guaranteed.
+- **PDF** — The first task, **Reduce Size**, makes a compressed copy for sharing. Other tasks combine and arrange pages, convert between images and PDF, and read scanned text. Standard compression keeps text and links while optimizing supported images; optional view-only and image-only modes disclose the features they remove. Quality presets, measured byte savings and a separate unchanged-original download keep the default flow simple. All compression runs locally without an account or upload; signed/encrypted or unsupported documents fail without modifying the source. A smaller file is never guaranteed.
 
 ## 3D export formats
 

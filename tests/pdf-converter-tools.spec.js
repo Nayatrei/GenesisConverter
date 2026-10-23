@@ -79,11 +79,11 @@ test('PDF Converter exposes five clear tasks and builds a PDF from ordered image
 
     const taskButtons = page.locator('[data-pdf-task]');
     await expect(taskButtons).toHaveText([
+        /Reduce Size/,
         /Combine PDFs/,
         /PDF to Images/,
         /Files to PDF/,
-        /Scanned PDF to Text/,
-        /Compress PDF/
+        /Scanned PDF to Text/
     ]);
 
     await page.locator('[data-pdf-task="pdf-images"]').click();

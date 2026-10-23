@@ -51,7 +51,7 @@ export function isHeicFile(file) {
  */
 async function getLibheif() {
     if (!libheifPromise) {
-        libheifPromise = import('../../vendor/heic/libheif-bundle.mjs?v=r-9313d20c2a08ff72')
+        libheifPromise = import('../../vendor/heic/libheif-bundle.mjs?v=r-d9def9dcf7c56c8d')
             .then((module) => (module.default || module)())
             .catch((error) => {
                 libheifPromise = null;

@@ -46,8 +46,12 @@ async function installHarness(page, behavior = 'larger', fallbackDownload = fals
     }, { behavior, fallbackDownload });
 }
 
-test('Compress PDF is public, responsive, and requires loss acknowledgement only for destructive modes', async ({ page }) => {
+test('Reduce Size is the first public task, responsive, and requires loss acknowledgement only for destructive modes', async ({ page }) => {
     await page.goto('/pdf');
+    await expect(page.locator('[data-pdf-task]').first()).toHaveAttribute('data-pdf-task', 'compress');
+    await expect(page.locator('#pdf-task-compress-btn .pdf-task-copy strong')).toHaveText('Reduce Size');
+    await expect(page.locator('#pdf-task-compress-btn .pdf-task-copy small')).toHaveText('Make your PDF smaller for sharing.');
+    await expect(page.locator('#pdf-task-compress-btn')).toHaveAttribute('aria-label', 'Reduce Size. Make your PDF smaller for sharing.');
     await page.locator('#pdf-task-compress-btn').click();
     await expect(page.locator('#pdf-compress-panel')).toBeVisible();
     await expect(page.locator('#pdf-merge-footer')).toBeHidden();

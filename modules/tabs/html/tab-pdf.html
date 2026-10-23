@@ -13,6 +13,24 @@
 
                 <nav class="pdf-task-switcher" aria-label="Choose a PDF task">
             <button
+                id="pdf-task-compress-btn"
+                type="button"
+                class="pdf-task-button"
+                data-pdf-task="compress"
+                aria-pressed="false"
+                aria-controls="pdf-compress-panel"
+                aria-label="Reduce Size. Make your PDF smaller for sharing."
+            >
+                <svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M7 3.5h12l6 6v19H7zM19 3.5v6h6"></path>
+                    <path d="M3 17h9m-3-3 3 3-3 3M29 23h-9m3-3-3 3 3 3"></path>
+                </svg>
+                <span class="pdf-task-copy">
+                    <strong>Reduce Size</strong>
+                    <small>Make your PDF smaller for sharing.</small>
+                </span>
+            </button>
+            <button
                 id="pdf-task-combine-btn"
                 type="button"
                 class="pdf-task-button active"
@@ -94,24 +112,6 @@
                 <span class="pdf-task-copy">
                     <strong>Scanned PDF to Text</strong>
                     <small>Read text from image-based PDFs with OCR</small>
-                </span>
-            </button>
-            <button
-                id="pdf-task-compress-btn"
-                type="button"
-                class="pdf-task-button"
-                data-pdf-task="compress"
-                aria-pressed="false"
-                aria-controls="pdf-compress-panel"
-                aria-label="Compress PDF. Create a smaller copy on this device."
-            >
-                <svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                    <path d="M7 3.5h12l6 6v19H7zM19 3.5v6h6"></path>
-                    <path d="M3 17h9m-3-3 3 3-3 3M29 23h-9m3-3-3 3 3 3"></path>
-                </svg>
-                <span class="pdf-task-copy">
-                    <strong>Compress PDF</strong>
-                    <small>Create a smaller copy on this device</small>
                 </span>
             </button>
                 </nav>
@@ -588,7 +588,7 @@
 
         <section id="pdf-compress-panel" class="pdf-standalone-task pdf-compress-panel hidden" data-pdf-task-panel="compress" aria-labelledby="pdf-compress-title">
             <header class="pdf-standalone-task-head">
-                <span class="pdf-eyebrow">Compress PDF · Free local tool</span>
+                <span class="pdf-eyebrow">Reduce Size · Free local tool</span>
                 <h4 id="pdf-compress-title">A lighter copy, not a changed original</h4>
                 <p>Choose a PDF, create a copy, then compare the size and download. Your file stays on this device.</p>
             </header>
