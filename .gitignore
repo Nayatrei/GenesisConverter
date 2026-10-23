@@ -11,3 +11,9 @@ before.png
 node_modules/
 playwright-report/
 test-results/
+
+# Local visual-review artifacts; not part of the production static site.
+/mockups/bento-immersive-20261023/
+/mockups/genesis-editor-bento-immersive-20261023.zip
+/mockups/genesis-editor-stage-review-20261023.zip
+/mockups/implemented-stage-review-20261023/

@@ -40,12 +40,15 @@ const releaseHashFiles = [...new Set([
     path.join(root, 'three-setup.js'),
     path.join(root, 'imagetracer_v1.2.6.js'),
     path.join(root, 'style.css'),
+    path.join(root, 'stage-theme.css'),
     path.join(root, 'annotate.css'),
     path.join(root, 'landing.css'),
     path.join(root, 'landing.js'),
+    path.join(root, 'site-chrome.js'),
     path.join(root, '3d-obj.html'),
     path.join(root, 'index.html'),
     path.join(root, 'auth', 'callback', 'index.html'),
+    ...walkFiles(path.join(root, 'guides'), (_filePath, filename) => /\.(?:html|css)$/.test(filename)),
     ...walkFiles(path.join(root, 'modules'), (_filePath, filename) => !/ \d+\.[^.]+$/.test(filename)),
     ...walkFiles(path.join(root, 'vendor'), (_filePath, filename) => !filename.startsWith('.'))
 ])].sort((left, right) => left.localeCompare(right));
@@ -75,8 +78,11 @@ function normalizeTextForReleaseHash(filePath, source) {
             .replace(/(app-bootstrap\.js)\?v=[^"']+/g, '$1?v=' + GENERATED_VERSION_PLACEHOLDER)
             .replace(/(style\.css)\?v=[^"']+/g, '$1?v=' + GENERATED_VERSION_PLACEHOLDER)
             .replace(/(annotate\.css)\?v=[^"']+/g, '$1?v=' + GENERATED_VERSION_PLACEHOLDER)
+            .replace(/(stage-theme\.css)\?v=[^"']+/g, '$1?v=' + GENERATED_VERSION_PLACEHOLDER)
+            .replace(/(\/guides\/guide\.css)\?v=[^"']+/g, '$1?v=' + GENERATED_VERSION_PLACEHOLDER)
             .replace(/(landing\.css)\?v=[^"']+/g, '$1?v=' + GENERATED_VERSION_PLACEHOLDER)
             .replace(/(landing\.js)\?v=[^"']+/g, '$1?v=' + GENERATED_VERSION_PLACEHOLDER)
+            .replace(/(site-chrome\.js)\?v=[^"']+/g, '$1?v=' + GENERATED_VERSION_PLACEHOLDER)
             .replace(/(genesis-id\.css)\?v=[^"']+/g, '$1?v=' + GENERATED_VERSION_PLACEHOLDER)
             .replace(/(genesis-id\.js)\?v=[^"']+/g, '$1?v=' + GENERATED_VERSION_PLACEHOLDER);
     }
@@ -157,6 +163,7 @@ function main() {
         const stamped = source
             .replace(/(app-bootstrap\.js)\?v=[^"']+/g, '$1?v=' + version)
             .replace(/(style\.css)\?v=[^"']+/g, '$1?v=' + version)
+            .replace(/(stage-theme\.css)\?v=[^"']+/g, '$1?v=' + version)
             .replace(/(annotate\.css)\?v=[^"']+/g, '$1?v=' + version)
             .replace(/(genesis-id\.css)\?v=[^"']+/g, '$1?v=' + version)
             .replace(/(genesis-id\.js)\?v=[^"']+/g, '$1?v=' + version);
@@ -167,6 +174,7 @@ function main() {
     const landing = fs.readFileSync(landingPath, 'utf8');
     const stampedLanding = landing
         .replace(/(landing\.css)\?v=[^"']+/g, '$1?v=' + version)
+        .replace(/(stage-theme\.css)\?v=[^"']+/g, '$1?v=' + version)
         .replace(/(annotate\.css)\?v=[^"']+/g, '$1?v=' + version)
         .replace(/(landing\.js)\?v=[^"']+/g, '$1?v=' + version)
         .replace(/(genesis-id\.css)\?v=[^"']+/g, '$1?v=' + version)
@@ -176,9 +184,28 @@ function main() {
     const callbackPath = path.join(root, 'auth', 'callback', 'index.html');
     const callback = fs.readFileSync(callbackPath, 'utf8');
     const stampedCallback = callback
+        .replace(/(stage-theme\.css)\?v=[^"']+/g, '$1?v=' + version)
         .replace(/(genesis-id\.css)\?v=[^"']+/g, '$1?v=' + version)
         .replace(/(genesis-id\.js)\?v=[^"']+/g, '$1?v=' + version);
     writeOrCheck(callbackPath, stampedCallback, failures);
+
+    for (const filePath of walkFiles(path.join(root, 'guides'), (_path, name) => name.endsWith('.html'))) {
+        const source = fs.readFileSync(filePath, 'utf8');
+        writeOrCheck(filePath, source
+            .replace(/(stage-theme\.css)\?v=[^"']+/g, '$1?v=' + version)
+            .replace(/(\/guides\/guide\.css)\?v=[^"']+/g, '$1?v=' + version), failures);
+    }
+
+    const chromePages = [...toolEntrypoints, 'index.html',
+        ...walkFiles(path.join(root, 'guides'), (_path, name) => name.endsWith('.html'))
+            .map(filepath => path.relative(root, filepath))];
+    for (const filename of chromePages) {
+        const filepath = path.join(root, filename);
+        const source = fs.readFileSync(filepath, 'utf8');
+        writeOrCheck(filepath, source
+            .replace(/(site-chrome\.js)\?v=[^"']+/g, '$1?v=' + version)
+            .replace(/(genesis-id\.(?:js|css))\?v=[^"']+/g, '$1?v=' + version), failures);
+    }
 
     if (failures.length) {
         throw new Error(

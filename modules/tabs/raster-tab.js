@@ -6,7 +6,7 @@ import {
     getFormatLabel,
     getRasterExtension,
     getScaledDimensions
-} from '../raster-utils.js?v=r-a962f21ef9708c00';
+} from '../raster-utils.js?v=r-8acb18e35a0108d5';
 import {
     ADJUSTMENT_KEYS,
     DEFAULT_ADJUSTMENTS,
@@ -15,7 +15,7 @@ import {
     isNeutralAdjustments,
     matchFilterPreset,
     normalizeAdjustments
-} from '../shared/image-adjust.js?v=r-a962f21ef9708c00';
+} from '../shared/image-adjust.js?v=r-8acb18e35a0108d5';
 
 // Live preview never renders above this edge length. Sliders re-run the whole
 // adjustment pass on every debounced tick, so a 6000px source would otherwise
@@ -790,7 +790,7 @@ export function createRasterTabController({
     // ── Adjustments ─────────────────────────────────────────────────────────
 
     function getAdjustSliders() {
-        return document.querySelectorAll('#tab-raster [data-adjust]');
+        return document.querySelectorAll('.raster-v2 [data-adjust]');
     }
 
     function syncAdjustmentUi() {
@@ -799,7 +799,7 @@ export function createRasterTabController({
             if (!(key in edit.adjustments)) return;
             slider.value = String(edit.adjustments[key]);
         });
-        document.querySelectorAll('#tab-raster [data-adjust-value]').forEach((output) => {
+        document.querySelectorAll('.raster-v2 [data-adjust-value]').forEach((output) => {
             const key = output.dataset.adjustValue;
             if (!(key in edit.adjustments)) return;
             const value = edit.adjustments[key];
@@ -808,7 +808,7 @@ export function createRasterTabController({
         });
 
         const activePreset = matchFilterPreset(edit.adjustments);
-        document.querySelectorAll('#tab-raster [data-preset]').forEach((chip) => {
+        document.querySelectorAll('.raster-v2 [data-preset]').forEach((chip) => {
             chip.classList.toggle('active', chip.dataset.preset === activePreset);
         });
 
@@ -954,7 +954,7 @@ export function createRasterTabController({
             });
         });
 
-        document.querySelectorAll('#tab-raster [data-preset]').forEach((chip) => {
+        document.querySelectorAll('.raster-v2 [data-preset]').forEach((chip) => {
             chip.addEventListener('click', () => {
                 setAdjustments(getFilterPreset(chip.dataset.preset), { immediate: true });
                 if (elements.statusText) {

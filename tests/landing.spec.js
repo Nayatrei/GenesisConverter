@@ -1,11 +1,11 @@
 const { test, expect } = require('@playwright/test');
 
-test('root shows the bilingual landing page instead of opening a tool', async ({ page }) => {
+test('root shows the Stage home instead of opening a tool', async ({ page }) => {
     await page.goto('/');
 
     await expect(page).toHaveURL(/\/$/);
-    await expect(page.getByRole('heading', { name: /Images to 3D.*Tools to create/ })).toBeVisible();
-    await expect(page.locator('#hero-title')).toContainText('Images to 3D.');
+    await expect(page.getByRole('heading', { name: /From a spark.*To something real/ })).toBeVisible();
+    await expect(page.locator('#hero-title')).toContainText('From a spark.');
     await expect(page.locator('body')).not.toContainText(/[가-힣]/);
     await expect(page.locator('.tool-card')).toHaveCount(6);
     await expect(page.locator('.tool-card-3d')).toContainText('Trace a flat image into shallow, printable color layers.');

@@ -4,7 +4,8 @@ const { test, expect } = require('@playwright/test');
 
 const root = path.resolve(__dirname, '..');
 const footer = fs.readFileSync(path.join(root, 'modules/partials/footer-brand.html'), 'utf8');
-const styles = fs.readFileSync(path.join(root, 'style.css'), 'utf8');
+const styles = fs.readFileSync(path.join(root, 'style.css'), 'utf8')
+    + fs.readFileSync(path.join(root, 'stage-theme.css'), 'utf8');
 const accountUrl = 'https://id.genesisframeworks.com/account';
 
 test('shared footer keeps account management central and has no donation or checkout action', () => {
@@ -17,7 +18,7 @@ for (const width of [320, 390, 1440]) {
         // Local markup and existing styles only: no account, provider, or link navigation.
         await page.route('**/*', (route) => route.abort());
         await page.setViewportSize({ width, height: 1280 });
-        await page.setContent(`<style>${styles}</style>${footer}`);
+        await page.setContent(`<style>${styles}</style><body class="immersive-stage">${footer}</body>`);
 
         const account = page.getByRole('link', { name: 'Genesis ID account', exact: true });
         const manage = page.getByRole('link', { name: 'Manage Genesis ID', exact: true });

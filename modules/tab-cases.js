@@ -1,8 +1,8 @@
 /**
  * Tab Case Registry
  * -----------------
- * Each tab declares — in one place — what its first column (sidebar) and
- * second column (workspace) should look like. This replaces the scattered
+ * Each tab declares — in one place — which shared controls and workspace
+ * content are available in its main workflow. This replaces the scattered
  * `classList.toggle('hidden', ...)` calls that used to live in converter.js.
  *
  * To add a new tab or change what a tab shows, edit the registry entry —
@@ -38,7 +38,7 @@ export const TAB_CASES = {
         accentRgb: '56, 189, 248',
         importTitle: '1. Load Image',
         importButton: 'Import From Device',
-        importCopy: 'Choose a single image from your device or paste a direct image URL. Supported imports: {{formats}}.',
+        importCopy: 'Open an image from your device or paste a direct image URL.',
         importAria: 'Import an image from your device',
         sections: new Set([
             'import-image',
@@ -61,7 +61,7 @@ export const TAB_CASES = {
         accentRgb: '167, 139, 250',
         importTitle: '1. Load Image',
         importButton: 'Import From Device',
-        importCopy: 'Choose a single image from your device or paste a direct image URL. Supported imports: {{formats}}.',
+        importCopy: 'Open an image from your device or paste a direct image URL.',
         importAria: 'Import an image from your device',
         sections: new Set([
             'import-image',
@@ -84,7 +84,7 @@ export const TAB_CASES = {
         accentRgb: '251, 191, 36',
         importTitle: '1. Load Image',
         importButton: 'Import From Device',
-        importCopy: 'Choose a single image from your device or paste a direct image URL. Supported imports: {{formats}}.',
+        importCopy: 'Open an image from your device or paste a direct image URL.',
         importAria: 'Import an image from your device',
         sections: new Set([
             'import-image',
@@ -104,7 +104,7 @@ export const TAB_CASES = {
         accentRgb: '244, 114, 182',
         importTitle: '1. Load Image',
         importButton: 'Import From Device',
-        importCopy: 'Choose a single image from your device or paste a direct image URL. Supported imports: {{formats}}.',
+        importCopy: 'Open an image from your device or paste a direct image URL.',
         importAria: 'Import an image from your device',
         sections: new Set([
             'import-image',
@@ -131,8 +131,7 @@ export const TAB_CASES = {
         ])
     },
 
-    // PDF exposes independent browser-local conversion tools. The PDF file
-    // queue stays in column 1 while the selected task runs in the workspace.
+    // PDF owns its task chooser and file queue inside its main workspace.
     pdf: {
         label: 'PDF',
         eyebrow: 'Private PDF tools',
@@ -146,9 +145,7 @@ export const TAB_CASES = {
         importCopy: null,
         importAria: null,
         hideResolutionNotice: true,
-        sections: new Set([
-            'pdf-tools'
-        ])
+        sections: new Set([])
     }
 };
 
@@ -159,7 +156,6 @@ const SIDEBAR_SECTION_NODES = [
     'adjust-svg',
     'adjust-logo',
     'adjust-3d',
-    'pdf-tools',
     'footer',
     'footer-svg',
     'footer-logo'
@@ -195,7 +191,12 @@ export function applyTabCase(name, ctx = {}) {
     // derived from the tab name (panel id `tab-<name>`, footer data-tab-footer).
     document.querySelectorAll('.segmented-control-tab').forEach((btn) => {
         btn.classList.toggle('active', btn.dataset.tab === name);
+        if (btn.dataset.tab === name) btn.setAttribute('aria-current', 'page');
+        else btn.removeAttribute('aria-current');
     });
+    if (window.innerWidth < 1024) {
+        document.querySelector('.stage-header [aria-current="page"]')?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+    }
     document.querySelectorAll('.export-panel').forEach((panel) => {
         panel.classList.toggle('hidden', panel.id !== `tab-${name}`);
     });
@@ -242,6 +243,7 @@ export function applyTabCase(name, ctx = {}) {
     }
     if (importCopyEl && caseConfig.importCopy) {
         importCopyEl.textContent = caseConfig.importCopy.replace('{{formats}}', importablePrompt);
+        importCopyEl.title = 'Supported imports: ' + importablePrompt + '.';
     }
     if (importBtnEl && caseConfig.importAria) {
         importBtnEl.setAttribute('aria-label', caseConfig.importAria);

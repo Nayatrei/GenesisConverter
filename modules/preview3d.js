@@ -1,21 +1,21 @@
-import { OBJ_ZOOM_MIN, OBJ_ZOOM_MAX, BED_PRESETS } from './config.js?v=r-a962f21ef9708c00';
+import { OBJ_ZOOM_MIN, OBJ_ZOOM_MAX, BED_PRESETS } from './config.js?v=r-8acb18e35a0108d5';
 import {
     fitObjScalePlanToGeometryBounds,
     formatObjScalePercent
-} from './obj-scale.js?v=r-a962f21ef9708c00';
+} from './obj-scale.js?v=r-8acb18e35a0108d5';
 import {
     buildObjGeometryBundle,
     buildObjModelPlan,
     retargetObjModelPlanPrintStyle,
     updateObjModelPlanLayerHeights
-} from './obj-model-plan.js?v=r-a962f21ef9708c00';
-import { resolveMergedLayerGroups } from './shared/trace-utils.js?v=r-a962f21ef9708c00';
-import { getGeometryBundleBounds } from './shared/print-validation.js?v=r-a962f21ef9708c00';
-import { updateMagnetPocketStatus } from './shared/magnet-pocket-controls.js?v=r-a962f21ef9708c00';
+} from './obj-model-plan.js?v=r-8acb18e35a0108d5';
+import { resolveMergedLayerGroups } from './shared/trace-utils.js?v=r-8acb18e35a0108d5';
+import { getGeometryBundleBounds } from './shared/print-validation.js?v=r-8acb18e35a0108d5';
+import { updateMagnetPocketStatus } from './shared/magnet-pocket-controls.js?v=r-8acb18e35a0108d5';
 import {
     createObjGeometrySnapshot,
     objGeometrySnapshotsMatch
-} from './shared/obj-geometry-snapshot.js?v=r-a962f21ef9708c00';
+} from './shared/obj-geometry-snapshot.js?v=r-8acb18e35a0108d5';
 
 const BED_CONTACT_EPSILON = 0.005;
 const BED_FIT_TOLERANCE_MM = 0.05;

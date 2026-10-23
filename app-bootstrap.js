@@ -81,6 +81,8 @@ async function boot() {
 
     const style = document.getElementById('app-stylesheet');
     if (style) style.href = `style.css?v=${encodeURIComponent(version)}`;
+    const stageStyle = document.getElementById('stage-stylesheet');
+    if (stageStyle) stageStyle.href = `stage-theme.css?v=${encodeURIComponent(version)}`;
 
     const currentTracerScript = [...document.scripts].some((script) => {
         if (!script.src) return false;

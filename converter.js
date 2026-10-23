@@ -1,9 +1,9 @@
-import { createAnnotateTabController } from './modules/tabs/annotate-tab.js?v=r-a962f21ef9708c00';
-import { createBulkTabController } from './modules/tabs/bulk-tab.js?v=r-a962f21ef9708c00';
-import { createRasterTabController } from './modules/tabs/raster-tab.js?v=r-a962f21ef9708c00';
-import { createSvgTabController } from './modules/tabs/svg-tab.js?v=r-a962f21ef9708c00';
-import { createLogoTabController } from './modules/tabs/logo-tab.js?v=r-a962f21ef9708c00';
-import { createPdfTabController } from './modules/tabs/pdf-tab.js?v=r-a962f21ef9708c00';
+import { createAnnotateTabController } from './modules/tabs/annotate-tab.js?v=r-8acb18e35a0108d5';
+import { createBulkTabController } from './modules/tabs/bulk-tab.js?v=r-8acb18e35a0108d5';
+import { createRasterTabController } from './modules/tabs/raster-tab.js?v=r-8acb18e35a0108d5';
+import { createSvgTabController } from './modules/tabs/svg-tab.js?v=r-8acb18e35a0108d5';
+import { createLogoTabController } from './modules/tabs/logo-tab.js?v=r-8acb18e35a0108d5';
+import { createPdfTabController } from './modules/tabs/pdf-tab.js?v=r-8acb18e35a0108d5';
 import {
     getDataUrlSize,
     getFileStem,
@@ -11,15 +11,16 @@ import {
     IMPORTABLE_IMAGE_PROMPT,
     isImportableImageFile,
     normalizeImageBlob
-} from './modules/raster-utils.js?v=r-a962f21ef9708c00';
+} from './modules/raster-utils.js?v=r-8acb18e35a0108d5';
 // Only the classifier is imported eagerly — it is a few string checks. The
 // ~1.4 MB libheif WebAssembly build behind decodeHeicToBlob stays unloaded
 // until the HEIC branch below actually asks for it.
-import { isHeicFile } from './modules/shared/heic.js?v=r-a962f21ef9708c00';
-import { createElements } from './modules/app-elements.js?v=r-a962f21ef9708c00';
-import { createState } from './modules/app-state.js?v=r-a962f21ef9708c00';
-import { applyTabCase, TAB_CASES } from './modules/tab-cases.js?v=r-a962f21ef9708c00';
-import { bindMagnetPocketControls } from './modules/shared/magnet-pocket-controls.js?v=r-a962f21ef9708c00';
+import { isHeicFile } from './modules/shared/heic.js?v=r-8acb18e35a0108d5';
+import { createElements } from './modules/app-elements.js?v=r-8acb18e35a0108d5';
+import { createState } from './modules/app-state.js?v=r-8acb18e35a0108d5';
+import { applyTabCase, TAB_CASES } from './modules/tab-cases.js?v=r-8acb18e35a0108d5';
+import { bindMagnetPocketControls } from './modules/shared/magnet-pocket-controls.js?v=r-8acb18e35a0108d5';
+import { mountStageLayout } from './modules/stage-layout.js?v=r-8acb18e35a0108d5';
 
 async function loadTabPartials() {
     const appVersion = window.__GENESIS_APP_VERSION__
@@ -41,11 +42,6 @@ async function loadTabPartials() {
         if (footer && footerSlot) footerSlot.outerHTML = footer.outerHTML;
     }));
 
-    const brandRes = await fetch(withVersion('modules/partials/footer-brand.html'));
-    if (!brandRes.ok) throw new Error(`Failed to load the footer (HTTP ${brandRes.status}).`);
-    const brandHtml = await brandRes.text();
-    const brandSlot = document.getElementById('footer-brand-slot');
-    if (brandSlot) brandSlot.outerHTML = brandHtml;
 }
 
 async function initializeApplication() {
@@ -466,7 +462,7 @@ async function initializeApplication() {
     // is never downloaded by visitors who only import PNG/JPG.
     async function convertHeicForImport(file, updateImportProgress, progress = 0.08) {
         updateImportProgress(progress, `Converting ${file.name || 'image'} from HEIC`);
-        const { decodeHeicToBlob } = await import('./modules/shared/heic.js?v=r-a962f21ef9708c00');
+        const { decodeHeicToBlob } = await import('./modules/shared/heic.js?v=r-8acb18e35a0108d5');
         const pngBlob = await decodeHeicToBlob(file, 'image/png');
         const pngName = `${getFileStem(file.name || 'image')}.png`;
         return new File([pngBlob], pngName, { type: 'image/png' });
@@ -652,7 +648,10 @@ async function initializeApplication() {
         }
 
         elements.exportTabs.forEach((btn) => {
-            btn.addEventListener('click', () => {
+            btn.addEventListener('click', (event) => {
+                // Real links still support open-in-new-tab and no-JS navigation.
+                if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+                event.preventDefault();
                 switchExportTab(btn.dataset.tab, { historyMode: 'push' });
             });
         });
@@ -672,6 +671,8 @@ async function initializeApplication() {
         svgTab.bindEvents();
         logoTab.bindEvents();
         pdfTab.bindEvents();
+        // Capture controller node lists and bind handlers before reparenting.
+        mountStageLayout();
 
         // SVG and Logo own their active 3D pipelines. Other tabs still need one
         // source-load completion path so the import overlay cannot remain open.

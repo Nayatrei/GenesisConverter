@@ -1,7 +1,7 @@
-import { SLIDER_TOOLTIPS } from '../config.js?v=r-a962f21ef9708c00';
-import { createObjPreview } from '../preview3d.js?v=r-a962f21ef9708c00';
-import { createObjExporter } from '../export3d.js?v=r-a962f21ef9708c00';
-import { hasTransparentPixels, markTransparentPixels, stripTransparentPalette } from '../shared/image-utils.js?v=r-a962f21ef9708c00';
+import { SLIDER_TOOLTIPS } from '../config.js?v=r-8acb18e35a0108d5';
+import { createObjPreview } from '../preview3d.js?v=r-8acb18e35a0108d5';
+import { createObjExporter } from '../export3d.js?v=r-8acb18e35a0108d5';
+import { hasTransparentPixels, markTransparentPixels, stripTransparentPalette } from '../shared/image-utils.js?v=r-8acb18e35a0108d5';
 import {
     debounce,
     layerHasPaths,
@@ -9,31 +9,31 @@ import {
     buildTracedataSubset,
     createMergedTracedata,
     assess3DPrintQuality
-} from '../shared/trace-utils.js?v=r-a962f21ef9708c00';
-import { buildWeldedSilhouetteSvgString } from '../shared/silhouette-builder.js?v=r-a962f21ef9708c00';
-import { saveInitialSliderValues, updateAllSliderDisplays, resetSlidersToInitial } from '../shared/slider-manager.js?v=r-a962f21ef9708c00';
-import { createZoomPanController } from '../shared/zoom-pan.js?v=r-a962f21ef9708c00';
-import { svgToPng } from '../shared/svg-renderer.js?v=r-a962f21ef9708c00';
-import { createPaletteManager } from '../shared/palette-manager.js?v=r-a962f21ef9708c00';
-import { formatObjScalePercent } from '../obj-scale.js?v=r-a962f21ef9708c00';
-import { createAutoWorkingImageFromSource } from '../raster-utils.js?v=r-a962f21ef9708c00';
-import { canAttemptBambuLaunch } from '../bambu-bridge.js?v=r-a962f21ef9708c00';
+} from '../shared/trace-utils.js?v=r-8acb18e35a0108d5';
+import { buildWeldedSilhouetteSvgString } from '../shared/silhouette-builder.js?v=r-8acb18e35a0108d5';
+import { saveInitialSliderValues, updateAllSliderDisplays, resetSlidersToInitial } from '../shared/slider-manager.js?v=r-8acb18e35a0108d5';
+import { createZoomPanController } from '../shared/zoom-pan.js?v=r-8acb18e35a0108d5';
+import { svgToPng } from '../shared/svg-renderer.js?v=r-8acb18e35a0108d5';
+import { createPaletteManager } from '../shared/palette-manager.js?v=r-8acb18e35a0108d5';
+import { formatObjScalePercent } from '../obj-scale.js?v=r-8acb18e35a0108d5';
+import { createAutoWorkingImageFromSource } from '../raster-utils.js?v=r-8acb18e35a0108d5';
+import { canAttemptBambuLaunch } from '../bambu-bridge.js?v=r-8acb18e35a0108d5';
 import {
     buildTraceOptions,
     cycleTracePreset,
     estimateMeaningfulColorCount,
     getColorCountNoticeMessage,
     readTraceControls
-} from '../shared/trace-controls.js?v=r-a962f21ef9708c00';
-import { setMakerWorkflow, updateMakerPreflight } from '../shared/maker-workflow.js?v=r-a962f21ef9708c00';
+} from '../shared/trace-controls.js?v=r-8acb18e35a0108d5';
+import { setMakerWorkflow, updateMakerPreflight } from '../shared/maker-workflow.js?v=r-8acb18e35a0108d5';
 import {
     applyAmsPrintStylePreset,
     renderAmsPrintStyleChange,
     syncAmsPrintStyleControls,
     toggleFaceDownPrintStyle
-} from '../shared/ams-print-style.js?v=r-a962f21ef9708c00';
-import { yieldToBrowser } from '../shared/bambu-send-progress.js?v=r-a962f21ef9708c00';
-import { syncShared3dControls } from '../shared/ui-syncer.js?v=r-a962f21ef9708c00';
+} from '../shared/ams-print-style.js?v=r-8acb18e35a0108d5';
+import { yieldToBrowser } from '../shared/bambu-send-progress.js?v=r-8acb18e35a0108d5';
+import { syncShared3dControls } from '../shared/ui-syncer.js?v=r-8acb18e35a0108d5';
 
 export function createSvgTabController({
     state,

@@ -1,5 +1,8 @@
 const fs = require('node:fs');
 const path = require('node:path');
+const { syncSiteChrome } = require('./sync-site-chrome.js');
+
+syncSiteChrome();
 
 const root = path.resolve(__dirname, '..');
 const canonicalEntrypoint = path.join(root, '3d-obj.html');

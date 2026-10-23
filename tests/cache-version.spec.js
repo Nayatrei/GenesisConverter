@@ -44,6 +44,11 @@ test('tool entrypoints use the stable bootstrap and one release version', () => 
         `<script type="module" src="app-bootstrap.js?v=${manifest.version}"></script>`
     );
     expect(canonical).toContain(`href="style.css?v=${manifest.version}"`);
+    expect(canonical).toContain(`href="stage-theme.css?v=${manifest.version}"`);
+    for (const filename of ['3d-obj.html', 'index.html', 'guides/index.html', 'guides/image-to-stl.html', 'guides/logo-to-3mf.html']) {
+        expect(fs.readFileSync(path.join(ROOT, filename), 'utf8')).toContain(`src="/site-chrome.js?v=${manifest.version}"`);
+    }
+    expect(fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8')).toContain(`href="stage-theme.css?v=${manifest.version}"`);
     expect(canonical).not.toMatch(/<script[^>]+src="imagetracer_v1\.2\.6\.js/);
     expect(canonical).not.toMatch(/<script[^>]+src="three-setup\.js/);
     expect(canonical).not.toMatch(/src="converter[^"]+"/);

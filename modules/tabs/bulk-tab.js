@@ -1,4 +1,4 @@
-import { createZipFile } from '../export3d.js?v=r-a962f21ef9708c00';
+import { createZipFile } from '../export3d.js?v=r-8acb18e35a0108d5';
 import {
     canvasToBlobAsync,
     estimateSizeBytes,
@@ -16,7 +16,7 @@ import {
     loadImageElementFromFile,
     sanitizeFileComponent,
     supportsAlphaForFormat
-} from '../raster-utils.js?v=r-a962f21ef9708c00';
+} from '../raster-utils.js?v=r-8acb18e35a0108d5';
 import {
     ADJUSTMENT_KEYS,
     ADJUSTMENT_RANGES,
@@ -28,7 +28,7 @@ import {
     isNeutralAdjustments,
     matchFilterPreset,
     normalizeAdjustments
-} from '../shared/image-adjust.js?v=r-a962f21ef9708c00';
+} from '../shared/image-adjust.js?v=r-8acb18e35a0108d5';
 
 // ── Export formats ─────────────────────────────────────────────────────────
 // WEBP is wrapped locally rather than pushed into raster-utils.js, matching the
@@ -127,7 +127,7 @@ let heicModulePromise = null;
 function loadHeicModule() {
     if (!heicModulePromise) {
         // A failed load clears the cache so a later batch can retry.
-        heicModulePromise = import('../shared/heic.js?v=r-a962f21ef9708c00')
+        heicModulePromise = import('../shared/heic.js?v=r-8acb18e35a0108d5')
             .catch((error) => {
                 heicModulePromise = null;
                 throw error;
@@ -612,7 +612,7 @@ export function createBulkTabController({
             if (elements.bulkSelectedPath) {
                 elements.bulkSelectedPath.textContent = state.bulk.folderName
                     ? 'This folder does not have a selectable preview item yet.'
-                    : 'Choose a folder from the left sidebar to begin.';
+                    : 'Choose a folder above to begin.';
             }
             if (elements.bulkSelectedExportName) elements.bulkSelectedExportName.textContent = '—';
             if (elements.bulkSelectedOriginalDims) elements.bulkSelectedOriginalDims.textContent = '—';
@@ -764,7 +764,7 @@ export function createBulkTabController({
             empty.className = 'bulk-empty-state';
             empty.textContent = state.bulk.folderName
                 ? `No compatible images were found. Supported imports include ${IMPORTABLE_IMAGE_PROMPT}.`
-                : `Choose a folder from the left sidebar to see compatible images. Supported imports include ${IMPORTABLE_IMAGE_PROMPT}.`;
+                : `Choose a folder above to see compatible images. Supported imports include ${IMPORTABLE_IMAGE_PROMPT}.`;
             elements.bulkSourceList.appendChild(empty);
             return;
         }
@@ -792,7 +792,7 @@ export function createBulkTabController({
             empty.className = 'bulk-empty-state';
             empty.textContent = state.bulk.folderName
                 ? 'No bulk preview is available for this folder.'
-                : 'Choose a folder from the left sidebar to preview bulk output.';
+                : 'Choose a folder above to preview bulk output.';
             elements.bulkPreviewList.appendChild(empty);
             return;
         }

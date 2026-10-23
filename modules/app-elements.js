@@ -162,7 +162,6 @@ export function createElements() {
             fileList: document.getElementById('pdf-file-list'),
             guidedShell: document.getElementById('pdf-guided-shell'),
             taskNavigation: document.getElementById('pdf-task-navigation'),
-            taskNavigationSidebarHost: document.getElementById('pdf-task-navigation-sidebar-host'),
             taskNavigationWorkspaceHost: document.getElementById('pdf-task-navigation-workspace-host'),
             taskButtons: document.querySelectorAll('[data-pdf-task]'),
             taskPanels: document.querySelectorAll('[data-pdf-task-panel]'),

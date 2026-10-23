@@ -8,8 +8,8 @@
     <meta name="genesis-id-origin" content="https://id.genesisframeworks.com">
     <meta name="genesis-id-app-id" content="genesis-editor">
     <meta name="genesis-id-callback-path" content="/auth/callback/">
-    <title>Connecting Genesis ID — Genesis Image Tools</title>
-    <link rel="stylesheet" href="/genesis-id.css?v=r-a962f21ef9708c00">
+    <title>Connecting Genesis ID — Genesis Editor</title>
+    <link rel="stylesheet" href="/genesis-id.css?v=r-8acb18e35a0108d5">
     <style>
         :root { color-scheme: light; font-family: Inter, system-ui, sans-serif; }
         body { min-height: 100vh; margin: 0; display: grid; place-items: center; color: #24202d; background: #f3f0fa; }
@@ -19,14 +19,15 @@
         a { display: none; margin-top: 1.2rem; color: #6d28d9; font-weight: 700; }
         main[data-state="error"] a { display: inline-block; }
     </style>
+    <link rel="stylesheet" href="/stage-theme.css?v=r-8acb18e35a0108d5">
 </head>
-<body>
+<body class="immersive-stage stage-callback">
     <main id="callback-status" aria-live="polite">
         <h1>Connecting Genesis ID</h1>
         <p>Verifying the one-time connection code.</p>
-        <a href="/">Back to Image Tools</a>
+        <a href="/">Back to Genesis Editor</a>
     </main>
-    <script src="/genesis-id.js?v=r-a962f21ef9708c00"></script>
+    <script src="/genesis-id.js?v=r-8acb18e35a0108d5"></script>
     <script>
         (async () => {
             const status = document.getElementById('callback-status');

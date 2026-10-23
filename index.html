@@ -1,218 +1,124 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Image &amp; Logo to 3D for Bambu Studio | Genesis Image Tools</title>
-    <meta name="description" content="Turn images into layered 3D models, resize and convert images, and work with PDFs in your browser. Explore tools and step-by-step guides.">
-    <meta property="og:title" content="Genesis Image Tools">
-    <meta property="og:description" content="Image, 3D, resize, bulk, and PDF tools in your browser.">
-    <meta property="og:type" content="website">
-    <meta property="og:image" content="https://editor.genesisframeworks.com/icon-512.png">
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Genesis Editor | Image, 3D &amp; PDF Tools</title>
+    <meta name="description" content="Turn images into layered 3D prints, resize and annotate pictures, and work with PDFs. Six private browser tools. No sign-in required.">
     <link rel="canonical" href="https://editor.genesisframeworks.com/">
+    <meta property="og:title" content="Genesis Editor | Image, 3D &amp; PDF Tools">
+    <meta property="og:description" content="From a spark to something real. Six creative tools in your browser.">
+    <meta property="og:type" content="website">
     <meta property="og:url" content="https://editor.genesisframeworks.com/">
-    <meta name="theme-color" content="#F3F0FA">
+    <meta property="og:image" content="https://editor.genesisframeworks.com/icon-512.png">
+    <meta name="theme-color" content="#0b0b10">
     <meta name="genesis-id-origin" content="https://id.genesisframeworks.com">
     <meta name="genesis-id-app-id" content="genesis-editor">
     <meta name="genesis-id-callback-path" content="/auth/callback/">
     <link rel="manifest" href="manifest.webmanifest?v=1">
     <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png?v=1">
-    <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png?v=1">
     <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png?v=1">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800&family=Noto+Sans+KR:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="landing.css?v=r-a962f21ef9708c00">
-    <link rel="stylesheet" href="annotate.css?v=r-a962f21ef9708c00">
-    <link rel="stylesheet" href="genesis-id.css?v=r-a962f21ef9708c00">
-    <script src="landing.js?v=r-a962f21ef9708c00" defer></script>
-    <script src="genesis-id.js?v=r-a962f21ef9708c00" defer></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="landing.css?v=r-8acb18e35a0108d5">
+    <link rel="stylesheet" href="genesis-id.css?v=r-8acb18e35a0108d5">
+    <link rel="stylesheet" href="stage-theme.css?v=r-8acb18e35a0108d5">
+    <script src="landing.js?v=r-8acb18e35a0108d5" defer></script>
+    <script src="genesis-id.js?v=r-8acb18e35a0108d5" defer></script>
+    <script src="/site-chrome.js?v=r-8acb18e35a0108d5" defer></script>
 </head>
-<body>
-    <a class="skip-link" href="#tools">Skip to tools</a>
-
-    <header class="site-header">
-        <a class="brand" href="/" aria-label="Genesis Image Tools home">
-            <img src="icon-192.png?v=1" alt="" width="38" height="38">
-            <span class="brand-name">Genesis</span>
-            <span class="brand-product">Image Tools</span>
-        </a>
-        <nav class="site-nav" aria-label="Main navigation">
-            <a href="/guides/">Guides</a>
-            <div data-genesis-id-slot data-variant="landing"></div>
-            <a class="recent-tool" id="recent-tool-link" href="/3d-obj">
-                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7M3 4v5h5M12 7v5l3 2"/></svg>
-                <span>Recent tool</span>
-            </a>
-        </nav>
-    </header>
-
-    <main>
-        <section class="hero" id="about" aria-labelledby="hero-title">
-            <div class="hero-copy">
-                <p class="eyebrow">START WITH AN OUTCOME</p>
-                <h1 id="hero-title">Images to 3D.<br><span>Tools to create.</span></h1>
-                <p class="hero-description">
-                    Create layered 3D prints for Bambu Studio, resize images, and organize PDFs.
+<body class="immersive-stage landing-stage">
+    <a class="stage-skip skip-link" href="#tools">Skip to tools</a>
+    <!-- HEADER:start -->
+<header class="stage-header">
+    <a class="stage-brand" href="/" aria-label="Genesis Editor home"><span class="stage-brand-mark" aria-hidden="true">g</span><span>Genesis Editor<small>THE CREATIVE TOOLKIT</small></span></a>
+    <div class="workspace-topbar">
+        <div class="workspace-toolbar-group">
+            <nav class="segmented-control-container" aria-label="Main navigation">
+                <div class="segmented-control">
+                    <a class="stage-nav-link" href="/" data-nav-id="home" aria-current="page">Home</a>
+                    <a class="stage-nav-link segmented-control-tab export-tab" href="/3d-obj" data-tab="svg"><span class="workspace-tab-title">Bambu 3D</span></a>
+                    <a class="stage-nav-link segmented-control-tab export-tab" href="/logo" data-tab="logo"><span class="workspace-tab-title">Logo</span></a>
+                    <a class="stage-nav-link segmented-control-tab export-tab" href="/raster" data-tab="raster"><span class="workspace-tab-title">Raster</span></a>
+                    <a class="stage-nav-link segmented-control-tab export-tab" href="/bulk" data-tab="bulk"><span class="workspace-tab-title">Bulk</span></a>
+                    <a class="stage-nav-link segmented-control-tab export-tab" href="/pdf" data-tab="pdf"><span class="workspace-tab-title">PDF</span></a>
+                    <a class="stage-nav-link segmented-control-tab export-tab" href="/annotate" data-tab="annotate"><span class="workspace-tab-title">Annotate</span></a>
+                    <a class="stage-nav-link" href="/guides/" data-nav-id="guides">Guides</a>
+                </div>
+            </nav>
+        </div>
+    </div>
+    <div class="stage-header-actions"><div data-genesis-id-slot data-variant="tool"></div></div>
+</header>
+<!-- HEADER:end -->
+    <main class="landing-content">
+        <section class="hero" aria-labelledby="hero-title">
+            <div class="hero-copy"><p class="eyebrow">A SMALL TOOLKIT. A WORLD OF POSSIBILITIES.</p><h1 id="hero-title">From a spark.<br>To something <em>real.</em></h1><p class="hero-description">Turn images into 3D prints. Refine your pictures.<br>Get your documents ready. All in your browser.</p><div class="hero-actions"><a class="landing-primary" href="/3d-obj" data-tool-path="/3d-obj">Start with an image <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M5 12h14m-6-6 6 6-6 6"/></svg></a><a href="#tools">Explore all tools ↓</a></div><p class="hero-privacy">Local conversion · No sign-in required</p></div>
+            <div class="hero-art" aria-hidden="true"><div class="landing-orbit"></div><div class="landing-plate"><span class="landing-plate-base"></span><b>G</b><i></i></div><span class="hero-orbit-note">FROM PIXELS TO PRINT</span><span class="hero-art-caption">FLAT IMAGE → LAYERED 3D</span></div>
+        </section>
+        <section id="tools" class="tool-section" aria-labelledby="tools-title">
+            <div class="section-heading"><div><p class="eyebrow">CHOOSE YOUR NEXT MOVE</p><h2 id="tools-title">Six tools. No detours.</h2></div><p>Pick a tool. Get straight to work.</p></div>
+            <div class="tool-grid">
+            <a class="tool-card tool-card-3d" href="/3d-obj" data-tool-path="/3d-obj"><div class="tool-copy"><span class="eyebrow">01 / MAKE IT TANGIBLE</span><h2>Image to 3D</h2><p class="tool-description">Trace a flat image into shallow, printable color layers.</p><span class="tool-action">Make a 3D print<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M5 12h14m-6-6 6 6-6 6"/></svg></span></div><div class="tool-visual" aria-hidden="true"><div class="landing-plate"><span class="landing-plate-base"></span><b>G</b><i></i></div></div><span class="tool-format">3MF · STL · OBJ · SVG</span></a>
+            <a class="tool-card tool-card-logo" href="/logo" data-tool-path="/logo"><div class="tool-copy"><span class="eyebrow">02 / ANOTHER DIMENSION</span><h2>Logo to 3D</h2><p class="tool-description">Build printable depth from logos, text, HTML or SVG.</p><span class="tool-action">Build your mark<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M5 12h14m-6-6 6 6-6 6"/></svg></span></div><div class="tool-visual" aria-hidden="true"><div class="landing-wordmark"><b>GENESIS</b><small>AN IDEA, WITH DEPTH.</small></div></div><span class="tool-format">TEXT & HTML → 3D</span></a>
+            <a class="tool-card tool-card-resize" href="/raster" data-tool-path="/raster"><div class="tool-copy"><span class="eyebrow">03 / PIXEL PERFECT</span><h2>Resize Image</h2><p class="tool-description">Crop, resize and convert a single image.</p><span class="tool-action">Edit an image<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M5 12h14m-6-6 6 6-6 6"/></svg></span></div><div class="tool-visual" aria-hidden="true"><div class="landing-photo"><svg width="160" height="100" viewBox="0 0 320 190" aria-hidden="true"><rect width="320" height="190" fill="#b8c6ba"/><circle cx="250" cy="48" r="22" fill="#eedbb2"/><path d="M0 142 80 36l73 91 39-53 128 116H0Z" fill="#5d817c"/><path d="m59 64 21-28 25 30-19-7-9 11-8-9-10 3Z" fill="#e3e5d6"/><path d="M0 144c99-25 210 5 320-13v59H0Z" fill="#315a59"/><path d="M0 174c120-20 200 17 320-12v28H0Z" fill="#213f40"/></svg><i class="landing-crop"></i></div></div><span class="tool-format">JPG · PNG · WEBP · TGA</span></a>
+            <a class="tool-card tool-card-bulk" href="/bulk" data-tool-path="/bulk"><div class="tool-copy"><span class="eyebrow">04 / ONE SHARED SETUP</span><h2>Bulk Resize</h2><p class="tool-description">Process a whole folder. Download one ZIP.</p><span class="tool-action">Open a folder<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M5 12h14m-6-6 6 6-6 6"/></svg></span></div><div class="tool-visual" aria-hidden="true"><div class="landing-photo landing-batch"><svg width="160" height="100" viewBox="0 0 320 190" aria-hidden="true"><rect width="320" height="190" fill="#b8c6ba"/><circle cx="250" cy="48" r="22" fill="#eedbb2"/><path d="M0 142 80 36l73 91 39-53 128 116H0Z" fill="#5d817c"/><path d="m59 64 21-28 25 30-19-7-9 11-8-9-10 3Z" fill="#e3e5d6"/><path d="M0 144c99-25 210 5 320-13v59H0Z" fill="#315a59"/><path d="M0 174c120-20 200 17 320-12v28H0Z" fill="#213f40"/></svg><b>ZIP</b></div></div><span class="tool-format">FOLDER → ZIP</span></a>
+            <a class="tool-card tool-card-pdf" href="/pdf" data-tool-path="/pdf"><div class="tool-copy"><span class="eyebrow">05 / DOCUMENTS, SIMPLIFIED</span><h2>PDF Tools</h2><p class="tool-description">Reduce size, combine, convert or read scanned text.</p><span class="tool-action">Work with a PDF<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M5 12h14m-6-6 6 6-6 6"/></svg></span></div><div class="tool-visual" aria-hidden="true"><div class="landing-papers"><span>PDF</span><i>→</i><span>PDF</span></div></div><span class="tool-format">FIVE PDF WORKFLOWS</span></a>
+            <a class="tool-card tool-card-annotate" href="/annotate" data-tool-path="/annotate"><div class="tool-copy"><span class="eyebrow">06 / MAKE YOUR POINT</span><h2>Annotate Image</h2><p class="tool-description">Draw, label, blur and frame your image.</p><span class="tool-action">Mark up an image<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M5 12h14m-6-6 6 6-6 6"/></svg></span></div><div class="tool-visual" aria-hidden="true"><div class="landing-photo"><svg width="160" height="100" viewBox="0 0 320 190" aria-hidden="true"><rect width="320" height="190" fill="#b8c6ba"/><circle cx="250" cy="48" r="22" fill="#eedbb2"/><path d="M0 142 80 36l73 91 39-53 128 116H0Z" fill="#5d817c"/><path d="m59 64 21-28 25 30-19-7-9 11-8-9-10 3Z" fill="#e3e5d6"/><path d="M0 144c99-25 210 5 320-13v59H0Z" fill="#315a59"/><path d="M0 174c120-20 200 17 320-12v28H0Z" fill="#213f40"/></svg><i class="landing-annotation"></i></div></div><span class="tool-format">DRAW · TEXT · BLUR</span></a>
+            </div>
+        </section>
+        <section class="guide-intro" aria-labelledby="guide-title"><div><p class="eyebrow">LEARN BY MAKING</p><h2 id="guide-title">First time making a 3D print?</h2></div><a href="/guides/image-to-stl.html">Image to STL <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M5 12h14m-6-6 6 6-6 6"/></svg></a><a href="/guides/logo-to-3mf.html">Logo to Bambu Studio <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M5 12h14m-6-6 6 6-6 6"/></svg></a></section>
+        <p class="landing-recent"><a id="recent-tool-link" href="/3d-obj">↶ Return to your recent tool</a></p>
+    </main>
+    <!-- FOOTER:start -->
+<footer class="brand-footer" aria-label="Genesis Frameworks company information">
+    <div class="brand-footer-inner">
+        <div class="brand-footer-grid">
+            <div class="brand-footer-col-wide">
+                <div class="brand-footer-logo">
+                    <img src="/genesis-logo.png?v=1" width="64" height="64" alt="Genesis Frameworks" class="brand-footer-icon">
+                    <h3 class="brand-footer-title">Genesis Frameworks</h3>
+                </div>
+                <p class="brand-footer-desc">
+                    Genesis Frameworks builds practical creative tools — image editing, PDF workflows, and 3D printing, together in your browser.
                 </p>
             </div>
-            <div class="hero-note" aria-label="Service details">
-                <span class="status-dot" aria-hidden="true"></span>
-                <p><strong>Private, in-browser processing</strong></p>
+            <div>
+                <h4 class="brand-footer-heading">Links</h4>
+                <ul class="brand-footer-links">
+                    <li><a href="https://genesisframeworks.com/" target="_blank" rel="noopener noreferrer" class="brand-footer-link">Genesis Frameworks</a></li>
+                    <li><a href="https://genesischat.online/" target="_blank" rel="noopener noreferrer" class="brand-footer-link">Genesis Chat</a></li>
+                    <li><a href="https://aistudio.genesisframeworks.com/" target="_blank" rel="noopener noreferrer" class="brand-footer-link">Genesis AI Studio</a></li>
+                    <li><a href="https://editor.genesisframeworks.com/" target="_blank" rel="noopener noreferrer" class="brand-footer-link">Genesis Image Tools</a></li>
+                    <li><a href="https://id.genesisframeworks.com/account" target="_blank" rel="noopener noreferrer" class="brand-footer-link">Genesis ID account</a></li>
+                </ul>
             </div>
-        </section>
-
-        <section class="tool-grid" id="tools" aria-label="Choose a tool">
-            <a class="tool-card tool-card-3d" href="/3d-obj" data-tool-path="/3d-obj" style="--order: 0">
-                <div class="tool-copy">
-                    <div class="tool-heading">
-                        <span class="tool-icon" aria-hidden="true">
-                            <svg viewBox="0 0 24 24"><path d="m12 2 8 4.5v11L12 22l-8-4.5v-11L12 2Z"/><path d="m4 6.5 8 4.5 8-4.5M12 11v11"/></svg>
-                        </span>
-                        <span class="tool-number">01</span>
-                    </div>
-                    <h2>Image to 3D</h2>
-                    <p class="tool-description">Trace a flat image into shallow, printable color layers.</p>
-                    <span class="tool-action">Open tool <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 10h11M11 6l4 4-4 4"/></svg></span>
-                </div>
-                <div class="tool-visual image-3d-visual" aria-label="Flat image converted into a shallow 3D relief">
-                    <div class="conversion-stage source-stage">
-                        <span class="stage-label">FLAT IMAGE</span>
-                        <div class="source-art">
-                            <img src="testImage.png" alt="I am an artist flat graphic">
-                        </div>
-                    </div>
-                    <div class="conversion-arrow" aria-hidden="true">
-                        <span></span>
-                        <svg viewBox="0 0 32 16"><path d="M1 8h27M22 2l6 6-6 6"/></svg>
-                    </div>
-                    <div class="conversion-stage relief-stage">
-                        <span class="stage-label">LAYERED 3D</span>
-                        <div class="relief-stack" aria-hidden="true">
-                            <span class="relief-back relief-layer"></span>
-                            <span class="relief-mid relief-layer"></span>
-                            <span class="relief-front relief-layer"><img src="testImage.png" alt=""></span>
-                        </div>
-                    </div>
-                </div>
-            </a>
-
-            <a class="tool-card tool-card-logo" href="/logo" data-tool-path="/logo" style="--order: 1">
-                <div class="tool-copy">
-                    <div class="tool-heading">
-                        <span class="tool-icon" aria-hidden="true">
-                            <svg viewBox="0 0 24 24"><path d="m12 3 2.3 4.7 5.2.8-3.8 3.7.9 5.2-4.6-2.5-4.6 2.5.9-5.2-3.8-3.7 5.2-.8L12 3Z"/></svg>
-                        </span>
-                        <span class="tool-number">02</span>
-                    </div>
-                    <h2>Logo to 3D</h2>
-                    <p class="tool-description">Build printable depth from logos, text, HTML, or SVG.</p>
-                    <span class="tool-action">Open tool <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 10h11M11 6l4 4-4 4"/></svg></span>
-                </div>
-                <div class="tool-visual logo-visual" aria-hidden="true">
-                    <div class="logo-sample flat-logo"><span>GENESIS</span><small>FLAT</small></div>
-                    <svg class="mini-arrow" viewBox="0 0 52 20"><path d="M2 10h44M39 4l7 6-7 6"/></svg>
-                    <div class="logo-sample extruded-logo"><span>GENESIS</span><small>DEPTH</small></div>
-                </div>
-            </a>
-
-            <a class="tool-card tool-card-resize" href="/raster" data-tool-path="/raster" style="--order: 2">
-                <div class="tool-copy compact-copy">
-                    <div class="tool-heading">
-                        <span class="tool-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M8 3H3v5M16 3h5v5M8 21H3v-5M16 21h5v-5M3 8l6-6M21 8l-6-6M3 16l6 6M21 16l-6 6"/></svg></span>
-                        <span class="tool-number">03</span>
-                    </div>
-                    <h2>Resize Image</h2>
-                    <p class="tool-description">Resize and export a single image precisely.</p>
-                    <span class="tool-action">Open tool <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 10h11M11 6l4 4-4 4"/></svg></span>
-                </div>
-                <div class="tool-visual resize-visual" aria-hidden="true">
-                    <div class="picture picture-before"><span>1024</span><svg viewBox="0 0 180 110"><path d="M0 82 42 42l27 25 36-43 75 86H0Z"/><circle cx="145" cy="26" r="10"/></svg></div>
-                    <svg class="mini-arrow" viewBox="0 0 52 20"><path d="M2 10h44M39 4l7 6-7 6"/></svg>
-                    <div class="picture picture-after"><span>1920</span><svg viewBox="0 0 230 110"><path d="M0 82 54 42l34 25 46-43 96 86H0Z"/><circle cx="185" cy="26" r="10"/></svg></div>
-                </div>
-            </a>
-
-            <a class="tool-card tool-card-bulk" href="/bulk" data-tool-path="/bulk" style="--order: 3">
-                <div class="tool-copy compact-copy">
-                    <div class="tool-heading">
-                        <span class="tool-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="m12 3 9 4.5-9 4.5-9-4.5L12 3Z"/><path d="m3 12 9 4.5 9-4.5M3 16.5 12 21l9-4.5"/></svg></span>
-                        <span class="tool-number">04</span>
-                    </div>
-                    <h2>Bulk Resize</h2>
-                    <p class="tool-description">Convert a folder at once and download one ZIP.</p>
-                    <span class="tool-action">Open tool <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 10h11M11 6l4 4-4 4"/></svg></span>
-                </div>
-                <div class="tool-visual bulk-visual" aria-hidden="true">
-                    <div class="folder-shape"><span>12</span><small>FILES</small></div>
-                    <div class="file-stream"><i></i><i></i><i></i></div>
-                    <svg class="mini-arrow" viewBox="0 0 52 20"><path d="M2 10h44M39 4l7 6-7 6"/></svg>
-                    <div class="zip-shape"><span>ZIP</span><small>ONE FILE</small></div>
-                </div>
-            </a>
-
-            <a class="tool-card tool-card-pdf" href="/pdf" data-tool-path="/pdf" style="--order: 4">
-                <div class="tool-copy compact-copy">
-                    <div class="tool-heading">
-                        <span class="tool-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M6 2h8l4 4v16H6V2Z"/><path d="M14 2v5h5M9 12h6M9 16h6"/></svg></span>
-                        <span class="tool-number">05</span>
-                    </div>
-                    <h2>PDF Tools</h2>
-                    <p class="tool-description">Compress, combine, arrange, and export PDFs.</p>
-                    <span class="tool-action">Open tool <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 10h11M11 6l4 4-4 4"/></svg></span>
-                </div>
-                <div class="tool-visual pdf-visual" aria-hidden="true">
-                    <div class="pdf-pages incoming"><i></i><i></i><i></i></div>
-                    <div class="pdf-merge"><svg viewBox="0 0 32 32"><path d="M7 7h6v6M25 7h-6v6M13 10l3 3 3-3M16 13v12"/></svg></div>
-                    <div class="pdf-pages outgoing"><i><b>PDF</b></i></div>
-                </div>
-            </a>
-
-            <a class="tool-card tool-card-annotate" href="/annotate" data-tool-path="/annotate" style="--order: 5">
-                <div class="tool-copy compact-copy">
-                    <div class="tool-heading">
-                        <span class="tool-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5Z"/></svg></span>
-                        <span class="tool-number">06</span>
-                    </div>
-                    <h2>Annotate Image</h2>
-                    <p class="tool-description">Draw, label, blur, and frame an image, then export it.</p>
-                    <span class="tool-action">Open tool <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 10h11M11 6l4 4-4 4"/></svg></span>
-                </div>
-                <div class="tool-visual annotate-visual" aria-hidden="true">
-                    <svg class="annotate-visual-art" viewBox="0 0 260 170" role="presentation">
-                        <rect class="annotate-art-plate" x="8" y="10" width="244" height="150" rx="12"/>
-                        <path class="annotate-art-scene" d="M20 132 62 92l26 24 34-40 66 56H20Z"/>
-                        <circle class="annotate-art-scene" cx="176" cy="52" r="12"/>
-                        <g class="annotate-art-pixels">
-                            <rect x="36" y="30" width="10" height="10"/><rect x="46" y="30" width="10" height="10"/><rect x="56" y="30" width="10" height="10"/>
-                            <rect x="36" y="40" width="10" height="10"/><rect x="46" y="40" width="10" height="10"/><rect x="56" y="40" width="10" height="10"/>
-                        </g>
-                        <rect class="annotate-art-mark" x="112" y="66" width="66" height="52" rx="8"/>
-                        <path class="annotate-art-mark" d="M66 142 108 104"/>
-                        <path class="annotate-art-arrow" d="M108 104 96 108l6 8Z"/>
-                        <text class="annotate-art-label" x="34" y="152">NOTE</text>
-                    </svg>
-                </div>
-            </a>
-        </section>
-        <section class="guide-intro" aria-labelledby="guide-title">
-            <p class="eyebrow">LEARN BY MAKING</p>
-            <h2 id="guide-title">From your first image to a printable model</h2>
-            <p>Learn which artwork works best, how to check dimensions, and when to choose STL or 3MF.</p>
-            <p><a href="/guides/image-to-stl.html">How to convert an image to STL →</a></p>
-            <p><a href="/guides/logo-to-3mf.html">Create a logo for Bambu Studio →</a></p>
-        </section>
-    </main>
-
-    <footer class="site-footer">
-        <a class="site-footer-brand" href="https://genesisframeworks.com/" target="_blank" rel="noopener noreferrer" aria-label="Genesis Frameworks">
-            <img src="genesis-logo.png?v=1" alt="Genesis Frameworks">
-            <span>Genesis Frameworks</span>
-        </a>
-        <div class="site-footer-notes">
-            <p><span>Private in your browser</span></p>
-            <p><span>No sign-in required</span></p>
+            <div>
+                <h4 class="brand-footer-heading">Contact</h4>
+                <ul class="brand-footer-links">
+                    <li><a href="mailto:jong@genesisframeworks.com" class="brand-footer-link">jong@genesisframeworks.com</a></li>
+                    <li><a href="https://www.linkedin.com/in/jonglee77/" target="_blank" rel="noopener noreferrer" class="brand-footer-link">LinkedIn — Jong Lee</a></li>
+                </ul>
+            </div>
         </div>
-    </footer>
+        <div class="brand-footer-bottom">
+            <p class="brand-footer-copy">&copy; <span data-footer-year>2026</span> Genesis Frameworks. All rights reserved.</p>
+            <div class="brand-footer-account">
+                <a href="https://id.genesisframeworks.com/account" target="_blank" rel="noopener noreferrer" class="brand-footer-account-link" title="Manage your shared Genesis ID account">
+                    <span class="brand-footer-account-icon" aria-hidden="true">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true" focusable="false">
+                            <circle cx="12" cy="7" r="3"/>
+                            <path d="M5 21v-2a7 7 0 0 1 14 0v2"/>
+                        </svg>
+                    </span>
+                    <span>Manage Genesis ID</span>
+                </a>
+            </div>
+            <p class="brand-footer-note">Local conversion. Optional account features use Genesis ID.</p>
+        </div>
+    </div>
+</footer>
+<!-- FOOTER:end -->
 </body>
 </html>
