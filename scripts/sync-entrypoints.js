@@ -1,6 +1,7 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const { syncSiteChrome } = require('./sync-site-chrome.js');
+const { syncBrandIcons } = require('./sync-brand-icons.js');
 
 syncSiteChrome();
 
@@ -35,4 +36,5 @@ for (const slug of [...Object.keys(pages), 'svg']) {
 const urls = ['/', ...Object.keys(pages).map(slug => `/${slug}`),
     '/guides/', '/guides/image-to-stl.html', '/guides/logo-to-3mf.html'];
 fs.writeFileSync(path.join(root, 'sitemap.xml'), `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls.map(url => `  <url><loc>${origin}${url}</loc></url>`).join('\n')}\n</urlset>\n`);
-console.log('Synchronized app shells, unique page metadata and public sitemap.');
+syncBrandIcons();
+console.log('Synchronized app shells, metadata, approved brand icons and sitemap.');
