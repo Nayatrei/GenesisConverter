@@ -65,7 +65,7 @@ body.immersive-stage {
 .stage-header { min-height: 84px; padding: 16px 0; margin: 0 auto; width: min(100% - 64px, 1680px); display: flex; align-items: center; justify-content: space-between; gap: 24px; border-bottom: 1px solid var(--stage-line); }
 .stage-brand { display: inline-flex; align-items: center; gap: 10px; text-decoration: none; font-size: 18px; font-weight: 650; letter-spacing: -.05em; flex-shrink: 0; }
 .stage-brand small { display: block; margin-top: 4px; font-size: 7px; letter-spacing: .18em; font-weight: 500; color: var(--stage-soft); }
-.stage-brand-mark { width: 31px; height: 31px; border-radius: 9px; display: grid; place-items: center; font-size: 22px; font-weight: 700; background: var(--stage-accent); color: var(--stage-on-accent); }
+.stage-brand-mark { width: 40px; height: 40px; flex: 0 0 auto; display: block; object-fit: contain; border: 0; border-radius: 0; background: transparent; box-shadow: none; }
 .stage-header-actions { display: flex; align-items: center; gap: 18px; flex-shrink: 0; }
 .stage-header-actions > a { font-size: 11px; text-decoration: none; color: var(--stage-muted); }
 .immersive-stage .stage-header { position: sticky; top: 0; z-index: 100; background: #0b0b10fa; line-height: 1.4; }
@@ -253,7 +253,7 @@ body.immersive-stage.app-shell-v2 .spinner { border-color: #d3b3ff30; border-top
 @media (max-width: 620px) {
     .stage-brand { font-size: 16px; }
     .stage-brand small { font-size: 6px; }
-    .stage-brand-mark { width: 28px; height: 28px; }
+    .stage-brand-mark { width: 36px; height: 36px; }
     body.immersive-stage.app-shell-v2 .stage-intro .tab-case-strip-title { font-size: 27px; }
     body.immersive-stage.app-shell-v2 .tab-case-strip-desc { font-size: 11px; }
     body.immersive-stage.app-shell-v2 .stage-header-actions { gap: 8px; }
